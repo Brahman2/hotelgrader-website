@@ -35,11 +35,87 @@ not in the code.
 
 ## Publishing changes
 
-- Push to `main` and Netlify auto-builds and deploys to hotelgrader.com in about
-  one to two minutes.
-- For anything bigger than a copy tweak, push a **branch** instead. Netlify
-  builds a **preview URL** for that branch so you can check it before it goes
-  live, then merge the branch into `main` to publish.
+There are two ways to publish, depending on how big the change is.
+
+- **Small copy tweak:** push to `main` and Netlify auto-builds and deploys to
+  hotelgrader.com in about one to two minutes.
+- **Anything bigger:** work on a **branch**, let Netlify build a preview of just
+  that branch, check it, then merge into `main` to go live. Nothing reaches the
+  live site until the merge. The full walkthrough is below.
+
+### The branch workflow, step by step
+
+The idea: your changes live on a separate branch, Netlify builds a preview of
+just that branch, and only merging into `main` publishes to the live site.
+
+1. **Start from an up-to-date `main`.** Pull the latest so you are not building
+   on stale code:
+
+       git checkout main
+       git pull
+
+2. **Create a branch and switch to it.** One command does both. Name it for what
+   you are doing (the `patrick/` prefix is just convention, any name works):
+
+       git checkout -b patrick/hero-copy
+
+   Anything you commit now goes on this branch, not on `main`.
+
+3. **Make your edits.** Change files in your editor and run `npm run dev` to
+   check locally at http://localhost:4321 as you go.
+
+4. **Stage and commit.** Staging picks which changes to save, committing saves
+   them as a checkpoint with a message:
+
+       git add -A
+       git commit -m "Tighten hero headline and subhead"
+
+5. **Push the branch to GitHub.** The first push needs `-u` to link your local
+   branch to a matching one on GitHub:
+
+       git push -u origin patrick/hero-copy
+
+   After that first time, later pushes on the same branch are just `git push`.
+
+6. **Open a Pull Request.** On GitHub, after pushing, a banner appears: "Compare
+   and pull request." Click it, add a short title, create the PR. A PR is just a
+   request to merge your branch into `main`.
+
+7. **Find the Netlify preview.** Within a minute or two, Netlify builds your
+   branch and posts a link in the PR. Look in the checks section at the bottom of
+   the PR for "Deploy Preview" and its View deployment link. That URL is your
+   branch's version of the site, live but separate from production. Share it, get
+   feedback.
+
+8. **Keep tweaking if needed.** More edits? Repeat commit and `git push` (no
+   `-u` now) on the same branch. Netlify rebuilds the preview automatically each
+   time.
+
+9. **Publish by merging.** When it is approved, click Merge pull request on
+   GitHub. That merges your branch into `main`, which triggers the real deploy to
+   hotelgrader.com. About one to two minutes later it is live.
+
+10. **Tidy up.** Return to main and pull the merged change. GitHub also offers a
+    Delete branch button on the merged PR, which is safe to click:
+
+        git checkout main
+        git pull
+
+### The no-terminal alternative
+
+Same workflow, fewer commands, using a GUI:
+
+- **VS Code:** the Source Control panel in the left sidebar has buttons for
+  branch, commit, and push. The current branch name shows in the bottom-left
+  status bar.
+- **GitHub Desktop:** Current Branch, New Branch, make edits, Commit to branch,
+  Push origin, then Create Pull Request (which opens GitHub).
+
+Either way, the GitHub PR and Netlify preview steps (6 through 9) are identical.
+
+### The one-line mental model
+
+Branch, commit, push, PR, check the Netlify preview, merge to go live.
 
 ## Copy rules
 
