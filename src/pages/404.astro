@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Page not found · hotelgrader" description="That page doesn't exist. The free audit does.">
+  <section class="max-w-content mx-auto px-8 py-24 text-center">
+    <span class="label block mb-4">404 · NOT IN THE INDEX</span>
+    <h1 class="headline text-[44px] sm:text-[64px]" style="text-wrap: balance;">
+      This page doesn’t exist. <em>Your grade does.</em>
+    </h1>
+    <p class="text-[15px] text-ink-60 mt-5 max-w-[460px] mx-auto leading-relaxed">
+      The address may have moved or never existed. Everything worth reading is one
+      click away.
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-3 mt-9">
+      <a href="/" class="btn btn--primary">
+        <span>Back to the homepage</span>
+        <span data-arrow aria-hidden="true">→</span>
+      </a>
+      <a href="/methodology" class="btn border-edge-strong">Methodology</a>
+      <a href="/pricing" class="btn border-edge-strong">Pricing</a>
+    </div>
+    <p class="meta tabular mt-10">FREE AUDIT · 46 METRICS · 30 SECONDS · <a href="/#get-the-report" class="text-indigo hover:underline" style="border-bottom: 0;">RUN YOURS →</a></p>
+  </section>
+</BaseLayout>

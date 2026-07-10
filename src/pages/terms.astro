@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const sections = [
+  {
+    head: 'The service',
+    body: 'hotelgrader produces marketing-performance grades for hotel properties from publicly available data. The audit is free. Paid plans add recurring tracking and an action queue.',
+  },
+  {
+    head: 'Grades are opinions, built honestly',
+    body: 'A grade is a point-in-time reading of public signals, produced by a published methodology. It is not a guarantee of revenue, a valuation, or advice. Sources change, and grades change with them.',
+  },
+  {
+    head: 'Fair use',
+    body: 'Run audits on hotels you operate, own, represent, or compete with. Do not scrape, resell, or misrepresent reports as your own product. Shared grade cards must keep their scan date.',
+  },
+  {
+    head: 'Liability',
+    body: 'The service is provided as-is. To the extent the law allows, our liability is limited to what you paid us in the last twelve months, which for the free audit is zero.',
+  },
+  {
+    head: 'Changes',
+    body: 'When these terms change, the date above changes with them. Continued use means acceptance.',
+  },
+  {
+    head: 'Contact',
+    body: 'contact@hotelgrader.com',
+  },
+];
+---
+
+<BaseLayout title="Terms · hotelgrader" description="The terms of using hotelgrader, in plain language.">
+  <article class="max-w-[720px] mx-auto px-8 py-14 sm:py-16">
+
+    <span class="label block mb-4">TERMS · EFFECTIVE JULY 2026</span>
+    <h1 class="headline text-[36px] sm:text-[46px]">Terms, in plain language.</h1>
+
+    <div class="mt-10 border-t border-edge">
+      {sections.map((s, i) => (
+        <section class="py-7 border-b border-edge">
+          <div class="grid grid-cols-[44px_1fr] gap-5">
+            <span class="meta tabular pt-1">{String(i + 1).padStart(2, '0')}</span>
+            <div>
+              <h2 class="text-[17px] font-semibold tracking-tight">{s.head}</h2>
+              <p class="text-[14px] text-ink-60 mt-2 leading-relaxed">{s.body}</p>
+            </div>
+          </div>
+        </section>
+      ))}
+    </div>
+
+  </article>
+</BaseLayout>

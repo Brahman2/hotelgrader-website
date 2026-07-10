@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Bundled fonts (offline-safe) ---------- */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/InterDisplay-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/InterDisplay-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/InterDisplay-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/InterDisplay-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('/fonts/SourceSerif4Variable-Roman.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('/fonts/SourceSerif4Variable-Italic.woff2') format('woff2-variations');
+}
+
+@layer base {
+  html, body {
+    background: #F7F4F0;
+    color: #0B1220;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  p { margin: 0; }
+
+  a {
+    color: #5B5BD6;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  a:hover { border-bottom-color: #5B5BD6; }
+
+  :focus-visible {
+    outline: 2px solid #5B5BD6;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* The Grade — always serif, large, centered. */
+  .grade {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    color: #0B1220;
+    font-feature-settings: "ss01";
+  }
+  .grade--good      { color: #1E7F4B; }
+  .grade--warn      { color: #D98A1C; }
+  .grade--attention { color: #C6453D; }
+
+  /* Editorial label — uppercase, letter-spaced, indigo like the live report. */
+  .label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5B5BD6;
+  }
+  .label--indigo { color: #5B5BD6; }
+  .label--muted  { color: rgba(11, 18, 32, 0.6); }
+  .label--ink    { color: #0B1220; }
+
+  /* Display headline — Source Serif, like the live report's editorial voice.
+     Use <em> inside for the italic accent phrase. */
+  .headline {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.05;
+    color: #0B1220;
+  }
+  .headline em {
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  /* Card — hairline border, no shadow. */
+  .card {
+    background: #F7F4F0;
+    border: 1px solid #E6E6E1;
+    border-radius: 6px;
+    padding: 32px;
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1;
+    padding: 12px 18px;
+    border-radius: 6px;
+    border: 1px solid #E6E6E1;
+    background: #F7F4F0;
+    color: #0B1220;
+    cursor: pointer;
+    transition: background 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover  { background: #EFECE7; }
+  .btn:active { background: #E6E2DB; }
+
+  /* Primary action — CTA orange, back by request. The site leads; the app follows. */
+  .btn--primary {
+    background: #D9531C;
+    color: #fff;
+    border-color: #D9531C;
+  }
+  .btn--primary:hover  { background: #C24716; border-color: #C24716; }
+  .btn--primary:active { background: #A93D12; border-color: #A93D12; }
+
+  .btn--indigo {
+    background: #5B5BD6;
+    color: #fff;
+    border-color: #5B5BD6;
+  }
+
+  /* Inputs */
+  .input {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    padding: 14px 16px;
+    border: 1px solid #E6E6E1;
+    border-radius: 6px;
+    background: #F7F4F0;
+    color: #0B1220;
+    outline: none;
+    transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .input:focus { border-color: #0B1220; }
+  .input::placeholder { color: rgba(11, 18, 32, 0.4); }
+}
+
+@layer utilities {
+  /* Stripe-borrowed tabular figures — apply to every number on the site. */
+  .tabular {
+    font-feature-settings: "tnum" 1, "ss01" 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Live-scan status dot pulse (subtle opacity only, per motion rules). */
+  @keyframes hg-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [style*="hg-pulse"] { animation: none !important; }
+  }
+
+  /* Verge-style mono metadata. */
+  .meta {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: rgba(11, 18, 32, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ---------- Motion system ---------- */
+
+  /* Scroll reveal: elements with [data-reveal] rise in when they enter the
+     viewport. Gated on html.js so content is never hidden without JS. */
+  html.js [data-reveal] {
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1), transform 200ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  html.js [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-reveal] { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* Ambient ticker strip. Two copies of the track loop seamlessly. */
+  @keyframes hg-ticker {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: hg-ticker 52s linear infinite;
+  }
+  .ticker:hover .ticker-track { animation-play-state: paused; }
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-track { animation: none; }
+  }
+
+  /* Terminal caret in the live-scan log. */
+  @keyframes hg-caret {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+  .hg-caret-block {
+    display: inline-block;
+    width: 6px;
+    height: 11px;
+    margin-left: 6px;
+    vertical-align: -1px;
+    background: #0B1220;
+    animation: hg-caret 1s steps(2, end) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hg-caret-block { animation: none; }
+  }
+
+  /* Auto-advance progress hairline under the active evidence tab. */
+  @keyframes hg-progress {
+    from { width: 0; }
+    to   { width: 100%; }
+  }
+
+  /* ---------- Hover micro-interactions (fades and 2px shifts only) ---------- */
+
+  /* CTA arrows nudge right on button hover. */
+  [data-arrow] {
+    display: inline-block;
+    transition: transform 150ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .btn:hover [data-arrow] { transform: translateX(2px); }
+
+  /* Evidence tabs: inactive tabs tint on hover. */
+  .evtab { transition: background 120ms cubic-bezier(0.2, 0, 0, 1); }
+  .evtab:hover { background: #F1EEE8; }
+}

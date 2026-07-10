@@ -1,0 +1,32 @@
+---
+import { pillars } from '../content/pillars';
+---
+
+<section class="border border-edge rounded">
+  <div class="px-7 py-3 bg-paper border-b border-edge flex items-baseline justify-between">
+    <span class="label">Section grades</span>
+    <span class="meta tabular">{pillars.length} SECTIONS · 46 METRICS</span>
+  </div>
+  <ul class="list-none p-0 m-0">
+    {pillars.map((p, idx) => (
+      <li class={`grid grid-cols-[64px_1fr] sm:grid-cols-[100px_1fr_170px] items-center gap-4 sm:gap-5 px-5 sm:px-7 py-5 ${idx > 0 ? 'border-t border-edge' : ''}`}>
+        <div class={`grade grade--${p.sample.tone} text-[40px] sm:text-[48px] leading-none tabular`}>
+          {p.sample.grade}
+        </div>
+        <div>
+          <div class="flex items-baseline gap-3">
+            <span class="meta tabular">{p.num}</span>
+            <h4 class="text-[16px] font-semibold tracking-tight">{p.name}</h4>
+          </div>
+          <p class="text-[13px] text-ink-60 mt-1.5 leading-relaxed">{p.oneLiner}</p>
+        </div>
+        <div class="col-span-2 sm:col-span-1 text-left sm:text-right pl-[80px] sm:pl-0 -mt-2 sm:mt-0">
+          <div class="text-[12px] text-ink font-medium tabular">{p.sample.stat}</div>
+          <div class={`meta tabular mt-1 ${p.sample.delta.startsWith('+') || p.sample.delta.startsWith('Top') ? 'text-good' : p.sample.delta.startsWith('−') || p.sample.delta.startsWith('Bottom') ? 'text-attention' : 'text-ink-40'}`}>
+            {p.sample.delta}
+          </div>
+        </div>
+      </li>
+    ))}
+  </ul>
+</section>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Source Serif 4'; src: url('/fonts/SourceSerif4Variable-Roman.woff2') format('woff2-variations'); font-weight: 200 900; }
+  @font-face { font-family: 'Source Serif 4'; src: url('/fonts/SourceSerif4Variable-Italic.woff2') format('woff2-variations'); font-style: italic; font-weight: 200 900; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/InterVariable.woff2') format('woff2-variations'); font-weight: 100 900; }
+  * { margin: 0; box-sizing: border-box; }
+  body { width: 1200px; height: 630px; }
+  #og {
+    width: 1200px; height: 630px; background: #F7F4F0; color: #0B1220;
+    font-family: 'Inter', sans-serif; position: relative; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .top { display: flex; align-items: center; gap: 14px; padding: 48px 64px 0; }
+  .mark { width: 44px; height: 44px; background: #5B5BD6; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; }
+  .word { font-size: 30px; font-weight: 650; letter-spacing: -0.04em; }
+  .mid { padding: 0 64px; }
+  h1 { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 88px; line-height: 1.02; letter-spacing: -0.015em; max-width: 1000px; }
+  h1 em { font-style: italic; font-weight: 500; }
+  .grade { position: absolute; right: 64px; top: 170px; font-family: 'Source Serif 4', serif; font-weight: 500; font-size: 200px; line-height: 0.8; color: #1E7F4B; letter-spacing: -0.02em; }
+  .band { background: #5B5BD6; color: #fff; padding: 26px 64px; display: flex; justify-content: space-between; align-items: baseline; }
+  .band .meta { font-family: ui-monospace, Menlo, monospace; font-size: 19px; letter-spacing: 0.08em; }
+  .band .free { font-family: 'Source Serif 4', serif; font-style: italic; font-size: 26px; }
+</style>
+</head>
+<body>
+  <div id="og">
+    <div class="top">
+      <div class="mark">hg</div>
+      <div class="word">hotelgrader</div>
+    </div>
+    <div class="mid">
+      <h1>Your hotel has a grade.<br><em>You just haven&rsquo;t seen it.</em></h1>
+    </div>
+    <div class="grade">B+</div>
+    <div class="band">
+      <span class="meta">46 METRICS &middot; 7 SECTIONS &middot; 30 SECONDS</span>
+      <span class="free">The audit is free, forever.</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,89 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  showHeader?: boolean;
+  showFooter?: boolean;
+}
+
+const {
+  title = 'hotelgrader · independent performance grading for independent hotels',
+  description = "A 46-metric audit of your property's digital presence, scored across seven categories, delivered in thirty seconds. Free. No credit card.",
+  showHeader = true,
+  showFooter = true,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://hotelgrader.com/og.png" />
+    <meta property="og:site_name" content="hotelgrader" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://hotelgrader.com/og.png" />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          '@id': 'https://hotelgrader.com/#org',
+          name: 'hotelgrader',
+          url: 'https://hotelgrader.com',
+          logo: 'https://hotelgrader.com/assets/favicon.svg',
+          description: 'The independent grade for hotel marketing. 46 metrics, 38 public sources, seven weighted sections.',
+          contactPoint: { '@type': 'ContactPoint', email: 'contact@hotelgrader.com', contactType: 'customer support' },
+        },
+        {
+          '@type': 'WebSite',
+          '@id': 'https://hotelgrader.com/#site',
+          name: 'hotelgrader',
+          url: 'https://hotelgrader.com',
+          publisher: { '@id': 'https://hotelgrader.com/#org' },
+        },
+      ],
+    })} />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+  </head>
+  <body class="bg-bone text-ink font-sans antialiased">
+    {showHeader && <Header />}
+    <main>
+      <slot />
+    </main>
+    {showFooter && <Footer />}
+    <script is:inline>
+      // Scroll reveal: add .is-in when [data-reveal] elements enter the viewport.
+      // data-reveal="120" adds a 120ms stagger delay.
+      (function () {
+        var els = document.querySelectorAll('[data-reveal]');
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced || !('IntersectionObserver' in window)) {
+          els.forEach(function (el) { el.classList.add('is-in'); });
+          return;
+        }
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            var el = entry.target;
+            var delay = el.getAttribute('data-reveal');
+            if (delay) el.style.transitionDelay = delay + 'ms';
+            el.classList.add('is-in');
+            io.unobserve(el);
+          });
+        }, { threshold: 0.15 });
+        els.forEach(function (el) { io.observe(el); });
+      })();
+    </script>
+  </body>
+</html>

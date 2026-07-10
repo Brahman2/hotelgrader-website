@@ -1,0 +1,77 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroForm from '../components/HeroForm.tsx';
+
+const principles = [
+  {
+    num: '01',
+    head: 'Independent',
+    body: 'Everyone else who scores your marketing is selling you something: the OTA wants commission, the agency wants a retainer, the vendor wants a contract. We grade, and the grade cannot be bought.',
+  },
+  {
+    num: '02',
+    head: 'Comparable',
+    body: 'Every hotel gets the same 46 metrics with the same weights. A B+ in Lisbon means what a B+ means in Los Angeles, so owners, GMs, and brokers can finally talk about marketing with one number.',
+  },
+  {
+    num: '03',
+    head: 'Reproducible',
+    body: 'The methodology is published. Run the scan twice and you get the same answer, with the scan date and source count printed on the report.',
+  },
+];
+---
+
+<BaseLayout title="About · hotelgrader" description="hotelgrader is an independent grading authority for hotel marketing. Comparable, reproducible, and never for sale.">
+  <article class="max-w-[760px] mx-auto px-8 py-14 sm:py-16">
+
+    <span class="label block mb-4" data-reveal>ABOUT</span>
+    <h1 class="headline text-[38px] sm:text-[52px]" data-reveal="60">Independent, <em>by design.</em></h1>
+    <p class="font-serif italic text-[17px] sm:text-[18px] text-ink-60 leading-relaxed mt-5 max-w-[560px]" data-reveal="120">
+      Hotels are graded constantly: by OTAs, by agencies, by anyone with a dashboard
+      and an agenda. hotelgrader exists to be the one grade with no agenda at all.
+    </p>
+
+    <section class="mt-12 border-t border-edge">
+      {principles.map((p) => (
+        <div class="flex gap-6 sm:gap-8 items-baseline py-7 border-b border-edge">
+          <span class="font-serif text-[40px] sm:text-[48px] leading-none text-indigo tabular shrink-0">{p.num}</span>
+          <div>
+            <h2 class="headline text-[22px] sm:text-[24px]">{p.head}</h2>
+            <p class="text-[14px] text-ink-60 mt-2 leading-relaxed max-w-[520px]">{p.body}</p>
+          </div>
+        </div>
+      ))}
+    </section>
+
+    <section class="mt-12">
+      <h2 class="headline text-[24px] sm:text-[28px] mb-3">What we sell, and what we never will</h2>
+      <p class="text-[14px] text-ink-60 leading-relaxed max-w-[600px]">
+        The audit is free, forever. We charge for the dashboard: recurring tracking,
+        the prioritized action queue, and the tools to close the gaps your grade
+        found. We will never sell the grade itself, your data, or placement to an OTA.
+      </p>
+      <p class="text-[14px] text-ink-60 leading-relaxed max-w-[600px] mt-4">
+        Questions, corrections, or a grade you want to argue with:
+        <a href="mailto:contact@hotelgrader.com" class="text-indigo hover:underline" style="border-bottom: 0;">contact@hotelgrader.com</a>
+      </p>
+    </section>
+
+    <section class="mt-12 border-t border-edge pt-10">
+      <p class="meta tabular">
+        NEXT · <a href="/methodology" class="text-indigo hover:underline" style="border-bottom: 0;">READ THE METHODOLOGY →</a>
+      </p>
+    </section>
+
+  </article>
+
+  {/* CTA — indigo close */}
+  <section style="background: #5B5BD6;">
+    <div class="max-w-content mx-auto px-8 py-14 text-center">
+      <h2 class="headline text-[28px] sm:text-[34px]" style="text-wrap: balance; color: #fff;">Grade a hotel. <em>Any hotel.</em></h2>
+      <div class="max-w-[560px] mx-auto">
+        <HeroForm client:visible inputId="about-hotel" tone="dark" />
+      </div>
+      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">FREE · NO CREDIT CARD · 30-SECOND ANALYSIS</p>
+    </div>
+  </section>
+</BaseLayout>

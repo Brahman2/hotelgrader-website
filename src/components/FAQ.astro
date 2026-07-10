@@ -1,0 +1,65 @@
+---
+const items = [
+  {
+    q: 'How long does it take?',
+    a: 'About thirty seconds. The scan reads 46 metrics from 38 public sources, builds your comp set, and returns a grade, a rank, and a revenue-upside estimate in one pass.',
+  },
+  {
+    q: 'Is it really free?',
+    a: 'The audit is free forever, no credit card. We charge for the dashboard: recurring scans, grade history, and a prioritized action queue. The grade itself can never be bought, at any tier. Full tiers are on the pricing page.',
+  },
+  {
+    q: 'What exactly do you grade?',
+    a: 'Marketing performance across seven sections: GEO & AI Visibility, Website & Digital Presence, Reputation, Social Media, Advertising & Brand, Booking & Distribution, and Competitive Intelligence. We grade the demand funnel that fills rooms, not the revenue outcome itself.',
+  },
+  {
+    q: 'How does this compare to STR?',
+    a: 'STR benchmarks revenue outcomes, ADR, occupancy, and RevPAR, from data hotels report. We grade the marketing that produces those outcomes, from public data only. Operators run both: STR tells you where revenue landed, hotelgrader shows which channels are leaking the demand behind it.',
+  },
+  {
+    q: 'Do I have to give you access?',
+    a: 'No. Public signals only: search results, review platforms, social profiles, ad libraries, and your booking flow as a guest sees it. No PMS connection, no Google login, no OTA extranet credentials.',
+  },
+  {
+    q: 'How accurate is it?',
+    a: 'Reproducible by design. Every report lists its scan date and source count, the methodology and weights are published, and grades are comp-set adjusted, so a B+ means the same thing in Lisbon as in Los Angeles. When your signals change, the monthly rescan moves the grade.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: items.map((i) => ({
+    '@type': 'Question',
+    name: i.q,
+    acceptedAnswer: { '@type': 'Answer', text: i.a },
+  })),
+};
+---
+
+<script is:inline type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+<section id="faq" class="bg-paper border-y border-edge">
+  <div class="max-w-content mx-auto px-8 py-20">
+  <div class="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-10">
+    <div>
+      <span class="label block mb-3" data-reveal>FAQ</span>
+      <h2 class="headline text-[30px] sm:text-[36px]">
+        The honest answers.
+      </h2>
+    </div>
+    <dl class="border-t border-edge">
+      {items.map((item) => (
+        <details class="group border-b border-edge">
+          <summary class="cursor-pointer flex items-baseline justify-between py-5 px-3 -mx-3 rounded-sm list-none transition-colors duration-150 hover:bg-paper">
+            <dt class="text-[17px] font-medium text-ink leading-snug pr-4">
+              {item.q}
+            </dt>
+            <span aria-hidden="true" class="text-ink-40 text-[20px] transition-transform group-open:rotate-45 select-none leading-none">+</span>
+          </summary>
+          <dd class="text-[14px] text-ink-60 leading-relaxed pb-6 max-w-[560px]">{item.a}</dd>
+        </details>
+      ))}
+    </dl>
+  </div>
+  </div>
+</section>

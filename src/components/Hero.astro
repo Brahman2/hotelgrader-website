@@ -1,0 +1,30 @@
+---
+import HeroForm from './HeroForm.tsx';
+import HeroDemo from './HeroDemo.tsx';
+import SourcesStrip from './SourcesStrip.astro';
+---
+
+<section class="px-8 pt-16 pb-14 max-w-content mx-auto">
+  {/* Asymmetric head: headline left, deck right */}
+  <div class="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-8 lg:gap-14 items-end">
+    <h1 class="headline text-[46px] sm:text-[60px] lg:text-[68px]" data-reveal>
+      Your hotel has a grade. <em>You just haven’t seen it.</em>
+    </h1>
+    <p class="font-serif italic text-[17px] sm:text-[18px] text-ink-60 leading-relaxed lg:pb-2 max-w-[420px]" data-reveal="80">
+      A 46-metric audit of your property’s digital presence: the AI engines, the search
+      page, the reviews, the ads, the booking flow. Scored against your comp set,
+      delivered in thirty seconds.
+    </p>
+  </div>
+
+  <div class="max-w-[600px] mt-2">
+    <HeroForm client:load align="left" />
+    <p class="text-[12px] text-ink-40 mt-3 tabular">
+      Free · no credit card · 4.9 ★ from 500+ hotels · 30-second analysis
+    </p>
+  </div>
+
+  <HeroDemo client:load />
+
+  <SourcesStrip />
+</section>

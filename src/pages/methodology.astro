@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroForm from '../components/HeroForm.tsx';
+import { pillars } from '../content/pillars';
+
+const bands = [
+  { letter: 'A', range: '90–100', tint: 'rgba(30, 127, 75, 0.11)',  text: '#1E7F4B', desc: 'Top tier' },
+  { letter: 'B', range: '80–89',  tint: 'rgba(30, 127, 75, 0.07)',  text: '#1E7F4B', desc: 'Above market' },
+  { letter: 'C', range: '65–79',  tint: 'rgba(217, 138, 28, 0.06)', text: '#D98A1C', desc: 'At market' },
+  { letter: 'D', range: '45–64',  tint: 'rgba(217, 138, 28, 0.10)', text: '#D98A1C', desc: 'Below market' },
+  { letter: 'F', range: '0–44',   tint: 'rgba(198, 69, 61, 0.08)',  text: '#C6453D', desc: 'Significantly below' },
+];
+
+const signals: Record<string, string> = {
+  '01': 'Prompts run against ChatGPT, Gemini, Perplexity, and Copilot · mention rate · answer-panel coverage · citation quality',
+  '02': 'Core Web Vitals · mobile experience · structured data · indexation · your brand’s search page',
+  '03': 'Review velocity · rating parity across platforms · response rate and lag · guest sentiment',
+  '04': 'Posting cadence · engagement rate vs comp set · content mix · profile completeness',
+  '05': 'Brand-search defense · OTA ad pressure on your name · share of voice · ad-library presence',
+  '06': 'Booking-flow friction · rate presentation · OTA mix · metasearch visibility',
+  '07': 'Rank vs comp set · 90-day momentum · overlap in AI and search results · gap analysis',
+};
+
+const sourceGroups = [
+  { name: 'AI engines',   items: 'ChatGPT · Gemini · Perplexity · Copilot' },
+  { name: 'Search',       items: 'Google · Bing · answer panels · brand SERPs' },
+  { name: 'Reviews',      items: 'Google · TripAdvisor · Booking.com · Expedia' },
+  { name: 'Social',       items: 'Instagram · Facebook · TikTok' },
+  { name: 'Advertising',  items: 'Google Ads transparency · Meta Ad Library' },
+  { name: 'Performance',  items: 'Lighthouse · Chrome UX Report · booking-flow crawl' },
+];
+---
+
+<BaseLayout title="Methodology · hotelgrader" description="How the hotelgrader grade is built: seven weighted sections, 46 metrics, 38 public sources. Published, comparable, reproducible.">
+  <article class="max-w-[860px] mx-auto px-8 py-14 sm:py-16">
+
+    <span class="label block mb-4" data-reveal>METHODOLOGY · V1 · UPDATED JULY 2026</span>
+    <h1 class="headline text-[38px] sm:text-[52px]" data-reveal="60">How the grade is built.</h1>
+    <p class="font-serif italic text-[17px] sm:text-[18px] text-ink-60 leading-relaxed mt-5 max-w-[560px]" data-reveal="120">
+      Every hotel gets the same 46 metrics, from the same 38 public sources, weighted
+      the same way. Nothing to connect, nothing to buy, nothing to argue with.
+    </p>
+
+    {/* Grade scale */}
+    <section class="mt-14">
+      <h2 class="headline text-[24px] sm:text-[28px] mb-6">The scale</h2>
+      <div class="border border-edge rounded overflow-hidden">
+        {bands.map((b, i) => (
+          <div class={`grid grid-cols-[72px_1fr_auto] items-center gap-5 px-6 py-4 ${i > 0 ? 'border-t border-edge' : ''}`} style={`background: ${b.tint};`}>
+            <span class="grade tabular text-[34px] leading-none" style={`color: ${b.text};`}>{b.letter}</span>
+            <span class="text-[14px] text-ink">{b.desc}</span>
+            <span class="meta tabular">{b.range} / 100</span>
+          </div>
+        ))}
+      </div>
+      <p class="text-[13px] text-ink-60 mt-3 leading-relaxed max-w-[620px]">
+        The overall score is the weighted sum of seven section scores. Plus and minus
+        grades mark the top and bottom thirds of each band.
+      </p>
+    </section>
+
+    {/* Seven sections with weights */}
+    <section class="mt-14">
+      <div class="flex items-baseline justify-between mb-6">
+        <h2 class="headline text-[24px] sm:text-[28px]">The seven sections</h2>
+        <span class="meta tabular">WEIGHTS SUM TO 100</span>
+      </div>
+      <div class="border-t border-edge">
+        {pillars.map((p) => (
+          <div id={`s-${p.num}`} class="grid grid-cols-[44px_1fr_auto] gap-4 sm:gap-6 py-6 border-b border-edge scroll-mt-24">
+            <span class="meta tabular pt-1">{p.num}</span>
+            <div>
+              <h3 class="text-[17px] font-semibold tracking-tight">{p.name}</h3>
+              <p class="text-[14px] text-ink-60 mt-1.5 leading-relaxed max-w-[520px]">{p.oneLiner}</p>
+              <p class="meta tabular mt-3 leading-relaxed">{signals[p.num]}</p>
+            </div>
+            <div class="text-right">
+              <span class="font-serif text-[30px] leading-none text-indigo tabular">{p.weight}%</span>
+              <div class="meta tabular mt-1">OF GRADE</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Sources */}
+    <section class="mt-14">
+      <h2 class="headline text-[24px] sm:text-[28px] mb-2">38 sources, all public</h2>
+      <p class="text-[14px] text-ink-60 leading-relaxed max-w-[620px] mb-6">
+        We read what travelers can read. No PMS connection, no login, no data you have
+        to hand over. If a source is down during your scan, the report says so.
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 border border-edge rounded overflow-hidden">
+        {sourceGroups.map((g, i) => (
+          <div class={`px-6 py-5 ${i % 2 === 1 ? 'sm:border-l border-edge' : ''} ${i >= 2 ? 'border-t border-edge' : ''}`}>
+            <span class="label block mb-1.5">{g.name}</span>
+            <p class="text-[13px] text-ink-60 tabular">{g.items}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Comp set + cadence */}
+    <section class="mt-14 grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div>
+        <h2 class="headline text-[22px] sm:text-[24px] mb-3">Your comp set</h2>
+        <p class="text-[14px] text-ink-60 leading-relaxed">
+          Up to 74 comparable hotels, matched on market, segment, and size. You are
+          ranked against properties a traveler would actually weigh against yours,
+          not a national average.
+        </p>
+      </div>
+      <div>
+        <h2 class="headline text-[22px] sm:text-[24px] mb-3">Cadence</h2>
+        <p class="text-[14px] text-ink-60 leading-relaxed">
+          A scan takes about thirty seconds. Grades refresh monthly, and every report
+          carries its scan date and source count, so two people can compare notes.
+        </p>
+      </div>
+    </section>
+
+    {/* Independence */}
+    <section class="mt-14 border border-edge rounded px-7 py-6 bg-paper">
+      <span class="label block mb-3">Independence</span>
+      <p class="text-[15px] text-ink leading-relaxed max-w-[640px]">
+        Grades cannot be bought, sponsored, or appealed away. We sell the dashboard
+        that helps you fix what the grade found, never the grade itself. We don’t
+        sell your data, and we take no referral fees from OTAs.
+      </p>
+    </section>
+
+  </article>
+
+  {/* CTA — indigo close */}
+  <section style="background: #5B5BD6;">
+    <div class="max-w-content mx-auto px-8 py-14 text-center">
+      <h2 class="headline text-[28px] sm:text-[34px]" style="text-wrap: balance; color: #fff;">See it applied to <em>your hotel.</em></h2>
+      <div class="max-w-[560px] mx-auto">
+        <HeroForm client:visible inputId="methodology-hotel" tone="dark" />
+      </div>
+      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">FREE · NO CREDIT CARD · 30-SECOND ANALYSIS</p>
+    </div>
+  </section>
+</BaseLayout>

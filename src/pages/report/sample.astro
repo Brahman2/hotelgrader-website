@@ -1,0 +1,241 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import GradeReveal from '../../components/GradeReveal.tsx';
+import BenchmarkBar from '../../components/BenchmarkBar.tsx';
+import CompSet from '../../components/CompSet.tsx';
+import PillarsList from '../../components/PillarsList.astro';
+import HeroForm from '../../components/HeroForm.tsx';
+
+const domain = Astro.url.searchParams.get('domain') || 'riverton.com';
+const property = 'The Riverton Hotel';
+
+const whyBullets = [
+  { label: 'Website',    body: 'Performance up to 94/100 · mobile booking flow improved', tone: 'good' as const },
+  { label: 'AI Visibility', body: 'Mention rate slipped to 14%. Bottom 25% of your comp set.', tone: 'attention' as const },
+  { label: 'Booking',    body: 'OTA share climbed 4 pts · direct mix fell to 38%', tone: 'attention' as const },
+  { label: 'Reputation', body: 'Reply rate climbed to 88% · sentiment held above comp median', tone: 'good' as const },
+];
+
+const toneClass = (t: 'good' | 'warn' | 'attention') =>
+  t === 'good' ? 'text-good' : t === 'warn' ? 'text-warn' : 'text-attention';
+---
+
+<BaseLayout title={`Sample report · ${property}`}>
+  <article class="max-w-content mx-auto px-8 py-12 sm:py-14">
+
+    {/* Property header — mono meta rail, like the live report */}
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+      <div>
+        <span class="label tabular">SAMPLE REPORT · {domain} · 46 METRICS</span>
+        <h1 class="headline text-[30px] sm:text-[38px] mt-2">{property}</h1>
+        <p class="text-[14px] text-ink-60 mt-1 tabular">74 keys · ADR $284 · occupancy 74% · RevPAR $210 · Boutique</p>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <a href="#your-report" class="btn">Share</a>
+        <a href="#your-report" class="btn btn--primary"><span>Get your report</span><span data-arrow aria-hidden="true">→</span></a>
+      </div>
+    </header>
+
+    {/* Grade hero — anatomy of the live report's first page */}
+    <section class="border border-edge rounded mb-5">
+      <div class="px-8 py-14 sm:py-[72px] text-center">
+        <span class="label block mb-6">CURRENT GRADE</span>
+        <GradeReveal client:load grade="B+" tone="good" size={220} />
+        <p class="mt-6 tabular">
+          <span class="font-serif italic text-[20px]">Above market</span>
+          <span class="text-[14px] text-ink-60"> · 87/100</span>
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10 max-w-[680px] mx-auto">
+          <div class="text-center sm:text-left sm:border-l sm:border-edge sm:pl-6">
+            <span class="label">Rank</span>
+            <div class="text-[22px] font-semibold tracking-tight mt-1 tabular">#18 of 74</div>
+            <div class="meta mt-1">Comparable hotels</div>
+          </div>
+          <div class="text-center sm:text-left sm:border-l sm:border-edge sm:pl-6">
+            <span class="label">Percentile</span>
+            <div class="text-[22px] font-semibold tracking-tight mt-1 tabular text-indigo">Top 25%</div>
+            <div class="meta mt-1">vs compset</div>
+          </div>
+          <div class="text-center sm:text-left sm:border-l sm:border-edge sm:pl-6">
+            <span class="label">Revenue impact</span>
+            <div class="text-[22px] font-semibold tracking-tight mt-1 tabular text-good">+22%</div>
+            <div class="meta mt-1">at current ADR &amp; occupancy</div>
+          </div>
+        </div>
+
+        <div class="max-w-[680px] mx-auto mt-10 text-left">
+          <BenchmarkBar client:load position={78} compMedian={50} />
+        </div>
+
+        <div class="flex items-baseline justify-between max-w-[680px] mx-auto mt-8">
+          <span class="meta tabular">verified by 38 of 38 sources</span>
+          <span class="meta tabular">as of May 14, 2026</span>
+        </div>
+      </div>
+    </section>
+
+    {/* Strengths and issues — two numbered columns, like the live report */}
+    <section class="border border-edge rounded mb-5 px-7 py-6 bg-paper">
+      <span class="label block mb-5">Strengths &amp; issues</span>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <span class="label label--muted block mb-3" style="font-size: 10px;">Strengths</span>
+          <ol class="list-none p-0 m-0 space-y-2.5">
+            <li class="flex gap-4 text-[14px]"><span class="meta tabular">01</span> Website performance (94/100)</li>
+            <li class="flex gap-4 text-[14px]"><span class="meta tabular">02</span> Review reply rate (88%)</li>
+            <li class="flex gap-4 text-[14px]"><span class="meta tabular">03</span> Comp-set rank (#18 of 74)</li>
+          </ol>
+        </div>
+        <div>
+          <span class="label label--muted block mb-3" style="font-size: 10px;">Areas to improve</span>
+          <ol class="list-none p-0 m-0 space-y-2.5">
+            <li class="flex gap-4 text-[14px]"><span class="meta tabular">01</span> AI mention rate (14%)</li>
+            <li class="flex gap-4 text-[14px]"><span class="meta tabular">02</span> OTA share of brand search</li>
+            <li class="flex gap-4 text-[14px]"><span class="meta tabular">03</span> Direct booking mix (38%)</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    {/* Executive summary — the report's editorial voice */}
+    <section class="mb-10 border-b border-edge pb-10">
+      <span class="label block mb-3">Executive summary</span>
+      <h2 class="headline text-[24px] sm:text-[28px] max-w-[720px]">A read on The Riverton</h2>
+      <p class="text-[14px] text-ink-60 mt-4 max-w-[640px] leading-relaxed">
+        The fundamentals hold. The site loads in 2.1 seconds, reviews run 4.7 stars with
+        an 88% reply rate, and you sit #18 of 74 in your comp set.
+      </p>
+      <p class="text-[14px] text-ink-60 mt-3 max-w-[640px] leading-relaxed">
+        The leak is upstream of the booking engine. Three of four AI engines skip you
+        when travelers ask where to stay, and two OTAs buy your name in search, so
+        demand you created books at commission. At a $284 ADR and 74% occupancy,
+        closing those two gaps is worth about $1.42M a year, a +22% lift in direct.
+        Start with AI visibility: it is the cheapest fix on the queue and the fastest
+        to show up in a rescan.
+      </p>
+    </section>
+
+    {/* The field */}
+    <section class="mb-10">
+      <CompSet client:visible />
+    </section>
+
+    {/* Why your grade changed — WIRED story rows */}
+    <section class="mb-10">
+      <span class="label block mb-4">WHY YOUR GRADE CHANGED · LAST 30 DAYS</span>
+      <ul class="border border-edge rounded list-none p-0 m-0">
+        {whyBullets.map((b, i) => (
+          <li class={`grid grid-cols-[120px_1fr] gap-5 px-7 py-4 ${i > 0 ? 'border-t border-edge' : ''}`}>
+            <div>
+              <span class="label">{b.label}</span>
+            </div>
+            <div class={`text-[14px] ${toneClass(b.tone)}`}>{b.body}</div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {/* Sub-grades — flat section list, like the live report */}
+    <section class="mb-10">
+      <PillarsList />
+    </section>
+
+    {/* Why this gap exists — real report anatomy */}
+    <section class="mb-10">
+      <span class="label block mb-4">Why this gap exists</span>
+      <ol class="list-none p-0 m-0 border border-edge rounded">
+        <li class="grid grid-cols-[44px_1fr] gap-4 px-6 py-4">
+          <span class="meta tabular pt-0.5">01</span>
+          <p class="text-[14px] text-ink-60 leading-relaxed">No entity pages or schema for AI engines to cite, so ChatGPT, Gemini, and Perplexity default to competitors with structured data.</p>
+        </li>
+        <li class="grid grid-cols-[44px_1fr] gap-4 px-6 py-4 border-t border-edge">
+          <span class="meta tabular pt-0.5">02</span>
+          <p class="text-[14px] text-ink-60 leading-relaxed">Paid spend concentrated on generic terms while two OTAs bid on your name, taxing demand you already earned.</p>
+        </li>
+        <li class="grid grid-cols-[44px_1fr] gap-4 px-6 py-4 border-t border-edge">
+          <span class="meta tabular pt-0.5">03</span>
+          <p class="text-[14px] text-ink-60 leading-relaxed">Direct mix at 38% against a comp median of 46%, so every third booking pays a commission it should not.</p>
+        </li>
+      </ol>
+    </section>
+
+    {/* Top opportunities — effort, timeline, ROI */}
+    <section class="mb-10">
+      <span class="label block mb-4">Top opportunities</span>
+      <div class="border border-edge rounded">
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 px-6 py-5 items-start">
+          <div>
+            <p class="text-[15px] font-medium text-ink">AI visibility recovery</p>
+            <p class="text-[13px] text-ink-60 mt-1.5 leading-relaxed max-w-[520px]">Entity pages plus schema lift mention rate fastest. At your ADR, moving from 1 to 3 engines is modeled at +6% direct within two quarters.</p>
+          </div>
+          <div class="text-left sm:text-right">
+            <span class="meta tabular block">MED EFFORT · 4-6 WKS</span>
+            <span class="meta tabular block mt-1 text-good">+6% DIRECT MODELED</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 px-6 py-5 items-start border-t border-edge">
+          <div>
+            <p class="text-[15px] font-medium text-ink">Brand-search defense</p>
+            <p class="text-[13px] text-ink-60 mt-1.5 leading-relaxed max-w-[520px]">Reallocating generic paid spend to brand terms reclaims bookings currently rebooked through OTAs at 18% commission.</p>
+          </div>
+          <div class="text-left sm:text-right">
+            <span class="meta tabular block">LOW EFFORT · 2-3 WKS</span>
+            <span class="meta tabular block mt-1 text-good">≈ $2,400 / MO COMMISSION SAVED</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* 30-day plan teaser */}
+    <section class="mb-10">
+      <div class="flex items-baseline justify-between mb-4">
+        <span class="label">30-day action plan · week one</span>
+        <span class="meta tabular">FULL PLAN IN PRO</span>
+      </div>
+      <ul class="list-none p-0 m-0 border border-edge rounded">
+        <li class="grid grid-cols-[44px_1fr_auto] gap-4 px-6 py-4 items-center">
+          <span class="meta tabular">01</span>
+          <p class="text-[14px] text-ink leading-snug">Pull booking-engine funnel for the last 90 days and mark the drop-off step.</p>
+          <span class="meta tabular">REVENUE MGR</span>
+        </li>
+        <li class="grid grid-cols-[44px_1fr_auto] gap-4 px-6 py-4 items-center border-t border-edge">
+          <span class="meta tabular">02</span>
+          <p class="text-[14px] text-ink leading-snug">Turn on post-checkout review requests via the PMS email trigger.</p>
+          <span class="meta tabular">FRONT DESK</span>
+        </li>
+      </ul>
+    </section>
+
+    {/* Money on the table callout */}
+    <section class="mb-12">
+      <div class="border border-edge rounded p-7 sm:p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
+        <div>
+          <span class="label">REVENUE OPPORTUNITY · 90-DAY MODEL</span>
+          <p class="headline text-[22px] sm:text-[26px] mt-3 tabular leading-snug">
+            +22% direct bookings · ≈ $1.42M annualized at current pace
+          </p>
+          <p class="text-[14px] text-ink-60 mt-3 max-w-[560px] leading-relaxed">
+            Reachable by closing the AI-visibility gap to the top 25% of your comp set. Holds ADR and occupancy flat. Seven prioritized actions waiting in your queue.
+          </p>
+        </div>
+        <a href="#your-report" class="btn btn--primary justify-center self-start lg:self-center"><span>Open action queue</span><span data-arrow aria-hidden="true">→</span></a>
+      </div>
+    </section>
+
+  </article>
+
+  {/* Live handoff — indigo close */}
+  <section id="your-report" style="background: #5B5BD6;">
+    <div class="max-w-content mx-auto px-8 py-14 text-center">
+      <span class="label block mb-3" style="color: rgba(255,255,255,0.85);">THIS IS A SAMPLE</span>
+      <h3 class="headline text-[26px] sm:text-[32px] max-w-[600px] mx-auto" style="color: #fff;">
+        Run this exact report <em>for your hotel.</em>
+      </h3>
+      <div class="max-w-[560px] mx-auto">
+        <HeroForm client:load inputId="report-hotel" tone="dark" />
+      </div>
+      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">FREE FOREVER · NO CREDIT CARD · ANY HOTEL, ANYWHERE</p>
+    </div>
+  </section>
+</BaseLayout>

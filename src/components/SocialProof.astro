@@ -1,0 +1,79 @@
+---
+import CompSet from './CompSet.tsx';
+---
+
+<section class="bg-paper border-y border-edge">
+  <div class="max-w-content mx-auto px-8 py-20">
+  <div class="mb-8" data-reveal>
+    <span class="label block mb-3">COMPARABLES</span>
+    <h2 class="headline text-[30px] sm:text-[38px] tabular">
+      Ranked <em>#18</em> in a field of 74.
+    </h2>
+  </div>
+
+  <div data-reveal="80">
+    <CompSet client:visible />
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-10">
+
+    {/* Excerpt from the sample report, typeset like the product itself */}
+    <figure class="border border-edge rounded overflow-hidden flex flex-col" data-reveal="120">
+      <figcaption class="flex items-baseline justify-between px-6 py-3 border-b border-edge bg-paper">
+        <span class="meta tabular">EXCERPT · SAMPLE REPORT · THE RIVERTON HOTEL</span>
+        <a href="/report/sample" class="meta tabular text-indigo hover:underline" style="border-bottom: 0;">READ IT →</a>
+      </figcaption>
+      <blockquote class="px-6 sm:px-8 py-7 flex-1">
+        <span class="label block mb-3">Executive summary</span>
+        <p class="headline text-[22px] sm:text-[26px]">A read on The Riverton</p>
+        <p class="text-[14px] text-ink-60 mt-3 leading-relaxed max-w-[540px]">
+          The fundamentals hold. The site loads in 2.1 seconds, reviews run 4.7 stars
+          with an 88% reply rate, and you sit #18 of 74 in your comp set.
+        </p>
+        <p class="text-[14px] text-ink-60 mt-3 leading-relaxed max-w-[540px]">
+          The leak is upstream of the booking engine. Three of four AI engines skip
+          you when travelers ask where to stay, and two OTAs buy your name in search,
+          so demand you created books at commission. At a $284 ADR and 74% occupancy,
+          closing those two gaps is worth about $1.42M a year, a +22% lift in direct.
+          Both fixes are in your action queue, ranked by payback.
+        </p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-edge">
+          <div>
+            <span class="label" style="font-size: 10px;">ADR</span>
+            <div class="text-[15px] font-semibold tabular mt-0.5">$284</div>
+          </div>
+          <div>
+            <span class="label" style="font-size: 10px;">Occupancy</span>
+            <div class="text-[15px] font-semibold tabular mt-0.5">74%</div>
+          </div>
+          <div>
+            <span class="label" style="font-size: 10px;">RevPAR</span>
+            <div class="text-[15px] font-semibold tabular mt-0.5">$210</div>
+          </div>
+          <div>
+            <span class="label" style="font-size: 10px;">Direct mix</span>
+            <div class="text-[15px] font-semibold tabular mt-0.5 text-attention">38%</div>
+          </div>
+        </div>
+        <div class="flex items-baseline justify-between mt-5 pt-4 border-t border-edge">
+          <span class="meta tabular">VERIFIED BY 38 OF 38 SOURCES</span>
+          <span class="meta tabular text-good">4.9 ★ · 500+ REPORTS DELIVERED</span>
+        </div>
+      </blockquote>
+    </figure>
+
+    <figure class="hidden lg:flex flex-col" data-reveal="160">
+      <img
+        src="/images/report-property.jpg"
+        alt="Facade of an upper-upscale hotel against a clear sky"
+        loading="lazy"
+        class="w-full flex-1 object-cover border border-edge rounded-sm"
+      />
+      <figcaption class="meta tabular mt-2 flex justify-between">
+        <span>FIG. 03</span>
+        <span>TRUSTED BY INDEPENDENT OPERATORS</span>
+      </figcaption>
+    </figure>
+  </div>
+  </div>
+</section>

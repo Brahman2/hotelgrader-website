@@ -1,0 +1,285 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroForm from '../components/HeroForm.tsx';
+import BreakEven from '../components/BreakEven.tsx';
+import { HG_APP } from '../lib/hg';
+
+const upgradeUrl = `${HG_APP}/upgrade`;
+
+const tiers = [
+  {
+    name: 'Audit',
+    price: '$0',
+    cadence: 'free forever',
+    blurb: 'The full graded report, for any hotel, in thirty seconds.',
+    cta: { label: 'Run your audit', href: '/#get-the-report', style: 'btn' },
+    features: [
+      'Complete graded report · 7 sections, 46 metrics',
+      'Comp-set rank and position scale',
+      'Executive summary with top opportunities',
+      'AI visibility snapshot',
+      'Monthly re-scan, on request',
+      'Shareable grade card',
+    ],
+  },
+  {
+    name: 'Pro',
+    price: '$129',
+    cadence: 'per property / month · $99 billed annually',
+    blurb: 'The professional layer: live data, full action plan, tracked over time.',
+    featured: true,
+    cta: { label: 'Go Pro', href: upgradeUrl, style: 'btn btn--primary' },
+    features: [
+      'Everything in Audit, plus:',
+      'Unlimited re-scans, on demand',
+      'Real-time AI visibility · actual queries to ChatGPT, Claude, Gemini',
+      'Full 30-day action plan with owner assignments',
+      'Named-competitor intelligence and gap analysis',
+      'Score history, trends, and grade-change alerts',
+      'Ask HotelIQ · the consultant grounded in your data',
+      'About $50 / month of live engine queries included',
+      'PDF export and white-label share',
+    ],
+  },
+  {
+    name: 'Portfolio',
+    price: '$399',
+    cadence: 'per month · up to 5 properties · $69 each after',
+    blurb: 'For management companies, owners with several flags, and brokers.',
+    cta: { label: 'Talk to us', href: 'mailto:contact@hotelgrader.com?subject=Portfolio%20plan', style: 'btn' },
+    features: [
+      'Everything in Pro, across the portfolio',
+      'Portfolio scoreboard · every property, one view',
+      'Target-list scanning · grade hotels you don’t operate yet',
+      'Acquisition due diligence reports',
+      'Five team seats and CSV export',
+      'Priority support',
+    ],
+  },
+];
+
+const tableRows = [
+  { f: 'Graded report · 46 metrics',        a: 'Included',  p: 'Included',            o: 'Every property' },
+  { f: 'Re-scans',                          a: 'Monthly',   p: 'Unlimited',           o: 'Unlimited' },
+  { f: 'AI visibility',                     a: 'Snapshot',  p: 'Live engine queries', o: 'Live engine queries' },
+  { f: 'Action plan',                       a: 'Top 3',     p: '30-day, with owners', o: '30-day, with owners' },
+  { f: 'Competitor intelligence',           a: 'Rank only', p: 'Named competitors',   o: 'Cross-portfolio' },
+  { f: 'Score history and alerts',          a: '·',         p: 'Included',            o: 'Included' },
+  { f: 'Ask HotelIQ',                       a: '·',         p: 'Included',            o: 'Included' },
+  { f: 'Properties',                        a: '1',         p: '1',                   o: '5, then $69 each' },
+  { f: 'Target-list scanning',              a: '·',         p: '·',                   o: 'Included' },
+  { f: 'Team seats',                        a: '·',         p: '1',                   o: '5' },
+];
+
+const faqs = [
+  {
+    q: 'Why per property?',
+    a: 'Every property carries its own comp set, its own scan schedule, and about $50 a month of live engine queries. Pricing by property keeps the data honest and the invoice predictable.',
+  },
+  {
+    q: 'What does the included API budget mean?',
+    a: 'Pro runs real queries against ChatGPT, Claude, Gemini, live PageSpeed, and the review platforms, not cached snapshots. Each Pro property includes roughly $50 a month of that live data spend.',
+  },
+  {
+    q: 'Can paying change my grade?',
+    a: 'No. The grade is computed the same way at every tier, and there is no tier where that changes. Paid plans change how often you can scan and what you can do with the findings, never the findings themselves.',
+  },
+  {
+    q: 'What if I manage hotels I don’t own?',
+    a: 'Portfolio is built for that: scan the properties you operate, the ones you are pitching, and the ones you are thinking about buying. Brokers use target-list scans as due diligence before the LOI.',
+  },
+];
+
+const pricingSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Product',
+      name: 'hotelgrader',
+      description: 'Marketing-performance grading for hotels: a free 46-metric audit, and a Pro dashboard that tracks, ranks, and fixes what it finds.',
+      brand: { '@type': 'Brand', name: 'hotelgrader' },
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'USD',
+        lowPrice: '0',
+        highPrice: '399',
+        offerCount: 3,
+        offers: [
+          { '@type': 'Offer', name: 'Audit', price: '0', priceCurrency: 'USD', description: 'The full graded report, free forever.' },
+          { '@type': 'Offer', name: 'Pro', price: '129', priceCurrency: 'USD', description: 'Per property per month. $99 per month billed annually.' },
+          { '@type': 'Offer', name: 'Portfolio', price: '399', priceCurrency: 'USD', description: 'Per month, up to five properties, then $69 per property.' },
+        ],
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((i) => ({
+        '@type': 'Question',
+        name: i.q,
+        acceptedAnswer: { '@type': 'Answer', text: i.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title="Pricing · hotelgrader" description="The audit is free, forever. Pro starts at $99 a month per property. The grade is never for sale.">
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(pricingSchema)} />
+  <article class="max-w-content mx-auto px-8 py-14 sm:py-16">
+
+    <span class="label block mb-4" data-reveal>PRICING</span>
+    <h1 class="headline text-[38px] sm:text-[54px] max-w-[820px]" data-reveal="60">
+      The audit is free, forever. <em>Fixing what it finds is $99 a month.</em>
+    </h1>
+    <p class="font-serif italic text-[17px] sm:text-[18px] text-ink-60 leading-relaxed mt-5 max-w-[540px]" data-reveal="120">
+      Priced per property, cancel any time, and the grade is never for sale
+      at any tier.
+    </p>
+
+    {/* Break-even instrument */}
+    <div class="mt-12" data-reveal>
+      <BreakEven client:visible />
+    </div>
+
+    {/* Tiers */}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-12">
+      {tiers.map((t) => (
+        <div
+          class={`border rounded flex flex-col ${t.featured ? 'border-ink' : 'border-edge'}`}
+          data-reveal
+        >
+          <div class="px-7 pt-7 pb-6 border-b border-edge">
+            <div class="flex items-baseline justify-between">
+              <h2 class="headline text-[24px]">{t.name}</h2>
+              {t.featured && <span class="meta tabular text-indigo">MOST OPERATORS</span>}
+            </div>
+            <div class="mt-4 flex items-baseline gap-2">
+              <span class="font-serif font-semibold text-[44px] leading-none tabular">{t.price}</span>
+            </div>
+            <p class="meta tabular mt-2">{t.cadence.toUpperCase()}</p>
+            <p class="text-[14px] text-ink-60 mt-3 leading-relaxed">{t.blurb}</p>
+          </div>
+          <ul class="px-7 py-6 space-y-2.5 flex-1 list-none m-0">
+            {t.features.map((f) => (
+              <li class="text-[13px] text-ink leading-relaxed flex gap-2.5">
+                <span class="text-indigo shrink-0" aria-hidden="true">·</span>
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <div class="px-7 pb-7">
+            <a href={t.cta.href} class={`${t.cta.style} w-full justify-center`}>
+              <span>{t.cta.label}</span>
+              <span data-arrow aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+    <p class="meta tabular mt-4" data-reveal>
+      BRANDS, GROUPS OF 25+, CUSTOM COMP SETS, SSO ·
+      <a href="mailto:contact@hotelgrader.com?subject=Enterprise" class="text-indigo hover:underline" style="border-bottom: 0;">TALK TO US →</a>
+    </p>
+
+    {/* Comparison table */}
+    <section class="mt-16" data-reveal>
+      <h2 class="headline text-[24px] sm:text-[28px] mb-6">What each tier includes</h2>
+      <div class="border border-edge rounded overflow-x-auto">
+        <table class="w-full text-left" style="border-collapse: collapse; min-width: 640px;">
+          <thead>
+            <tr class="bg-paper">
+              <th class="label px-6 py-3.5 font-medium">Feature</th>
+              <th class="label px-6 py-3.5 font-medium">Audit</th>
+              <th class="label px-6 py-3.5 font-medium text-indigo">Pro</th>
+              <th class="label px-6 py-3.5 font-medium">Portfolio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableRows.map((r) => (
+              <tr class="border-t border-edge">
+                <td class="px-6 py-3.5 text-[13px] text-ink font-medium">{r.f}</td>
+                <td class="px-6 py-3.5 text-[13px] text-ink-60 tabular">{r.a}</td>
+                <td class="px-6 py-3.5 text-[13px] text-ink tabular">{r.p}</td>
+                <td class="px-6 py-3.5 text-[13px] text-ink-60 tabular">{r.o}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {/* Dashboard preview */}
+    <section class="mt-16" data-reveal>
+      <div class="flex items-baseline justify-between mb-6">
+        <h2 class="headline text-[24px] sm:text-[28px]">What Pro looks like</h2>
+        <a href="/#product" class="meta tabular text-indigo hover:underline hidden sm:inline" style="border-bottom: 0;">SEE THE FULL TOUR →</a>
+      </div>
+      <div class="border border-edge rounded overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-3 border-b border-edge bg-paper">
+          <div class="flex items-center gap-2.5">
+            <span class="inline-block h-2 w-2 rounded-sm bg-good"></span>
+            <span class="meta tabular">THE RIVERTON HOTEL · PRO · ACTION PLAN</span>
+          </div>
+          <span class="meta tabular text-indigo">ASK HOTELIQ</span>
+        </div>
+        <ul class="list-none p-0 m-0">
+          {[
+            { n: '01', fix: 'Publish entity pages and schema for AI engines', owner: 'MARKETING', impact: 'AI 45 → 70 TARGET', effort: 'MED · 4-6 WKS' },
+            { n: '02', fix: 'Reallocate paid spend to brand defense', owner: 'MARKETING', impact: '+9 ADS PTS', effort: 'LOW · 2-3 WKS' },
+            { n: '03', fix: 'Post-checkout review automation via PMS trigger', owner: 'FRONT DESK', impact: '+0.3 ★ TRAJECTORY', effort: 'LOW · 6-8 WKS' },
+          ].map((row, i) => (
+            <li class={`grid grid-cols-[32px_1fr] gap-4 px-6 py-5 ${i > 0 ? 'border-t border-edge' : ''}`}>
+              <span class="meta tabular pt-0.5">{row.n}</span>
+              <div>
+                <p class="text-[15px] font-medium text-ink leading-snug">{row.fix}</p>
+                <div class="flex flex-wrap gap-x-5 gap-y-1 mt-2">
+                  <span class="meta tabular">{row.owner}</span>
+                  <span class="meta tabular" style="color: #5B5BD6;">{row.impact}</span>
+                  <span class="meta tabular">{row.effort}</span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    {/* Ethics */}
+    <section class="mt-16 border border-edge rounded px-7 py-6 bg-paper" data-reveal>
+      <span class="label block mb-3">The grade is never for sale</span>
+      <p class="text-[15px] text-ink leading-relaxed max-w-[640px]">
+        Paying changes how often you scan and what you can do with the findings.
+        It never changes the findings. There is no tier, add-on, or invoice that
+        moves a grade.
+      </p>
+    </section>
+
+    {/* Pricing FAQ */}
+    <section class="mt-16" data-reveal>
+      <h2 class="headline text-[24px] sm:text-[28px] mb-4">Pricing questions</h2>
+      <dl class="border-t border-edge max-w-[760px]">
+        {faqs.map((item) => (
+          <details class="group border-b border-edge">
+            <summary class="cursor-pointer flex items-baseline justify-between py-5 px-3 -mx-3 rounded-sm list-none transition-colors duration-150 hover:bg-paper">
+              <dt class="text-[16px] font-medium text-ink leading-snug pr-4">{item.q}</dt>
+              <span aria-hidden="true" class="text-ink-40 text-[20px] transition-transform group-open:rotate-45 select-none leading-none">+</span>
+            </summary>
+            <dd class="text-[14px] text-ink-60 leading-relaxed pb-6 max-w-[560px]">{item.a}</dd>
+          </details>
+        ))}
+      </dl>
+    </section>
+
+  </article>
+
+  {/* CTA — indigo band */}
+  <section style="background: #5B5BD6;">
+    <div class="max-w-content mx-auto px-8 py-14 text-center">
+      <h2 class="headline text-[28px] sm:text-[34px]" style="text-wrap: balance; color: #fff;">Start where everyone starts: <em>the free audit.</em></h2>
+      <div class="max-w-[560px] mx-auto">
+        <HeroForm client:visible inputId="pricing-hotel" tone="dark" />
+      </div>
+      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">FREE FOREVER · NO CREDIT CARD · 30-SECOND ANALYSIS</p>
+    </div>
+  </section>
+</BaseLayout>

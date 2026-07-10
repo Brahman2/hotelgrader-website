@@ -1,0 +1,27 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-edge mt-16">
+  <div class="max-w-content mx-auto px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div>
+      <a href="/" class="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.04em] text-ink" style="border-bottom: 0;">
+        <img src="/assets/favicon.svg" alt="" class="h-5 w-5" />
+        <span>hotelgrader</span>
+      </a>
+      <p class="meta mt-2">The independent grade for hotel marketing</p>
+    </div>
+    <nav class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
+      <a href="/about" class="text-ink-60 hover:text-indigo transition-colors duration-150">About</a>
+      <a href="/methodology" class="text-ink-60 hover:text-indigo transition-colors duration-150">Methodology</a>
+      <a href="/pricing" class="text-ink-60 hover:text-indigo transition-colors duration-150">Pricing</a>
+      <a href="/privacy" class="text-ink-60 hover:text-indigo transition-colors duration-150">Privacy</a>
+      <a href="/terms" class="text-ink-60 hover:text-indigo transition-colors duration-150">Terms</a>
+      <a href="mailto:contact@hotelgrader.com" class="text-ink-60 hover:text-indigo transition-colors duration-150">contact@hotelgrader.com</a>
+    </nav>
+  </div>
+  <div class="max-w-content mx-auto px-8 pb-8 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1.5">
+    <span class="meta tabular">© {year} hotelgrader</span>
+    <span class="meta tabular">38 sources · monitored continuously · methodology published</span>
+  </div>
+</footer>
