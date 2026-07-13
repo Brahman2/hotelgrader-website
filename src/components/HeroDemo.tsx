@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pillars } from '../content/pillars';
 import BenchmarkBar from './BenchmarkBar';
+import GradePlacard from './GradePlacard';
 
 // Hero scan theater. Runs the 7-section audit live in the product's own order:
 // rows flip QUEUED -> RUN -> grade, a terminal log narrates, then the master
@@ -118,18 +119,12 @@ export default function HeroDemo() {
       <div className="grid grid-cols-1 sm:grid-cols-[236px_1fr]">
 
         <div className="relative flex flex-col items-center justify-center px-6 py-8 sm:py-6 border-b sm:border-b-0 sm:border-r border-edge min-h-[190px]">
-          <span className="label mb-3">Current grade</span>
-          <span
-            className="grade grade--good tabular leading-[0.85] text-[96px] sm:text-[104px]"
-            style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms cubic-bezier(0.2,0,0,1)' }}
-          >
-            B+
-          </span>
+          <GradePlacard grade="B+" tone="good" score="87 / 100" size={84} stamped={done} animate />
           <p
-            className="text-[12px] text-ink-60 mt-3 tabular"
-            style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms 80ms cubic-bezier(0.2,0,0,1)' }}
+            className="text-[12px] text-ink-60 mt-4 tabular"
+            style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms 140ms cubic-bezier(0.2,0,0,1)' }}
           >
-            <span className="font-serif">Above market</span> · 87/100 · <span className="whitespace-nowrap">#18 of 74</span>
+            <span className="font-serif">Above market</span> · <span className="whitespace-nowrap">#18 of 74</span>
           </p>
           {!done && (
             <span className="meta tabular absolute inset-0 flex items-center justify-center text-ink-40">

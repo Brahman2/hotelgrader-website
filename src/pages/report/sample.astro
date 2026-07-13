@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import GradeReveal from '../../components/GradeReveal.tsx';
 import BenchmarkBar from '../../components/BenchmarkBar.tsx';
 import CompSet from '../../components/CompSet.tsx';
 import PillarsList from '../../components/PillarsList.astro';
@@ -26,7 +25,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
     {/* Property header — mono meta rail, like the live report */}
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
       <div>
-        <span class="label tabular">Sample report, {domain} , 46 metrics</span>
+        <span class="label tabular">Sample report, {domain}, 46 metrics</span>
         <h1 class="headline text-[30px] sm:text-[38px] mt-2">{property}</h1>
         <p class="text-[14px] text-ink-60 mt-1 tabular">74 keys · ADR $284 · occupancy 74% · RevPAR $210 · Boutique</p>
       </div>
@@ -39,8 +38,11 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
     {/* Grade hero — anatomy of the live report's first page */}
     <section class="border border-edge rounded mb-5">
       <div class="px-8 py-14 sm:py-[72px] text-center">
-        <span class="label block mb-6">Current grade</span>
-        <GradeReveal client:load grade="B+" tone="good" size={220} />
+        <span class="placard" style="font-size: 190px;">
+          <span class="placard-kicker" aria-hidden="true">hotelgrader</span>
+          <span class="placard-grade placard-grade--good tabular" aria-hidden="true">B+</span>
+          <span class="placard-score" aria-hidden="true">87 / 100</span>
+        </span>
         <p class="mt-6 tabular">
           <span class="font-serif text-[20px]">Above market</span>
           <span class="text-[14px] text-ink-60"> · 87/100</span>
