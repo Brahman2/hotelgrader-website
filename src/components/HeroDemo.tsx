@@ -129,7 +129,7 @@ export default function HeroDemo() {
             className="text-[12px] text-ink-60 mt-3 tabular"
             style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms 80ms cubic-bezier(0.2,0,0,1)' }}
           >
-            <span className="font-serif italic">Above market</span> · 87/100 · <span className="whitespace-nowrap">#18 of 74</span>
+            <span className="font-serif">Above market</span> · 87/100 · <span className="whitespace-nowrap">#18 of 74</span>
           </p>
           {!done && (
             <span className="meta tabular absolute inset-0 flex items-center justify-center text-ink-40">

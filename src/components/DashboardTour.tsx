@@ -98,7 +98,7 @@ export default function DashboardTour() {
               <span className="label mb-3">CURRENT GRADE</span>
               <span className="grade grade--good tabular text-[84px] leading-[0.85]">B+</span>
               <p className="text-[12px] text-ink-60 mt-3 tabular">
-                <span className="font-serif italic">Above market</span> · 87/100
+                <span className="font-serif">Above market</span> · 87/100
               </p>
               <div className="w-full mt-6 pt-5 border-t border-edge">
                 <svg viewBox="0 0 200 56" className="w-full" aria-hidden="true">

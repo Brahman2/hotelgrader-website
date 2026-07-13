@@ -28,10 +28,10 @@ export default {
         slate: '#6B6355',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        sans: ['"Source Sans 3"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         serif: ['"Source Serif 4"', 'Georgia', '"Times New Roman"', 'serif'],
-        display: ['"Inter Display"', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
+        display: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'Menlo', 'monospace'],
       },
       fontSize: {
         label: ['11px', { lineHeight: '1.2', letterSpacing: '0.08em' }],
