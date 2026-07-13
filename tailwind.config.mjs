@@ -4,21 +4,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        bone: '#F7F4F0',
-        paper: '#FBF9F6',
-        ink: '#0B1220',
-        'ink-60': 'rgba(11, 18, 32, 0.6)',
-        'ink-40': 'rgba(11, 18, 32, 0.4)',
+        // Warm paper foundation (see BRAND.md)
+        paper: '#FBF7EE',         // page background, warm near-white
+        'paper-deep': '#F3EBDA',  // cards, section alternation
+        bone: '#F3EBDA',          // legacy alias -> paper-deep (card/surface fills)
+        ink: '#26221B',           // warm near-black text (never pure #000)
+        'ink-60': 'rgba(38, 34, 27, 0.62)',
+        'ink-40': 'rgba(38, 34, 27, 0.42)',
+        'ink-soft': '#6B6355',    // secondary text, captions
+        // iris: interactive color ONLY (links, focus, selected states, "you" data)
         indigo: '#5B5BD6',
-        cta: '#D9531C',
-        'cta-hover': '#C24716',
-        'cta-press': '#A93D12',
+        'indigo-strong': '#4646B0',
+        // sun: brand accent / CTAs / grade emphasis
+        sun: '#D98A1C',
+        cta: '#D98A1C',
+        'cta-hover': '#C67C12',
+        'cta-press': '#B06E10',
         edge: '#E6E6E1',
         'edge-strong': '#D5D4CE',
         good: '#1E7F4B',
         warn: '#D98A1C',
         attention: '#C6453D',
-        slate: '#69707A',
+        slate: '#6B6355',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],

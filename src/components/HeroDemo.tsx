@@ -107,7 +107,7 @@ export default function HeroDemo() {
             background: 'none',
             padding: 0,
             cursor: done ? 'pointer' : 'default',
-            color: done ? '#5B5BD6' : 'rgba(11,18,32,0.4)',
+            color: done ? '#5B5BD6' : 'rgba(38,34,27,0.4)',
           }}
         >
           {done ? 'RE-RUN SCAN' : 'SCANNING…'}
@@ -148,7 +148,7 @@ export default function HeroDemo() {
                 key={p.num}
                 className={`grid grid-cols-[104px_1fr_56px] items-center gap-3 px-4 sm:px-5 py-[8.5px] ${i > 0 ? 'border-t border-edge' : ''}`}
               >
-                <span className="meta tabular" style={{ color: rowDone ? '#0B1220' : undefined, fontSize: 10 }} title={p.name}>
+                <span className="meta tabular" style={{ color: rowDone ? '#26221B' : undefined, fontSize: 10 }} title={p.name}>
                   {ROW_LABEL[p.short] ?? p.short}
                 </span>
 
@@ -168,7 +168,7 @@ export default function HeroDemo() {
                   {rowDone ? (
                     <span className="tabular text-[13px] font-semibold leading-none" style={{ color: hex }}>
                       {p.sample.score}
-                      <span className="text-[10px] font-normal" style={{ color: 'rgba(11,18,32,0.4)' }}>/100</span>
+                      <span className="text-[10px] font-normal" style={{ color: 'rgba(38,34,27,0.4)' }}>/100</span>
                     </span>
                   ) : (
                     <span
@@ -206,7 +206,7 @@ export default function HeroDemo() {
       <div className="px-5 sm:px-6 py-2.5 border-t border-edge bg-paper">
         <span
           className="meta tabular"
-          style={{ color: done && prospectLine ? '#5B5BD6' : 'rgba(11,18,32,0.6)' }}
+          style={{ color: done && prospectLine ? '#5B5BD6' : 'rgba(38,34,27,0.6)' }}
         >
           {'>'} {logLine}
         </span>

@@ -154,7 +154,7 @@ export default function HeroForm({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="rgba(11,18,32,0.4)"
+            stroke="rgba(38,34,27,0.4)"
             strokeWidth="1.5"
             strokeLinecap="round"
           >

@@ -62,8 +62,8 @@
 
 @layer base {
   html, body {
-    background: #F7F4F0;
-    color: #0B1220;
+    background: #FBF7EE;
+    color: #26221B;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-size: 15px;
     line-height: 1.5;
@@ -87,7 +87,7 @@
     border-bottom: 1px solid transparent;
     transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);
   }
-  a:hover { border-bottom-color: #5B5BD6; }
+  a:hover { border-bottom-color: #4646B0; }
 
   :focus-visible {
     outline: 2px solid #5B5BD6;
@@ -102,7 +102,7 @@
     font-weight: 500;
     letter-spacing: -0.02em;
     line-height: 0.9;
-    color: #0B1220;
+    color: #26221B;
     font-feature-settings: "ss01";
   }
   .grade--good      { color: #1E7F4B; }
@@ -115,11 +115,11 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #5B5BD6;
+    color: #6B6355;
   }
   .label--indigo { color: #5B5BD6; }
-  .label--muted  { color: rgba(11, 18, 32, 0.6); }
-  .label--ink    { color: #0B1220; }
+  .label--muted  { color: rgba(38, 34, 27, 0.6); }
+  .label--ink    { color: #26221B; }
 
   /* Display headline — Source Serif, like the live report's editorial voice.
      Use <em> inside for the italic accent phrase. */
@@ -128,7 +128,7 @@
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.05;
-    color: #0B1220;
+    color: #26221B;
   }
   .headline em {
     font-style: italic;
@@ -137,7 +137,7 @@
 
   /* Card — hairline border, no shadow. */
   .card {
-    background: #F7F4F0;
+    background: #F3EBDA;
     border: 1px solid #E6E6E1;
     border-radius: 6px;
     padding: 32px;
@@ -152,8 +152,8 @@
     padding: 12px 18px;
     border-radius: 6px;
     border: 1px solid #E6E6E1;
-    background: #F7F4F0;
-    color: #0B1220;
+    background: #F3EBDA;
+    color: #26221B;
     cursor: pointer;
     transition: background 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1);
     display: inline-flex;
@@ -165,12 +165,12 @@
 
   /* Primary action — CTA orange, back by request. The site leads; the app follows. */
   .btn--primary {
-    background: #D9531C;
-    color: #fff;
-    border-color: #D9531C;
+    background: #D98A1C;
+    color: #26221B;
+    border-color: #D98A1C;
   }
-  .btn--primary:hover  { background: #C24716; border-color: #C24716; }
-  .btn--primary:active { background: #A93D12; border-color: #A93D12; }
+  .btn--primary:hover  { background: #C67C12; border-color: #C67C12; }
+  .btn--primary:active { background: #B06E10; border-color: #B06E10; }
 
   .btn--indigo {
     background: #5B5BD6;
@@ -185,13 +185,13 @@
     padding: 14px 16px;
     border: 1px solid #E6E6E1;
     border-radius: 6px;
-    background: #F7F4F0;
-    color: #0B1220;
+    background: #FBF7EE;
+    color: #26221B;
     outline: none;
     transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);
   }
-  .input:focus { border-color: #0B1220; }
-  .input::placeholder { color: rgba(11, 18, 32, 0.4); }
+  .input:focus { border-color: #26221B; }
+  .input::placeholder { color: rgba(38, 34, 27, 0.4); }
 }
 
 @layer utilities {
@@ -214,7 +214,7 @@
   .meta {
     font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
-    color: rgba(11, 18, 32, 0.4);
+    color: rgba(38, 34, 27, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
@@ -262,7 +262,7 @@
     height: 11px;
     margin-left: 6px;
     vertical-align: -1px;
-    background: #0B1220;
+    background: #26221B;
     animation: hg-caret 1s steps(2, end) infinite;
   }
   @media (prefers-reduced-motion: reduce) {

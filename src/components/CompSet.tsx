@@ -65,8 +65,8 @@ export default function CompSet({ total = 74, todayRank = 18, fixedRank = 9, med
             style={{
               border: 'none',
               cursor: 'pointer',
-              background: !fixed ? '#0B1220' : 'transparent',
-              color: !fixed ? '#F7F4F0' : undefined,
+              background: !fixed ? '#26221B' : 'transparent',
+              color: !fixed ? '#F3EBDA' : undefined,
               transition: 'background 120ms cubic-bezier(0.2,0,0,1)',
             }}
           >
@@ -138,7 +138,7 @@ export default function CompSet({ total = 74, todayRank = 18, fixedRank = 9, med
                   className="w-full rounded-sm"
                   style={{
                     height: `${height(i)}%`,
-                    background: isYou ? '#5B5BD6' : hover === i ? 'rgba(11,18,32,0.45)' : isMedian ? 'rgba(11,18,32,0.35)' : 'rgba(11,18,32,0.16)',
+                    background: isYou ? '#5B5BD6' : hover === i ? 'rgba(38,34,27,0.45)' : isMedian ? 'rgba(38,34,27,0.35)' : 'rgba(38,34,27,0.16)',
                     opacity: inView ? 1 : 0,
                     transition: `opacity 160ms cubic-bezier(0.2,0,0,1) ${inView ? i * 8 : 0}ms, background 120ms cubic-bezier(0.2,0,0,1)`,
                   }}

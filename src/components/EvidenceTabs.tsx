@@ -145,9 +145,9 @@ export default function EvidenceTabs() {
               aria-selected={isActive}
               onClick={() => goTo(i, true)}
               className={`relative text-left px-4 py-3 ${isActive ? '' : 'evtab'}`}
-              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F7F4F0' : undefined }}
+              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F3EBDA' : undefined }}
             >
-              <span className="meta tabular block" style={{ color: isActive ? '#0B1220' : undefined }}>
+              <span className="meta tabular block" style={{ color: isActive ? '#26221B' : undefined }}>
                 {t.label}
               </span>
               <span className="meta mt-1 hidden sm:block" style={{ fontSize: 9 }}>{t.sub}</span>
@@ -189,7 +189,7 @@ export default function EvidenceTabs() {
                         transition: 'opacity 180ms cubic-bezier(0.2,0,0,1), transform 180ms cubic-bezier(0.2,0,0,1)',
                       }}
                     >
-                      <span className={`text-[14px] tabular ${a.tone === 'attention' ? 'font-medium' : ''}`} style={{ color: a.tone === 'attention' ? '#C6453D' : '#0B1220' }}>
+                      <span className={`text-[14px] tabular ${a.tone === 'attention' ? 'font-medium' : ''}`} style={{ color: a.tone === 'attention' ? '#C6453D' : '#26221B' }}>
                         {a.name}
                       </span>
                       <span className="meta tabular" style={{ color: HEX[a.tone] }}>{a.note}</span>
@@ -257,7 +257,7 @@ export default function EvidenceTabs() {
                     {/* comp-set line at 2.4% */}
                     <div
                       className="absolute inset-x-0 border-t border-dashed"
-                      style={{ top: `${100 - (2.4 / 2.6) * 100}%`, borderColor: 'rgba(11,18,32,0.35)' }}
+                      style={{ top: `${100 - (2.4 / 2.6) * 100}%`, borderColor: 'rgba(38,34,27,0.35)' }}
                     >
                       <span className="meta tabular absolute right-0 -top-4">COMP SET 2.4%</span>
                     </div>
