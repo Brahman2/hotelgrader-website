@@ -7,7 +7,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
 
 <section id="pillars" class="bg-paper border-y border-edge">
   <div class="max-w-content mx-auto px-8 py-20">
-  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10" data-reveal>
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
     <div>
       <span class="label block mb-3">Findings</span>
       <h2 class="headline text-[30px] sm:text-[38px] max-w-[720px]">
@@ -23,7 +23,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
 
   <div class="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-10 lg:gap-16 items-stretch">
 
-    <figure class="hidden lg:flex flex-col" data-reveal>
+    <figure class="hidden lg:flex flex-col">
       <img
         src="/images/courtyard.jpg"
         alt="Sunlit courtyard and stone staircase of a boutique hotel"
@@ -39,7 +39,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
           href={`/methodology#s-${p.num}`}
           class={`grid grid-cols-[44px_1fr_auto] items-center gap-4 sm:gap-6 py-[18px] px-3 -mx-3 rounded-sm transition-colors duration-150 hover:bg-paper text-ink ${i > 0 ? 'border-t border-edge' : ''}`}
           style="border-bottom: 0;"
-          data-reveal={String(i * 60)}
+         ={String(i * 60)}
         >
           <span class="meta tabular">{p.num}</span>
           <div>

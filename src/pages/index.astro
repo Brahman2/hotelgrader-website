@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
-import Ticker from '../components/Ticker.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import Pillars from '../components/Pillars.astro';
 import EvidenceTabs from '../components/EvidenceTabs.tsx';
@@ -14,18 +13,17 @@ import FinalCTA from '../components/FinalCTA.astro';
 
 <BaseLayout>
   <Hero />
-  <Ticker />
   <HowItWorks />
   <Pillars />
 
   <section id="evidence" class="max-w-content mx-auto px-8 py-16">
-    <div class="mb-8" data-reveal>
+    <div class="mb-8">
       <span class="label block mb-3">Evidence</span>
       <h2 class="headline text-[30px] sm:text-[38px] max-w-[680px]">
         See the evidence behind <em>every grade.</em>
       </h2>
     </div>
-    <div data-reveal="80">
+    <div>
       <EvidenceTabs client:visible />
     </div>
   </section>
@@ -33,7 +31,7 @@ import FinalCTA from '../components/FinalCTA.astro';
   {/* Mid-page conversion band — warm paper-deep alternation, not a color wash */}
   <div style="background: #F3EBDA;">
     <div class="max-w-content mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,560px)] gap-6 lg:gap-14 items-center">
-      <p class="headline text-[26px] sm:text-[30px]" data-reveal>
+      <p class="headline text-[26px] sm:text-[30px]">
         Your grade, your comp-set rank, <em>your upside.</em>
       </p>
       <div class="-mt-6">

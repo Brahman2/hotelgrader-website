@@ -4,21 +4,21 @@ import CompSet from './CompSet.tsx';
 
 <section class="bg-paper border-y border-edge">
   <div class="max-w-content mx-auto px-8 py-20">
-  <div class="mb-8" data-reveal>
+  <div class="mb-8">
     <span class="label block mb-3">Comp set</span>
     <h2 class="headline text-[30px] sm:text-[38px] tabular">
       Ranked <em>#18</em> in a field of 74.
     </h2>
   </div>
 
-  <div data-reveal="80">
+  <div>
     <CompSet client:visible />
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-10">
 
     {/* Excerpt from the sample report, typeset like the product itself */}
-    <figure class="border border-edge rounded overflow-hidden flex flex-col" data-reveal="120">
+    <figure class="border border-edge rounded overflow-hidden flex flex-col">
       <figcaption class="flex items-baseline justify-between px-6 py-3 border-b border-edge bg-paper">
         <span class="meta tabular">Excerpt, sample report, The Riverton Hotel</span>
         <a href="/report/sample" class="meta tabular text-indigo hover:underline" style="border-bottom: 0;">Read it →</a>
@@ -62,7 +62,7 @@ import CompSet from './CompSet.tsx';
       </blockquote>
     </figure>
 
-    <figure class="hidden lg:flex flex-col" data-reveal="160">
+    <figure class="hidden lg:flex flex-col">
       <img
         src="/images/report-property.jpg"
         alt="Facade of an upper-upscale hotel against a clear sky"

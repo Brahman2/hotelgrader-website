@@ -10,9 +10,9 @@ const steps = [
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 lg:gap-16 items-center">
 
     <div>
-      <span class="label block mb-8" data-reveal>Method</span>
+      <span class="label block mb-8">Method</span>
       {steps.map((s, i) => (
-        <div class={`flex gap-6 sm:gap-8 items-baseline py-6 ${i > 0 ? 'border-t border-edge' : ''}`} data-reveal={String(i * 90)}>
+        <div class={`flex gap-6 sm:gap-8 items-baseline py-6 ${i > 0 ? 'border-t border-edge' : ''}`}={String(i * 90)}>
           <span class="font-serif text-[44px] sm:text-[52px] leading-none text-ink tabular shrink-0">{s.num}</span>
           <div>
             <h3 class="headline text-[22px] sm:text-[24px]">{s.head}</h3>
@@ -22,7 +22,7 @@ const steps = [
       ))}
     </div>
 
-    <figure data-reveal="120">
+    <figure>
       <img
         src="/images/hero-property.jpg"
         alt="Carved stone entrance of an independent hotel"

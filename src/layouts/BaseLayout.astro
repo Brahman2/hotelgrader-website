@@ -63,28 +63,5 @@ const {
       <slot />
     </main>
     {showFooter && <Footer />}
-    <script is:inline>
-      // Scroll reveal: add .is-in when [data-reveal] elements enter the viewport.
-      // data-reveal="120" adds a 120ms stagger delay.
-      (function () {
-        var els = document.querySelectorAll('[data-reveal]');
-        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduced || !('IntersectionObserver' in window)) {
-          els.forEach(function (el) { el.classList.add('is-in'); });
-          return;
-        }
-        var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (!entry.isIntersecting) return;
-            var el = entry.target;
-            var delay = el.getAttribute('data-reveal');
-            if (delay) el.style.transitionDelay = delay + 'ms';
-            el.classList.add('is-in');
-            io.unobserve(el);
-          });
-        }, { threshold: 0.15 });
-        els.forEach(function (el) { io.observe(el); });
-      })();
-    </script>
   </body>
 </html>
