@@ -12,7 +12,7 @@ const steps = [
     <div>
       <span class="label block mb-8">Method</span>
       {steps.map((s, i) => (
-        <div class={`flex gap-6 sm:gap-8 items-baseline py-6 ${i > 0 ? 'border-t border-edge' : ''}`}={String(i * 90)}>
+        <div class={`flex gap-6 sm:gap-8 items-baseline py-6 ${i > 0 ? 'border-t border-edge' : ''}`}>
           <span class="font-serif text-[44px] sm:text-[52px] leading-none text-ink tabular shrink-0">{s.num}</span>
           <div>
             <h3 class="headline text-[22px] sm:text-[24px]">{s.head}</h3>
@@ -27,7 +27,7 @@ const steps = [
         src="/images/hero-property.jpg"
         alt="Carved stone entrance of an independent hotel"
         loading="lazy"
-        class="w-full h-[300px] lg:h-[420px] object-cover border border-edge rounded-sm"
+        class="w-full h-[340px] lg:h-[460px] object-cover border-2 border-ink rounded-sm photo-warm"
       />
       <figcaption class="meta mt-2">Any property, anywhere</figcaption>
     </figure>
