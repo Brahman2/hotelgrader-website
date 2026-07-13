@@ -1,0 +1,124 @@
+# hotelgrader brand brief
+
+This file governs all visual and frontend work on hotelgrader.com. It overrides any
+default aesthetic a model or component library would otherwise produce. When a choice
+isn't covered here, derive it from the brand idea below - never from a template.
+
+## Brand idea
+
+hotelgrader is a rigorous inspection delivered by a warm, human company.
+
+Think of the letter-grade placard in a restaurant window: a physical, instantly
+understood artifact of accountability in hospitality. The marketing site is the warm,
+sunlit shell (paper, photography, a human hand). The report and dashboard inside it
+are precise and data-dense. Warmth builds trust with independent hotel owners;
+rigor earns the right to grade them.
+
+Audience: independent hotel owners and GMs, mostly 40-65, skeptical of both
+agencies and AI hype. The site must read as trustworthy to them, not impressive
+to designers.
+
+## Reference DNA (why these three)
+
+- granola.ai - human-made assets do the differentiation: commissioned illustration,
+  a friendly editorial serif, product shown plainly. Steal: illustration as the brand
+  carrier, restraint everywhere else.
+- daylightcomputer.com - proof that warm and technical coexist. Paper and amber
+  sunlight wrapped around dense, scientific content. Steal: the material metaphor
+  (paper, ink, sun) and warm-but-serious diagrams.
+- amie.so - one signature interaction, springy and product-tied, on an otherwise
+  calm light page. Steal: motion budget spent in exactly one place.
+
+## Color tokens
+
+Warm paper, but pushed toward Daylight's amber, not the generic AI cream.
+Explicitly avoid terracotta/clay accents near #D97757 (a known AI-default accent).
+
+- --paper: #FBF7EE (page background, warm but near-white)
+- --paper-deep: #F3EBDA (cards, section alternation)
+- --ink: #26221B (text, warm near-black - never pure #000)
+- --ink-soft: #6B6355 (secondary text, captions)
+- --sun: #D98A1C (brand accent, CTAs, grade emphasis - carried over from the
+  current site)
+- --iris: #5B5BD6 (interactive color, carried over from the current site: links,
+  hovers, focus rings, selected tabs/nav states, and the "you" series in comp-set
+  charts. Hover/active shade: #4646B0.)
+- Grade scale (functional only, muted like print): A #3E7C4F, B #7C9A3E,
+  C #C9922A, D #C0622F, F #A83232
+
+Rules: sun accent on no more than ~5% of any viewport. Iris appears only on
+elements the user can act on or that represent the user's own property in data -
+never as a fill, wash, background, gradient, or decorative accent, and never on
+dark backgrounds. Grade colors appear only on grades and grade-derived data.
+No gradients on text or backgrounds. Dark sections allowed only inside
+product/dashboard screenshots.
+
+## Typography
+
+Two options, ranked. Buy, don't default - the license is the moat.
+
+1. Display: Tiempos Headline (Klim, klim.co.nz, ~$50-60/style, verify current
+   licensing). Body: Söhne (Klim) or system fallback stack. Data/numbers:
+   Berkeley Mono (berkeleygraphics.com, [verify v2 license price]).
+2. Free fallback pair: Fraunces (display, use low-optical sizes, soft settings,
+   avoid the wonky high-contrast axes) + a quiet humanist sans for body.
+   Data: IBM Plex Mono.
+
+Rules:
+- No Instrument Serif, no Inter, no Geist, in any weight or context.
+- Italic serif emphasis inside headlines is banned (primary AI tell on the current site).
+- Mono is for data values only: grades, scores, dollar figures, metric readouts.
+  Never for labels, eyebrows, or navigation.
+- Sentence case everywhere. No all-caps eyebrows or section labels.
+
+## Signature element: the grade placard
+
+The one memorable thing. The grade renders as a physical inspection placard or
+rubber stamp: letterpress-style impression on paper, slight rotation (1-2deg),
+subtle emboss/ink texture. It appears in the hero scan demo, on report pages,
+and in OG images. Everything else on the page stays quiet so the placard owns
+the memory.
+
+Motion budget: one orchestrated moment - the scan completing and the placard
+stamping down (spring easing, single bounce, respects prefers-reduced-motion).
+No scroll-triggered reveals, no parallax, no ambient animation anywhere else.
+
+## Imagery
+
+- Real property photography, warm-graded (slight amber lift, film-like), full-bleed
+  or in simple 2px ink-keyline frames. Already a differentiator - competitors use
+  stock or 3D renders.
+- Commissioned spot illustrations for concepts (comp set, AI engines, booking flow):
+  single-weight ink line drawings of hospitality artifacts - room keys, luggage tags,
+  bell, door hanger, placard. One illustrator, one style, ~8-12 spots.
+  Budget [$X] via Dribbble/Folio hire.
+- No AI-generated imagery, no 3D blobs, no abstract gradient meshes, no
+  glassmorphism cards.
+
+## Structure and layout
+
+- Light page. Generous whitespace. Max content width ~1100px, asymmetry allowed.
+- Numbered markers (01/02/03) only where order is real (the 3-step method qualifies;
+  the seven grade sections do not - they get placard-style tabs instead).
+- Middle-dot separators, "FIG." captions, EXHIBITS/METHOD-style caps labels: banned.
+  Replace with plain sentence-case captions in ink-soft.
+- Report/dashboard UI keeps density and mono numerals - rigor lives there.
+  The warm shell never bleeds into fake-print gimmicks inside the actual product UI.
+
+## Banned list (AI tells)
+
+Dark hero, purple gradients, violet-on-dark, iris used decoratively (fills,
+washes, backgrounds, non-interactive accents), gradient text, glassmorphism,
+bento grids,
+Instrument Serif, italic-serif headline emphasis, all-caps mono eyebrows,
+middle-dot separators, FIG. captions, terracotta #D97757-range accents,
+scroll-jacking, decorative particle/orb effects, 21st.dev visual tokens
+(component behavior may be used, all styling replaced with these tokens).
+
+## Claude Code session rules
+
+- Load this file at the start of every design session. If a generated section
+  would look at home on a generic AI-built site, regenerate against this file.
+- impeccable + taste-skill enforce craft; this file supplies direction. Direction wins
+  on any conflict.
+- Screenshot and self-critique before presenting. One accessory removed per pass.
