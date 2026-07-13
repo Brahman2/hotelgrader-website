@@ -183,7 +183,7 @@ export default function HeroForm({
           />
           {busy && (
             <span className="meta tabular absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              SEARCHING
+              Searching
             </span>
           )}
 
@@ -208,7 +208,7 @@ export default function HeroForm({
                 </li>
               ))}
               <li className="px-4 py-2 border-t border-edge bg-paper meta tabular" aria-hidden="true">
-                LIVE SEARCH · ANY HOTEL · ANYWHERE
+                Live search, any hotel, anywhere
               </li>
             </ul>
           )}

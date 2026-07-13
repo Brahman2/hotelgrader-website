@@ -118,7 +118,7 @@ export default function HeroDemo() {
       <div className="grid grid-cols-1 sm:grid-cols-[236px_1fr]">
 
         <div className="relative flex flex-col items-center justify-center px-6 py-8 sm:py-6 border-b sm:border-b-0 sm:border-r border-edge min-h-[190px]">
-          <span className="label mb-3">CURRENT GRADE</span>
+          <span className="label mb-3">Current grade</span>
           <span
             className="grade grade--good tabular leading-[0.85] text-[96px] sm:text-[104px]"
             style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms cubic-bezier(0.2,0,0,1)' }}

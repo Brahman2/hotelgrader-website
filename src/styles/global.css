@@ -104,10 +104,9 @@
 
   /* Editorial label — uppercase, letter-spaced, indigo like the live report. */
   .label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.005em;
     color: #6B6355;
   }
   .label--indigo { color: #5B5BD6; }
@@ -204,13 +203,12 @@
     [style*="hg-pulse"] { animation: none !important; }
   }
 
-  /* Mono metadata — IBM Plex Mono, reserved for data values (see BRAND.md). */
+  /* Small caption/metadata — sentence-case sans, ink-soft (no mono eyebrows). */
   .meta {
-    font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-    font-size: 11px;
-    color: rgba(38, 34, 27, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    font-size: 12px;
+    color: #6B6355;
+    letter-spacing: 0;
   }
 
   /* ---------- Motion system ---------- */

@@ -11,7 +11,7 @@ const TABS = [
   { key: 'overview', label: 'OVERVIEW' },
   { key: 'plan', label: 'ACTION PLAN' },
   { key: 'comp', label: 'COMPETITORS' },
-  { key: 'iq', label: 'ASK HOTELIQ' },
+  { key: 'iq', label: 'Ask HotelIQ' },
 ] as const;
 
 const PLAN_ROWS = [
@@ -95,7 +95,7 @@ export default function DashboardTour() {
         {tab.key === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-[250px_1fr]">
             <div className="px-6 py-7 md:border-r border-b md:border-b-0 border-edge flex flex-col items-center justify-center text-center">
-              <span className="label mb-3">CURRENT GRADE</span>
+              <span className="label mb-3">Current grade</span>
               <span className="grade grade--good tabular text-[84px] leading-[0.85]">B+</span>
               <p className="text-[12px] text-ink-60 mt-3 tabular">
                 <span className="font-serif">Above market</span> · 87/100

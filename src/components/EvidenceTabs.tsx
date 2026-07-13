@@ -172,7 +172,7 @@ export default function EvidenceTabs() {
         <div className="p-5 sm:p-7 md:border-r border-edge md:min-h-[430px] flex flex-col justify-center">
           {tab.key === 'geo' && (
             <div className="border border-edge rounded overflow-hidden max-w-[560px]">
-              <div className="px-4 py-2.5 border-b border-edge bg-paper meta tabular">CHATGPT · TRAVELER PROMPT · LIVE</div>
+              <div className="px-4 py-2.5 border-b border-edge bg-paper meta tabular">ChatGPT, traveler prompt, live</div>
               <div className="px-4 py-4">
                 <p className="text-[14px] text-ink font-medium min-h-[21px]">
                   “{PROMPT.slice(0, typed)}”
@@ -205,11 +205,11 @@ export default function EvidenceTabs() {
               <div className="px-4 py-2.5 border-b border-edge bg-paper meta tabular">GOOGLE · “riverton hotel hudson valley”</div>
               <div className="px-4 py-4 space-y-3.5">
                 <div>
-                  <div className="meta tabular">AD · BOOKING.COM</div>
+                  <div className="meta tabular">Ad, Booking.com</div>
                   <div className="text-[13px] text-indigo mt-0.5">The Riverton, Hudson Valley. Book Now</div>
                 </div>
                 <div>
-                  <div className="meta tabular">AD · EXPEDIA.COM</div>
+                  <div className="meta tabular">Ad, Expedia.com</div>
                   <div className="text-[13px] text-indigo mt-0.5">Riverton Hotel. Member Prices</div>
                 </div>
                 <div className="pt-3 border-t border-edge">

@@ -10,7 +10,7 @@ const steps = [
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 lg:gap-16 items-center">
 
     <div>
-      <span class="label block mb-8" data-reveal>METHOD</span>
+      <span class="label block mb-8" data-reveal>Method</span>
       {steps.map((s, i) => (
         <div class={`flex gap-6 sm:gap-8 items-baseline py-6 ${i > 0 ? 'border-t border-edge' : ''}`} data-reveal={String(i * 90)}>
           <span class="font-serif text-[44px] sm:text-[52px] leading-none text-ink tabular shrink-0">{s.num}</span>
@@ -29,10 +29,7 @@ const steps = [
         loading="lazy"
         class="w-full h-[300px] lg:h-[420px] object-cover border border-edge rounded-sm"
       />
-      <figcaption class="meta tabular mt-2 flex justify-between">
-        <span>FIG. 01</span>
-        <span>ANY PROPERTY, ANYWHERE</span>
-      </figcaption>
+      <figcaption class="meta mt-2">Any property, anywhere</figcaption>
     </figure>
 
   </div>
