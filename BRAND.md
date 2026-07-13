@@ -40,18 +40,23 @@ Explicitly avoid terracotta/clay accents near #D97757 (a known AI-default accent
 - --ink-soft: #6B6355 (secondary text, captions)
 - --sun: #D98A1C (brand accent, CTAs, grade emphasis - carried over from the
   current site)
-- --iris: #5B5BD6 (interactive color, carried over from the current site: links,
-  hovers, focus rings, selected tabs/nav states, and the "you" series in comp-set
-  charts. Hover/active shade: #4646B0.)
+- --iris: #5B5BD6 (the brand color, carried from the logo. Two sanctioned jobs:
+  interactive states (links, hovers, focus rings, selected tabs/nav states, and
+  the "you" series in comp-set charts) AND deliberate full-bleed brand moments:
+  the page-closing conversion band on every page, plus at most one mid-page
+  band. White text on iris. Hover/active shade: #4646B0. Granola-style color
+  confidence: saturated, generous where it appears, absent everywhere else.)
 - Grade scale (functional only, muted like print): A #3E7C4F, B #7C9A3E,
   C #C9922A, D #C0622F, F #A83232
 
-Rules: sun accent on no more than ~5% of any viewport. Iris appears only on
-elements the user can act on or that represent the user's own property in data -
-never as a fill, wash, background, gradient, or decorative accent, and never on
-dark backgrounds. Grade colors appear only on grades and grade-derived data.
+Rules: sun accent on no more than ~5% of any viewport. Iris appears as the
+interactive color and as full-bleed band moments - nothing in between: never
+as random tints, washes behind body copy, gradients, or scattered decorative
+accents. Grade colors appear only on grades and grade-derived data.
 No gradients on text or backgrounds. Dark sections allowed only inside
-product/dashboard screenshots.
+product/dashboard screenshots. The page must never read monotone cream:
+every viewport should carry at least one saturated element (iris, sun, or a
+grade color) doing real work.
 
 ## Typography
 
@@ -107,8 +112,9 @@ No scroll-triggered reveals, no parallax, no ambient animation anywhere else.
 
 ## Banned list (AI tells)
 
-Dark hero, purple gradients, violet-on-dark, iris used decoratively (fills,
-washes, backgrounds, non-interactive accents), gradient text, glassmorphism,
+Dark hero, purple gradients, violet-on-dark, iris scattered as random tints
+(it is either interactive or a full-bleed band - nothing in between),
+monotone cream pages with no saturated color, gradient text, glassmorphism,
 bento grids,
 Instrument Serif, italic-serif headline emphasis, all-caps mono eyebrows,
 middle-dot separators, FIG. captions, terracotta #D97757-range accents,

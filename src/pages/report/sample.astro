@@ -228,16 +228,16 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
   </article>
 
   {/* Live handoff — indigo close */}
-  <section id="your-report" style="background: #F3EBDA;">
+  <section id="your-report" style="background: #5B5BD6;">
     <div class="max-w-content mx-auto px-8 py-14 text-center">
-      <span class="label block mb-3">This is a sample</span>
-      <h3 class="headline text-[26px] sm:text-[32px] max-w-[600px] mx-auto">
+      <span class="label block mb-3" style="color: rgba(255,255,255,0.85);">This is a sample</span>
+      <h3 class="headline text-[26px] sm:text-[32px] max-w-[600px] mx-auto" style="color: #fff;">
         Run this exact report <em>for your hotel.</em>
       </h3>
       <div class="max-w-[560px] mx-auto">
-        <HeroForm client:load inputId="report-hotel" />
+        <HeroForm client:load inputId="report-hotel" tone="dark" />
       </div>
-      <p class="meta tabular mt-3">Free forever. No credit card. Any hotel, anywhere.</p>
+      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">Free forever. No credit card. Any hotel, anywhere.</p>
     </div>
   </section>
 </BaseLayout>
