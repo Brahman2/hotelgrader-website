@@ -51,7 +51,7 @@ const gradeClass = (g: string) => {
             <p class="text-[13px] text-ink-60 mt-1 leading-snug">{p.punch}</p>
           </div>
           <div class="text-right">
-            <span class={`grade tabular text-[44px] sm:text-[52px] leading-none ${gradeClass(p.sample.grade)}`}>
+            <span data-stamp class={`grade tabular text-[44px] sm:text-[52px] leading-none ${gradeClass(p.sample.grade)}`}>
               {p.sample.grade.charAt(0)}<span class="grade-mod">{p.sample.grade.slice(1)}</span>
             </span>
             <div class={`meta tabular mt-1 ${p.sample.delta.startsWith('+') || p.sample.delta.startsWith('Top') ? 'text-good' : p.sample.delta.startsWith('−') || p.sample.delta.startsWith('Bottom') ? 'text-attention' : ''}`}>

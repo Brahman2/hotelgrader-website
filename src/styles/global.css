@@ -321,6 +321,27 @@
     html.js [data-reveal] { opacity: 1; transform: none; transition: none; }
   }
 
+  /* Grade stamp-in: the letter grade presses in as it enters view. */
+  html.js [data-stamp] {
+    opacity: 0;
+    transform: scale(1.14);
+    transform-origin: center 62%;
+    transition: opacity 360ms ease, transform 520ms cubic-bezier(0.2, 0.85, 0.25, 1);
+    will-change: opacity, transform;
+  }
+  html.js [data-stamp].is-in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-stamp] { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* Sources logos: lift + brighten on hover. */
+  .src-item { transition: transform 160ms ease, opacity 160ms ease; opacity: 0.92; }
+  .src-item:hover { transform: translateY(-3px); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .src-item { transition: none; }
+    .src-item:hover { transform: none; }
+  }
+
   /* Live-scan status dot pulse (subtle opacity only, per motion rules). */
   @keyframes hg-pulse {
     0%, 100% { opacity: 1; }
