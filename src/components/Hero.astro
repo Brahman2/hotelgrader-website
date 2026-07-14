@@ -23,7 +23,17 @@ import SourcesStrip from './SourcesStrip.astro';
     </p>
   </div>
 
-  <HeroDemo client:load />
+  {/* The scan card floats over a bold abstract-art panel (Granola-style framing) */}
+  <div class="relative isolate mt-12 max-w-[936px] mx-auto" data-reveal>
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0 rounded-[24px]"
+      style="background-image: url('/images/abstract-burst.svg'); background-size: cover; background-position: center; z-index: 0;"
+    ></div>
+    <div class="relative z-10 p-4 sm:p-6">
+      <HeroDemo client:load />
+    </div>
+  </div>
 
   <SourcesStrip />
 </section>

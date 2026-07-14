@@ -84,7 +84,7 @@ export default function HeroDemo() {
       : 'resolving the riverton hotel';
 
   return (
-    <div className="mt-12 mx-auto max-w-[880px] border border-edge rounded bg-bone text-left overflow-hidden">
+    <div className="mx-auto max-w-[880px] border border-edge rounded-lg bg-bone text-left overflow-hidden shadow-[0_24px_60px_-30px_rgba(28,23,64,0.5)]">
 
       {/* Title bar */}
       <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-edge bg-paper">
