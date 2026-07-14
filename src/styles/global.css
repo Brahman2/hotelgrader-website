@@ -108,6 +108,35 @@
   .grade--d { color: #C0622F; }
   .grade--f { color: #A83232; }
 
+  /* ---- Granola-style textured colour panels ----
+     A solid section tint gets a fine printed grain layered over it, so the
+     colour blocks read like coloured paper, not flat fills. */
+  .panel { position: relative; isolation: isolate; }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    mix-blend-mode: soft-light;
+  }
+
+  /* Ghost mark: a giant faded serif glyph sunk into a panel background, like
+     Granola's faded scribbles. Purely decorative, never intercepts clicks. */
+  .ghost-mark {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    z-index: -1;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 500;
+    line-height: 0.72;
+    letter-spacing: -0.04em;
+    color: rgba(38, 34, 27, 0.05);
+  }
+
   /* ---- Signature: the stamped grade ----
      A large letterpress serif grade with its mono score, pressed into the
      paper. No frame or card (a framed placard read school-ish). The single

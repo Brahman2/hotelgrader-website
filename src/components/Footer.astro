@@ -2,26 +2,35 @@
 const year = new Date().getFullYear();
 ---
 
-<footer class="border-t border-edge mt-16">
-  <div class="max-w-content mx-auto px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-    <div>
-      <a href="/" class="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.04em] text-ink" style="border-bottom: 0;">
-        <img src="/assets/favicon.svg" alt="" class="h-5 w-5" />
-        <span>hotelgrader</span>
-      </a>
-      <p class="meta mt-2">The independent grade for hotel marketing</p>
+<footer class="border-t border-edge mt-20 overflow-hidden">
+  <div class="max-w-content mx-auto px-8 pt-14">
+    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+      <div>
+        <nav class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px]">
+          <a href="/about" class="text-ink-60 hover:text-indigo transition-colors duration-150">About</a>
+          <a href="/methodology" class="text-ink-60 hover:text-indigo transition-colors duration-150">Methodology</a>
+          <a href="/pricing" class="text-ink-60 hover:text-indigo transition-colors duration-150">Pricing</a>
+          <a href="/privacy" class="text-ink-60 hover:text-indigo transition-colors duration-150">Privacy</a>
+          <a href="/terms" class="text-ink-60 hover:text-indigo transition-colors duration-150">Terms</a>
+          <a href="mailto:contact@hotelgrader.com" class="text-ink-60 hover:text-indigo transition-colors duration-150">contact@hotelgrader.com</a>
+        </nav>
+        <p class="meta mt-3">The independent grade for hotel marketing</p>
+      </div>
+      <div class="text-left md:text-right shrink-0">
+        <span class="meta tabular block">© {year} hotelgrader</span>
+        <span class="meta tabular text-teal block mt-1">38 sources, monitored continuously</span>
+      </div>
     </div>
-    <nav class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
-      <a href="/about" class="text-ink-60 hover:text-indigo transition-colors duration-150">About</a>
-      <a href="/methodology" class="text-ink-60 hover:text-indigo transition-colors duration-150">Methodology</a>
-      <a href="/pricing" class="text-ink-60 hover:text-indigo transition-colors duration-150">Pricing</a>
-      <a href="/privacy" class="text-ink-60 hover:text-indigo transition-colors duration-150">Privacy</a>
-      <a href="/terms" class="text-ink-60 hover:text-indigo transition-colors duration-150">Terms</a>
-      <a href="mailto:contact@hotelgrader.com" class="text-ink-60 hover:text-indigo transition-colors duration-150">contact@hotelgrader.com</a>
-    </nav>
   </div>
-  <div class="max-w-content mx-auto px-8 pb-8 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1.5">
-    <span class="meta tabular">© {year} hotelgrader</span>
-    <span class="meta tabular text-teal">38 sources, monitored continuously, methodology published</span>
-  </div>
+
+  {/* Big footer wordmark, cropped by the footer edge (Granola-style) */}
+  <a href="/" aria-label="hotelgrader home" class="block px-8 mt-8 select-none" style="border-bottom: 0;">
+    <span
+      class="flex items-center gap-[0.14em] leading-[0.78] font-semibold tracking-[-0.055em] text-ink whitespace-nowrap"
+      style="font-size: clamp(64px, 13.5vw, 230px);"
+    >
+      <img src="/assets/favicon.svg" alt="" class="w-[0.9em] h-[0.9em] shrink-0" />
+      <span>hotelgrader</span>
+    </span>
+  </a>
 </footer>

@@ -117,6 +117,12 @@ looping ambient animation.
 - Trust strip uses REAL brand logos (simple-icons, build-time inlined SVG):
   Google, Tripadvisor, Booking.com, Expedia, Gemini, Perplexity, Instagram.
 - At least one big testimonial set large (30-42px), name + role + property.
+- Colour panels are TEXTURED, not flat (Granola-style coloured paper): a fine
+  soft-light grain is layered over each tint (.panel). Faded oversized brand
+  marks - a ghost grade letter or the hg spiral - may sink into a panel
+  background (.ghost-mark, ~5% ink), like Granola's ghost scribbles.
+- Big footer wordmark: the full "hotelgrader" logotype set huge and cropped by
+  the footer's bottom edge, with the hg mark. The one loud logo moment.
 - Generous whitespace. Max content width ~1100px, asymmetry allowed.
 - Numbered markers (01/02/03) only where order is real (the 3-step method qualifies;
   the seven grade sections do not - they get placard-style tabs instead).
