@@ -4,7 +4,7 @@ import DashboardTour from './DashboardTour.tsx';
 
 <section id="product" class="panel" style="background: #E6F3F0;">
   <div class="max-w-content mx-auto px-8 py-20">
-  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8" data-reveal>
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-end mb-10" data-reveal>
     <div>
       <span class="label block mb-3">The dashboard</span>
       <h2 class="headline text-[38px] sm:text-[50px] max-w-[720px]">
@@ -14,10 +14,16 @@ import DashboardTour from './DashboardTour.tsx';
         Pro re-scans on demand, ranks every fix by payback, watches your
         competitors, and answers questions with your own data.
       </p>
+      <a href="/pricing" class="inline-block meta tabular text-indigo hover:underline mt-4" style="border-bottom: 0;">
+        Pricing →
+      </a>
     </div>
-    <a href="/pricing" class="meta tabular text-indigo hover:underline whitespace-nowrap" style="border-bottom: 0;">
-      Pricing →
-    </a>
+    <img
+      src="/images/suite.jpg"
+      alt="Warm, well-kept guest room in a boutique hotel"
+      loading="lazy"
+      class="w-full h-[220px] lg:h-[250px] object-cover rounded border border-edge"
+    />
   </div>
 
   <div>

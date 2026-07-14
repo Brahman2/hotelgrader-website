@@ -98,8 +98,11 @@ looping ambient animation.
 ## Imagery
 
 - Real property photography, warm-graded (slight amber lift, film-like), full-bleed
-  or in simple 2px ink-keyline frames. Already a differentiator - competitors use
-  stock or 3D renders.
+  or in simple thin-keyline frames. Already a differentiator - competitors use
+  stock or 3D renders. (Currently: warm interiors from Unsplash as placeholders -
+  public/images/CREDITS.md - to be replaced with commissioned/owned shots.)
+- Do NOT attach a stock-photo face to a named testimonial (misrepresents a real
+  person); testimonials stay text-only until a real customer photo exists.
 - Commissioned spot illustrations for concepts (comp set, AI engines, booking flow):
   single-weight ink line drawings of hospitality artifacts - room keys, luggage tags,
   bell, door hanger, placard. One illustrator, one style, ~8-12 spots.
