@@ -16,7 +16,7 @@ const gradeClass = (g: string) => {
     {pillars.map((p, idx) => (
       <li class={`grid grid-cols-[64px_1fr] sm:grid-cols-[100px_1fr_170px] items-center gap-4 sm:gap-5 px-5 sm:px-7 py-5 ${idx > 0 ? 'border-t border-edge' : ''}`}>
         <div class={`grade ${gradeClass(p.sample.grade)} text-[40px] sm:text-[48px] leading-none tabular`}>
-          {p.sample.grade}
+          {p.sample.grade.charAt(0)}<span class="grade-mod">{p.sample.grade.slice(1)}</span>
         </div>
         <div>
           <div class="flex items-baseline gap-3">

@@ -292,7 +292,7 @@ export default function EvidenceTabs() {
 
         {/* Verdict rail */}
         <div className="p-5 sm:p-7 border-t md:border-t-0 border-edge flex flex-col justify-center">
-          <span className="grade tabular text-[72px] leading-none" style={{ color: hex }}>{tab.grade}</span>
+          <span className="grade tabular text-[72px] leading-none" style={{ color: hex }}>{tab.grade.charAt(0)}<span className="grade-mod">{tab.grade.slice(1)}</span></span>
           <p className="text-[15px] font-medium text-ink mt-4 leading-snug">{tab.punch}</p>
           <p className="text-[13px] text-ink-60 mt-2 leading-relaxed">{tab.stat}</p>
           <span className="meta tabular mt-3" style={{ color: hex }}>{tab.delta}</span>

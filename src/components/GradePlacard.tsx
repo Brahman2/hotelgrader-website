@@ -49,7 +49,7 @@ export default function GradePlacard({
       role="img"
       aria-label={`Grade ${grade}${score ? `, ${score}` : ''}`}
     >
-      <span className={`placard-grade placard-grade--${tone} tabular`} aria-hidden="true">{grade}</span>
+      <span className={`placard-grade placard-grade--${tone} tabular`} aria-hidden="true">{grade.charAt(0)}<span className="grade-mod">{grade.slice(1)}</span></span>
       {score && <span className="placard-score" aria-hidden="true">{score}</span>}
     </span>
   );

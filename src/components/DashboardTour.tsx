@@ -96,7 +96,7 @@ export default function DashboardTour() {
           <div className="grid grid-cols-1 md:grid-cols-[250px_1fr]">
             <div className="px-6 py-7 md:border-r border-b md:border-b-0 border-edge flex flex-col items-center justify-center text-center">
               <span className="label mb-3">Current grade</span>
-              <span className="grade grade--good tabular text-[84px] leading-[0.85]">B+</span>
+              <span className="grade grade--good tabular text-[84px] leading-[0.85]">B<span className="grade-mod">+</span></span>
               <p className="text-[12px] text-ink-60 mt-3 tabular">
                 <span className="font-serif">Above market</span> · 87/100
               </p>
@@ -164,7 +164,7 @@ export default function DashboardTour() {
                   <span className="meta tabular">{row.rank}</span>
                   <span className={`text-[14px] ${row.you ? 'font-semibold text-indigo' : 'font-medium text-ink'}`}>{row.name}</span>
                   <span className="meta tabular hidden sm:inline">{row.note.toUpperCase()}</span>
-                  <span className="grade tabular text-[26px] leading-none" style={{ color: row.tone }}>{row.grade}</span>
+                  <span className="grade tabular text-[26px] leading-none" style={{ color: row.tone }}>{row.grade.charAt(0)}<span className="grade-mod">{row.grade.slice(1)}</span></span>
                 </li>
               ))}
             </ul>
