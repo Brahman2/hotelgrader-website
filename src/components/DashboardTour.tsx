@@ -65,7 +65,8 @@ export default function DashboardTour() {
       </div>
 
       {/* Tab rail */}
-      <div role="tablist" aria-label="Dashboard surfaces" className="grid grid-cols-4 bg-paper border-b border-edge">
+      {/* Tabs scroll horizontally on narrow screens instead of wrapping */}
+      <div role="tablist" aria-label="Dashboard surfaces" className="grid grid-cols-4 max-sm:flex max-sm:overflow-x-auto max-sm:whitespace-nowrap bg-paper border-b border-edge">
         {TABS.map((t, i) => {
           const isActive = i === active;
           return (
