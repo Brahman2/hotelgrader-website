@@ -154,7 +154,7 @@ export default function HeroForm({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="rgba(11,18,32,0.4)"
+            stroke="rgba(38,34,27,0.4)"
             strokeWidth="1.5"
             strokeLinecap="round"
           >
@@ -183,7 +183,7 @@ export default function HeroForm({
           />
           {busy && (
             <span className="meta tabular absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              SEARCHING
+              Searching
             </span>
           )}
 
@@ -201,14 +201,14 @@ export default function HeroForm({
                   onMouseEnter={() => setHi(i)}
                   onMouseDown={(e) => { e.preventDefault(); pick(s); }}
                   className={`px-4 py-3 cursor-pointer ${i > 0 ? 'border-t border-edge' : ''}`}
-                  style={{ background: i === hi ? '#EFECE7' : 'transparent' }}
+                  style={{ background: i === hi ? '#F1EFE9' : 'transparent' }}
                 >
                   <div className="text-[14px] font-medium text-ink leading-snug">{s.name}</div>
                   <div className="meta mt-0.5">{s.secondary_text}</div>
                 </li>
               ))}
               <li className="px-4 py-2 border-t border-edge bg-paper meta tabular" aria-hidden="true">
-                LIVE SEARCH · ANY HOTEL · ANYWHERE
+                Live search, any hotel, anywhere
               </li>
             </ul>
           )}

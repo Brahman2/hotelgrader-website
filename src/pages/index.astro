@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
-import Ticker from '../components/Ticker.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import Pillars from '../components/Pillars.astro';
 import EvidenceTabs from '../components/EvidenceTabs.tsx';
@@ -14,27 +13,28 @@ import FinalCTA from '../components/FinalCTA.astro';
 
 <BaseLayout>
   <Hero />
-  <Ticker />
   <HowItWorks />
   <Pillars />
 
-  <section id="evidence" class="max-w-content mx-auto px-8 py-16">
-    <div class="mb-8" data-reveal>
-      <span class="label block mb-3">EXHIBITS</span>
-      <h2 class="headline text-[30px] sm:text-[38px] max-w-[680px]">
-        See the evidence behind <em>every grade.</em>
-      </h2>
-    </div>
-    <div data-reveal="80">
-      <EvidenceTabs client:visible />
+  <section id="evidence" class="panel" style="background: #EDEDFB;">
+    <div class="max-w-content mx-auto px-8 py-20">
+      <div class="mb-8" data-reveal>
+        <span class="label block mb-3">Evidence</span>
+        <h2 class="headline text-[38px] sm:text-[50px] max-w-[680px]">
+          See the proof behind <em>every grade.</em>
+        </h2>
+      </div>
+      <div data-reveal="100">
+        <EvidenceTabs client:visible />
+      </div>
     </div>
   </section>
 
-  {/* Mid-page conversion band — the one indigo moment on the page */}
-  <div style="background: #5B5BD6;">
+  {/* Mid-page conversion band — the one iris moment mid-page */}
+  <div class="panel" style="background: #5B5BD6;">
     <div class="max-w-content mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,560px)] gap-6 lg:gap-14 items-center">
-      <p class="headline text-[26px] sm:text-[30px]" style="color: #fff;" data-reveal>
-        Your grade, your comp-set rank, <em>your upside.</em>
+      <p class="headline text-[26px] sm:text-[30px]" style="color: #fff;">
+        Your grade, your rank, and <em>your upside.</em>
       </p>
       <div class="-mt-6">
         <HeroForm client:visible inputId="mid-hotel" align="left" tone="dark" />

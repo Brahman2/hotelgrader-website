@@ -2,17 +2,17 @@
 import HeroForm from './HeroForm.tsx';
 ---
 
-<section style="background: #5B5BD6;">
+{/* The iris close — the brand color's full-bleed moment on every page */}
+<section class="panel" style="background: #5B5BD6;">
   <div class="max-w-content mx-auto px-8 py-16 sm:py-20 text-center">
-    <span class="label block mb-5" style="color: rgba(255,255,255,0.85);" data-reveal>START YOUR AUDIT</span>
+    <span class="label block mb-5" style="color: rgba(255,255,255,0.85);">Get your grade</span>
     <h2
       class="headline text-[40px] sm:text-[56px] max-w-[820px] mx-auto"
       style="text-wrap: balance; color: #fff;"
-      data-reveal="60"
     >
       Your comp set <em>already ran this.</em>
     </h2>
     <HeroForm client:load inputId="final-domain" tone="dark" />
-    <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">FREE FOREVER · NO CREDIT CARD · 30-SECOND ANALYSIS</p>
+    <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">Free forever, no credit card.</p>
   </div>
 </section>

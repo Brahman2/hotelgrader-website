@@ -11,7 +11,7 @@ const TABS = [
   { key: 'overview', label: 'OVERVIEW' },
   { key: 'plan', label: 'ACTION PLAN' },
   { key: 'comp', label: 'COMPETITORS' },
-  { key: 'iq', label: 'ASK HOTELIQ' },
+  { key: 'iq', label: 'Ask HotelIQ' },
 ] as const;
 
 const PLAN_ROWS = [
@@ -75,9 +75,9 @@ export default function DashboardTour() {
               aria-selected={isActive}
               onClick={() => goTo(i, true)}
               className={`relative text-left px-4 py-3 ${isActive ? '' : 'evtab'}`}
-              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F7F4F0' : undefined }}
+              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F4F2EC' : undefined }}
             >
-              <span className="meta tabular block" style={{ color: isActive ? '#0B1220' : undefined }}>{t.label}</span>
+              <span className="meta tabular block" style={{ color: isActive ? '#26221B' : undefined }}>{t.label}</span>
               {isActive && auto && (
                 <span
                   key={`${t.key}-${visit}`}
@@ -95,10 +95,10 @@ export default function DashboardTour() {
         {tab.key === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-[250px_1fr]">
             <div className="px-6 py-7 md:border-r border-b md:border-b-0 border-edge flex flex-col items-center justify-center text-center">
-              <span className="label mb-3">CURRENT GRADE</span>
-              <span className="grade grade--good tabular text-[84px] leading-[0.85]">B+</span>
+              <span className="label mb-3">Current grade</span>
+              <span className="grade grade--good tabular text-[84px] leading-[0.85]">B<span className="grade-mod">+</span></span>
               <p className="text-[12px] text-ink-60 mt-3 tabular">
-                <span className="font-serif italic">Above market</span> · 87/100
+                <span className="font-serif">Above market</span> · 87/100
               </p>
               <div className="w-full mt-6 pt-5 border-t border-edge">
                 <svg viewBox="0 0 200 56" className="w-full" aria-hidden="true">
@@ -117,7 +117,7 @@ export default function DashboardTour() {
                   <span className="text-[13px] font-medium text-ink">{p.name}</span>
                   <span className="meta tabular hidden sm:inline">{p.sample.delta.toUpperCase()}</span>
                   <span className="tabular text-[13px] font-semibold" style={{ color: p.sample.tone === 'good' ? '#1E7F4B' : p.sample.tone === 'warn' ? '#D98A1C' : '#C6453D' }}>
-                    {p.sample.score}<span className="text-[10px] font-normal" style={{ color: 'rgba(11,18,32,0.4)' }}>/100</span>
+                    {p.sample.score}<span className="text-[10px] font-normal" style={{ color: 'rgba(38,34,27,0.4)' }}>/100</span>
                   </span>
                 </div>
               ))}
@@ -132,7 +132,7 @@ export default function DashboardTour() {
           <div>
             <ul className="list-none p-0 m-0">
               {PLAN_ROWS.map((row, i) => (
-                <li key={row.n} className={`grid grid-cols-[32px_1fr_auto] items-start gap-4 px-5 sm:px-7 py-5 ${i > 0 ? 'border-t border-edge' : ''}`} style={{ background: row.featured ? '#FBF9F6' : undefined }}>
+                <li key={row.n} className={`grid grid-cols-[32px_1fr_auto] items-start gap-4 px-5 sm:px-7 py-5 ${i > 0 ? 'border-t border-edge' : ''}`} style={{ background: row.featured ? '#FCFBF7' : undefined }}>
                   <span className="meta tabular pt-0.5">{row.n}</span>
                   <div>
                     <p className="text-[15px] font-medium text-ink leading-snug">{row.fix}</p>
@@ -164,7 +164,7 @@ export default function DashboardTour() {
                   <span className="meta tabular">{row.rank}</span>
                   <span className={`text-[14px] ${row.you ? 'font-semibold text-indigo' : 'font-medium text-ink'}`}>{row.name}</span>
                   <span className="meta tabular hidden sm:inline">{row.note.toUpperCase()}</span>
-                  <span className="grade tabular text-[26px] leading-none" style={{ color: row.tone }}>{row.grade}</span>
+                  <span className="grade tabular text-[26px] leading-none" style={{ color: row.tone }}>{row.grade.charAt(0)}<span className="grade-mod">{row.grade.slice(1)}</span></span>
                 </li>
               ))}
             </ul>

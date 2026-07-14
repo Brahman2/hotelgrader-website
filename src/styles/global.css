@@ -4,67 +4,73 @@
 
 /* ---------- Bundled fonts (offline-safe) ---------- */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Source Sans 3';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 900;
   font-display: swap;
-  src: url('/fonts/InterVariable.woff2') format('woff2-variations');
+  src: url('/fonts/SourceSans3Variable.woff2') format('woff2-variations');
 }
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Source Sans 3';
   font-style: italic;
-  font-weight: 100 900;
+  font-weight: 200 900;
   font-display: swap;
-  src: url('/fonts/InterVariable-Italic.woff2') format('woff2-variations');
+  src: url('/fonts/SourceSans3Variable-Italic.woff2') format('woff2-variations');
 }
 @font-face {
-  font-family: 'Inter Display';
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/InterDisplay-Regular.woff2') format('woff2');
+  src: url('/fonts/IBMPlexMono-400.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Inter Display';
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/InterDisplay-Medium.woff2') format('woff2');
+  src: url('/fonts/IBMPlexMono-500.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Inter Display';
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/InterDisplay-SemiBold.woff2') format('woff2');
+  src: url('/fonts/IBMPlexMono-600.woff2') format('woff2');
 }
+/* Fraunces — a high-contrast, characterful "old style" display serif with
+   SOFT + WONK axes. Chosen over a neutral serif so the editorial voice reads
+   as designed, not defaulted. Self-hosted variable (opsz/wght/SOFT/WONK). */
 @font-face {
-  font-family: 'Inter Display';
+  font-family: 'Fraunces';
   font-style: normal;
-  font-weight: 700;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/InterDisplay-Bold.woff2') format('woff2');
+  src: url('/fonts/Fraunces-Variable.woff2') format('woff2-variations');
 }
 @font-face {
-  font-family: 'Source Serif 4';
-  font-style: normal;
-  font-weight: 200 900;
-  font-display: swap;
-  src: url('/fonts/SourceSerif4Variable-Roman.woff2') format('woff2-variations');
-}
-@font-face {
-  font-family: 'Source Serif 4';
+  font-family: 'Fraunces';
   font-style: italic;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/SourceSerif4Variable-Italic.woff2') format('woff2-variations');
+  src: url('/fonts/Fraunces-Variable-Italic.woff2') format('woff2-variations');
+}
+
+/* Archivo Black — the grade mark. A heavy grotesque so the letter grade reads
+   like a stamped seal, distinct from the body sans and display serif. */
+@font-face {
+  font-family: 'Archivo Black';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ArchivoBlack.woff2') format('woff2');
 }
 
 @layer base {
   html, body {
-    background: #F7F4F0;
-    color: #0B1220;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #FCFBF7;
+    color: #26221B;
+    font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
     font-size: 15px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -72,7 +78,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: -0.01em;
@@ -87,7 +93,7 @@
     border-bottom: 1px solid transparent;
     transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);
   }
-  a:hover { border-bottom-color: #5B5BD6; }
+  a:hover { border-bottom-color: #4646B0; }
 
   :focus-visible {
     outline: 2px solid #5B5BD6;
@@ -98,46 +104,133 @@
 @layer components {
   /* The Grade — always serif, large, centered. */
   .grade {
-    font-family: 'Source Serif 4', Georgia, serif;
-    font-weight: 500;
-    letter-spacing: -0.02em;
+    font-family: 'Archivo Black', system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.03em;
     line-height: 0.9;
-    color: #0B1220;
-    font-feature-settings: "ss01";
+    color: #26221B;
+  }
+  /* +/- modifier: smaller and raised toward the cap, so "B+" reads as a grade
+     rather than a letter next to a full-size symbol. */
+  .grade-mod {
+    font-size: 0.52em;
+    letter-spacing: 0;
+    vertical-align: 0.6em;
+    margin-left: 0.03em;
   }
   .grade--good      { color: #1E7F4B; }
   .grade--warn      { color: #D98A1C; }
   .grade--attention { color: #C6453D; }
+  /* Full A-F grade palette (see BRAND.md) — the product's own color spectrum. */
+  .grade--a { color: #3E7C4F; }
+  .grade--b { color: #7C9A3E; }
+  .grade--c { color: #C9922A; }
+  .grade--d { color: #C0622F; }
+  .grade--f { color: #A83232; }
+
+  /* ---- Granola-style textured colour panels ----
+     A solid section tint gets a fine printed grain layered over it, so the
+     colour blocks read like coloured paper, not flat fills. */
+  .panel { position: relative; isolation: isolate; }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    mix-blend-mode: soft-light;
+  }
+
+  /* Ghost mark: a giant faded serif glyph sunk into a panel background, like
+     Granola's faded scribbles. Purely decorative, never intercepts clicks. */
+  .ghost-mark {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    z-index: -1;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
+    font-weight: 500;
+    line-height: 0.72;
+    letter-spacing: -0.04em;
+    color: rgba(38, 34, 27, 0.05);
+  }
+
+  /* ---- Signature: the stamped grade ----
+     A large letterpress serif grade with its mono score, pressed into the
+     paper. No frame or card (a framed placard read school-ish). The single
+     orchestrated motion: it stamps down once when the scan completes.
+     font-size sets the scale. */
+  .placard {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .placard-grade {
+    font-family: 'Archivo Black', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 1em;
+    line-height: 0.8;
+    letter-spacing: -0.03em;
+    /* letterpress: ink pressed into paper (highlight below, faint deboss above) */
+    text-shadow: 0 1px 0 rgba(252, 251, 247, 0.7), 0 -0.5px 0 rgba(38, 34, 27, 0.10);
+  }
+  .placard-grade--good      { color: #3E7C4F; }
+  .placard-grade--warn      { color: #C9922A; }
+  .placard-grade--attention { color: #C0622F; }
+  .placard-score {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.11em;
+    color: #6B6355;
+    margin-top: 0.55em;
+  }
+  /* The one orchestrated motion: the grade stamps down on scan complete. */
+  @keyframes hg-stamp {
+    0%   { opacity: 0; transform: scale(1.16); }
+    55%  { opacity: 1; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .placard--stamp { animation: hg-stamp 460ms cubic-bezier(0.2, 0.85, 0.25, 1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .placard--stamp { animation: none; }
+  }
 
   /* Editorial label — uppercase, letter-spaced, indigo like the live report. */
   .label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #5B5BD6;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    color: #6B6355;
   }
   .label--indigo { color: #5B5BD6; }
-  .label--muted  { color: rgba(11, 18, 32, 0.6); }
-  .label--ink    { color: #0B1220; }
+  .label--muted  { color: rgba(38, 34, 27, 0.6); }
+  .label--ink    { color: #26221B; }
 
   /* Display headline — Source Serif, like the live report's editorial voice.
      Use <em> inside for the italic accent phrase. */
   .headline {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 40, 'WONK' 1;
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.05;
-    color: #0B1220;
+    color: #26221B;
   }
+  /* Emphasis stays upright (no italic-serif tell); weight matches the headline. */
   .headline em {
-    font-style: italic;
-    font-weight: 500;
+    font-style: normal;
+    font-weight: inherit;
   }
 
   /* Card — hairline border, no shadow. */
   .card {
-    background: #F7F4F0;
+    background: #F4F2EC;
     border: 1px solid #E6E6E1;
     border-radius: 6px;
     padding: 32px;
@@ -145,32 +238,40 @@
 
   /* Buttons */
   .btn {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 15px;
-    font-weight: 500;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
     line-height: 1;
-    padding: 12px 18px;
+    padding: 13px 20px;
     border-radius: 6px;
     border: 1px solid #E6E6E1;
-    background: #F7F4F0;
-    color: #0B1220;
+    background: #F4F2EC;
+    color: #26221B;
     cursor: pointer;
     transition: background 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1);
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  .btn:hover  { background: #EFECE7; }
-  .btn:active { background: #E6E2DB; }
+  .btn:hover  { background: #F1EFE9; }
+  .btn:active { background: #E7E4DD; }
 
-  /* Primary action — CTA orange, back by request. The site leads; the app follows. */
+  /* Primary action — iris, the brand color. White text, generous presence. */
   .btn--primary {
-    background: #D9531C;
+    background: #5B5BD6;
     color: #fff;
-    border-color: #D9531C;
+    border-color: #5B5BD6;
   }
-  .btn--primary:hover  { background: #C24716; border-color: #C24716; }
-  .btn--primary:active { background: #A93D12; border-color: #A93D12; }
+  .btn--primary:hover  { background: #4646B0; border-color: #4646B0; }
+  .btn--primary:active { background: #3C3C96; border-color: #3C3C96; }
+
+  /* Sun action — warm amber alternate (grade emphasis / secondary CTAs). */
+  .btn--sun {
+    background: #D98A1C;
+    color: #26221B;
+    border-color: #D98A1C;
+  }
+  .btn--sun:hover  { background: #C67C12; border-color: #C67C12; }
 
   .btn--indigo {
     background: #5B5BD6;
@@ -180,18 +281,24 @@
 
   /* Inputs */
   .input {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
     font-size: 15px;
     padding: 14px 16px;
     border: 1px solid #E6E6E1;
     border-radius: 6px;
-    background: #F7F4F0;
-    color: #0B1220;
+    background: #FCFBF7;
+    color: #26221B;
     outline: none;
     transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);
   }
-  .input:focus { border-color: #0B1220; }
-  .input::placeholder { color: rgba(11, 18, 32, 0.4); }
+  .input:focus { border-color: #26221B; }
+  .input::placeholder { color: rgba(38, 34, 27, 0.4); }
+
+  /* Sticky header: hairline + soft shadow fade in once the page is scrolled. */
+  #site-header.is-scrolled {
+    border-bottom-color: #E6E6E1;
+    box-shadow: 0 6px 24px -18px rgba(38, 34, 27, 0.35);
+  }
 }
 
 @layer utilities {
@@ -199,6 +306,19 @@
   .tabular {
     font-feature-settings: "tnum" 1, "ss01" 1;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Scroll reveal: rise + fade on entry. Gated on html.js so content is
+     never hidden without JS; collapses to static under reduced-motion. */
+  html.js [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1), transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  html.js [data-reveal].is-in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-reveal] { opacity: 1; transform: none; transition: none; }
   }
 
   /* Live-scan status dot pulse (subtle opacity only, per motion rules). */
@@ -210,46 +330,15 @@
     [style*="hg-pulse"] { animation: none !important; }
   }
 
-  /* Verge-style mono metadata. */
+  /* Small caption/metadata — sentence-case sans, ink-soft (no mono eyebrows). */
   .meta {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 11px;
-    color: rgba(11, 18, 32, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    font-size: 12px;
+    color: #6B6355;
+    letter-spacing: 0;
   }
 
   /* ---------- Motion system ---------- */
-
-  /* Scroll reveal: elements with [data-reveal] rise in when they enter the
-     viewport. Gated on html.js so content is never hidden without JS. */
-  html.js [data-reveal] {
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1), transform 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-  html.js [data-reveal].is-in {
-    opacity: 1;
-    transform: none;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html.js [data-reveal] { opacity: 1; transform: none; transition: none; }
-  }
-
-  /* Ambient ticker strip. Two copies of the track loop seamlessly. */
-  @keyframes hg-ticker {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
-  }
-  .ticker-track {
-    display: flex;
-    width: max-content;
-    animation: hg-ticker 52s linear infinite;
-  }
-  .ticker:hover .ticker-track { animation-play-state: paused; }
-  @media (prefers-reduced-motion: reduce) {
-    .ticker-track { animation: none; }
-  }
 
   /* Terminal caret in the live-scan log. */
   @keyframes hg-caret {
@@ -262,7 +351,7 @@
     height: 11px;
     margin-left: 6px;
     vertical-align: -1px;
-    background: #0B1220;
+    background: #26221B;
     animation: hg-caret 1s steps(2, end) infinite;
   }
   @media (prefers-reduced-motion: reduce) {

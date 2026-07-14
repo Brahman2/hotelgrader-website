@@ -1,39 +1,41 @@
 ---
 import { pillars } from '../content/pillars';
 
-const toneClass = (t: 'good' | 'warn' | 'attention') =>
-  t === 'good' ? 'grade--good' : t === 'warn' ? 'grade--warn' : 'grade--attention';
+const gradeClass = (g: string) => {
+  const c = (g[0] || '').toUpperCase();
+  return c === 'A' ? 'grade--a' : c === 'B' ? 'grade--b' : c === 'C' ? 'grade--c' : c === 'D' ? 'grade--d' : 'grade--f';
+};
 ---
 
-<section id="pillars" class="bg-paper border-y border-edge">
+<section id="pillars" class="bg-paper border-y border-edge relative overflow-hidden">
+  {/* Bold abstract-art edge accent — a thin halftone seam along the top */}
+  <div aria-hidden="true" class="absolute inset-x-0 top-0 h-[9px] z-10" style="background-image: url('/images/abstract-burst-2.svg'); background-size: cover; background-position: center;"></div>
+  <span class="ghost-mark" aria-hidden="true" style="right: -2vw; top: -4vw; font-size: 34vw;">A+</span>
   <div class="max-w-content mx-auto px-8 py-20">
   <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10" data-reveal>
     <div>
-      <span class="label block mb-3">FINDINGS</span>
-      <h2 class="headline text-[30px] sm:text-[38px] max-w-[720px]">
-        The seven grades, and what each one is <em>costing you.</em>
+      <span class="label block mb-3">Findings</span>
+      <h2 class="headline text-[38px] sm:text-[50px] max-w-[720px]">
+        The seven grades, and what each one <em>costs you.</em>
       </h2>
-      <p class="text-[14px] text-ink-60 mt-3 max-w-[560px] leading-relaxed">
-        Every grade comes with a prioritized fix queue: what to change, in what
-        order, and what each fix is worth in direct bookings.
+      <p class="text-[16px] text-ink-60 mt-3 max-w-[600px] leading-relaxed">
+        Each grade comes with a ranked list of fixes, and what every one is
+        worth in direct bookings.
       </p>
     </div>
-    <span class="meta tabular whitespace-nowrap">SAMPLE · THE RIVERTON · COMP SET OF 74</span>
+    <span class="meta tabular whitespace-nowrap">Sample, The Riverton, comp set of 74</span>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-10 lg:gap-16 items-stretch">
 
-    <figure class="hidden lg:flex flex-col" data-reveal>
+    <figure class="hidden lg:flex flex-col">
       <img
         src="/images/courtyard.jpg"
         alt="Sunlit courtyard and stone staircase of a boutique hotel"
         loading="lazy"
         class="w-full flex-1 object-cover border border-edge rounded-sm min-h-[480px]"
       />
-      <figcaption class="meta tabular mt-2 flex justify-between">
-        <span>FIG. 02</span>
-        <span>SEVEN SECTIONS · ONE LETTER</span>
-      </figcaption>
+      <figcaption class="meta mt-2">Seven sections, one letter</figcaption>
     </figure>
 
     <div>
@@ -42,7 +44,6 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
           href={`/methodology#s-${p.num}`}
           class={`grid grid-cols-[44px_1fr_auto] items-center gap-4 sm:gap-6 py-[18px] px-3 -mx-3 rounded-sm transition-colors duration-150 hover:bg-paper text-ink ${i > 0 ? 'border-t border-edge' : ''}`}
           style="border-bottom: 0;"
-          data-reveal={String(i * 60)}
         >
           <span class="meta tabular">{p.num}</span>
           <div>
@@ -50,8 +51,8 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
             <p class="text-[13px] text-ink-60 mt-1 leading-snug">{p.punch}</p>
           </div>
           <div class="text-right">
-            <span class={`grade tabular text-[36px] sm:text-[40px] leading-none ${toneClass(p.sample.tone)}`}>
-              {p.sample.grade}
+            <span class={`grade tabular text-[44px] sm:text-[52px] leading-none ${gradeClass(p.sample.grade)}`}>
+              {p.sample.grade.charAt(0)}<span class="grade-mod">{p.sample.grade.slice(1)}</span>
             </span>
             <div class={`meta tabular mt-1 ${p.sample.delta.startsWith('+') || p.sample.delta.startsWith('Top') ? 'text-good' : p.sample.delta.startsWith('−') || p.sample.delta.startsWith('Bottom') ? 'text-attention' : ''}`}>
               {p.sample.delta}
@@ -60,8 +61,8 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
         </a>
       ))}
       <p class="meta tabular pt-4 border-t border-edge">
-        46 METRICS · WEIGHTED BY BOOKING IMPACT ·
-        <a href="/methodology" class="text-indigo hover:underline" style="border-bottom: 0;">FULL METHODOLOGY →</a>
+        46 metrics, weighted by booking impact.
+        <a href="/methodology" class="text-indigo hover:underline" style="border-bottom: 0;">Full methodology →</a>
       </p>
     </div>
 

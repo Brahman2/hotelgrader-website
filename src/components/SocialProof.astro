@@ -2,26 +2,41 @@
 import CompSet from './CompSet.tsx';
 ---
 
-<section class="bg-paper border-y border-edge">
+<section class="bg-bone border-y border-edge">
   <div class="max-w-content mx-auto px-8 py-20">
-  <div class="mb-8" data-reveal>
-    <span class="label block mb-3">COMPARABLES</span>
-    <h2 class="headline text-[30px] sm:text-[38px] tabular">
+  <div class="mb-8">
+    <span class="label block mb-3">Comp set</span>
+    <h2 class="headline text-[38px] sm:text-[50px] tabular">
       Ranked <em>#18</em> in a field of 74.
     </h2>
   </div>
 
-  <div data-reveal="80">
+  <div>
     <CompSet client:visible />
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-10">
+  {/* Big testimonial — the human proof, set large */}
+  <figure class="max-w-[880px] mx-auto text-center mt-16 mb-4" data-reveal>
+    <blockquote class="headline text-[30px] sm:text-[42px] leading-[1.15] text-ink">
+      Booked-direct jumped <span class="text-teal">22%</span> in one quarter. The report
+      named the three fixes to make first. No agency, no guesswork.
+    </blockquote>
+    <figcaption class="mt-6 text-[15px] text-ink-60">
+      <span class="font-semibold text-ink">Marisol Vantana</span>, General Manager
+      <span class="text-ink-40">·</span> The Lark House, Hudson Valley
+    </figcaption>
+  </figure>
 
-    {/* Excerpt from the sample report, typeset like the product itself */}
-    <figure class="border border-edge rounded overflow-hidden flex flex-col" data-reveal="120">
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-14">
+
+    {/* Excerpt from the sample report, framed in bold abstract art (Granola-style) */}
+    <div class="relative isolate">
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-[16px]" style="background-image: url('/images/abstract-blobs.svg'); background-size: cover; background-position: center; z-index: 0;"></div>
+      <div class="relative z-10 p-3 sm:p-4 h-full">
+      <figure class="border border-edge rounded-lg overflow-hidden flex flex-col bg-bone h-full">
       <figcaption class="flex items-baseline justify-between px-6 py-3 border-b border-edge bg-paper">
-        <span class="meta tabular">EXCERPT · SAMPLE REPORT · THE RIVERTON HOTEL</span>
-        <a href="/report/sample" class="meta tabular text-indigo hover:underline" style="border-bottom: 0;">READ IT →</a>
+        <span class="meta tabular">Excerpt, sample report, The Riverton Hotel</span>
+        <a href="/report/sample" class="meta tabular text-indigo hover:underline" style="border-bottom: 0;">Read it →</a>
       </figcaption>
       <blockquote class="px-6 sm:px-8 py-7 flex-1">
         <span class="label block mb-3">Executive summary</span>
@@ -34,8 +49,8 @@ import CompSet from './CompSet.tsx';
           The leak is upstream of the booking engine. Three of four AI engines skip
           you when travelers ask where to stay, and two OTAs buy your name in search,
           so demand you created books at commission. At a $284 ADR and 74% occupancy,
-          closing those two gaps is worth about $1.42M a year, a +22% lift in direct.
-          Both fixes are in your action queue, ranked by payback.
+          closing those two gaps is worth about <span class="text-teal font-semibold">$1.42M</span>
+          a year, a +22% lift in direct. Both fixes are in your action queue, ranked by payback.
         </p>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-edge">
           <div>
@@ -56,23 +71,22 @@ import CompSet from './CompSet.tsx';
           </div>
         </div>
         <div class="flex items-baseline justify-between mt-5 pt-4 border-t border-edge">
-          <span class="meta tabular">VERIFIED BY 38 OF 38 SOURCES</span>
-          <span class="meta tabular text-good">4.9 ★ · 500+ REPORTS DELIVERED</span>
+          <span class="meta tabular text-teal">Verified by 38 of 38 sources</span>
+          <span class="meta tabular text-good">4.9 ★ · 500+ reports delivered</span>
         </div>
       </blockquote>
-    </figure>
+      </figure>
+      </div>
+    </div>
 
-    <figure class="hidden lg:flex flex-col" data-reveal="160">
+    <figure class="hidden lg:flex flex-col">
       <img
         src="/images/report-property.jpg"
         alt="Facade of an upper-upscale hotel against a clear sky"
         loading="lazy"
         class="w-full flex-1 object-cover border border-edge rounded-sm"
       />
-      <figcaption class="meta tabular mt-2 flex justify-between">
-        <span>FIG. 03</span>
-        <span>TRUSTED BY INDEPENDENT OPERATORS</span>
-      </figcaption>
+      <figcaption class="meta mt-2">Trusted by independent operators</figcaption>
     </figure>
   </div>
   </div>

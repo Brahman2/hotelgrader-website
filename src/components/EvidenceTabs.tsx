@@ -145,9 +145,9 @@ export default function EvidenceTabs() {
               aria-selected={isActive}
               onClick={() => goTo(i, true)}
               className={`relative text-left px-4 py-3 ${isActive ? '' : 'evtab'}`}
-              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F7F4F0' : undefined }}
+              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F4F2EC' : undefined }}
             >
-              <span className="meta tabular block" style={{ color: isActive ? '#0B1220' : undefined }}>
+              <span className="meta tabular block" style={{ color: isActive ? '#26221B' : undefined }}>
                 {t.label}
               </span>
               <span className="meta mt-1 hidden sm:block" style={{ fontSize: 9 }}>{t.sub}</span>
@@ -172,7 +172,7 @@ export default function EvidenceTabs() {
         <div className="p-5 sm:p-7 md:border-r border-edge md:min-h-[430px] flex flex-col justify-center">
           {tab.key === 'geo' && (
             <div className="border border-edge rounded overflow-hidden max-w-[560px]">
-              <div className="px-4 py-2.5 border-b border-edge bg-paper meta tabular">CHATGPT · TRAVELER PROMPT · LIVE</div>
+              <div className="px-4 py-2.5 border-b border-edge bg-paper meta tabular">ChatGPT, traveler prompt, live</div>
               <div className="px-4 py-4">
                 <p className="text-[14px] text-ink font-medium min-h-[21px]">
                   “{PROMPT.slice(0, typed)}”
@@ -189,7 +189,7 @@ export default function EvidenceTabs() {
                         transition: 'opacity 180ms cubic-bezier(0.2,0,0,1), transform 180ms cubic-bezier(0.2,0,0,1)',
                       }}
                     >
-                      <span className={`text-[14px] tabular ${a.tone === 'attention' ? 'font-medium' : ''}`} style={{ color: a.tone === 'attention' ? '#C6453D' : '#0B1220' }}>
+                      <span className={`text-[14px] tabular ${a.tone === 'attention' ? 'font-medium' : ''}`} style={{ color: a.tone === 'attention' ? '#C6453D' : '#26221B' }}>
                         {a.name}
                       </span>
                       <span className="meta tabular" style={{ color: HEX[a.tone] }}>{a.note}</span>
@@ -205,11 +205,11 @@ export default function EvidenceTabs() {
               <div className="px-4 py-2.5 border-b border-edge bg-paper meta tabular">GOOGLE · “riverton hotel hudson valley”</div>
               <div className="px-4 py-4 space-y-3.5">
                 <div>
-                  <div className="meta tabular">AD · BOOKING.COM</div>
+                  <div className="meta tabular">Ad, Booking.com</div>
                   <div className="text-[13px] text-indigo mt-0.5">The Riverton, Hudson Valley. Book Now</div>
                 </div>
                 <div>
-                  <div className="meta tabular">AD · EXPEDIA.COM</div>
+                  <div className="meta tabular">Ad, Expedia.com</div>
                   <div className="text-[13px] text-indigo mt-0.5">Riverton Hotel. Member Prices</div>
                 </div>
                 <div className="pt-3 border-t border-edge">
@@ -257,7 +257,7 @@ export default function EvidenceTabs() {
                     {/* comp-set line at 2.4% */}
                     <div
                       className="absolute inset-x-0 border-t border-dashed"
-                      style={{ top: `${100 - (2.4 / 2.6) * 100}%`, borderColor: 'rgba(11,18,32,0.35)' }}
+                      style={{ top: `${100 - (2.4 / 2.6) * 100}%`, borderColor: 'rgba(38,34,27,0.35)' }}
                     >
                       <span className="meta tabular absolute right-0 -top-4">COMP SET 2.4%</span>
                     </div>
@@ -292,7 +292,7 @@ export default function EvidenceTabs() {
 
         {/* Verdict rail */}
         <div className="p-5 sm:p-7 border-t md:border-t-0 border-edge flex flex-col justify-center">
-          <span className="grade tabular text-[72px] leading-none" style={{ color: hex }}>{tab.grade}</span>
+          <span className="grade tabular text-[72px] leading-none" style={{ color: hex }}>{tab.grade.charAt(0)}<span className="grade-mod">{tab.grade.slice(1)}</span></span>
           <p className="text-[15px] font-medium text-ink mt-4 leading-snug">{tab.punch}</p>
           <p className="text-[13px] text-ink-60 mt-2 leading-relaxed">{tab.stat}</p>
           <span className="meta tabular mt-3" style={{ color: hex }}>{tab.delta}</span>

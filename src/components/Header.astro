@@ -6,44 +6,78 @@ interface Props {
 }
 const { showCta = true } = Astro.props;
 const loginUrl = `${HG_APP}/login`;
+
+const links = [
+  { href: '/#pillars', label: 'What we analyze' },
+  { href: '/methodology', label: 'Methodology' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/#faq', label: 'FAQ' },
+];
 ---
 
-<header class="flex items-center justify-between px-8 py-[18px] border-b border-edge bg-bone">
-  <a
-    href="/"
-    class="flex items-center gap-2.5 text-[22px] font-semibold tracking-[-0.04em] text-ink"
-    style="border-bottom: 0;"
-  >
-    <img src="/assets/favicon.svg" alt="" class="h-[26px] w-[26px]" />
-    <span>hotelgrader</span>
-  </a>
-  <nav class="hidden md:flex items-center gap-6">
-    <a href="/#pillars" class="text-sm text-ink hover:text-indigo transition-colors duration-150">What we analyze</a>
-    <a href="/methodology" class="text-sm text-ink hover:text-indigo transition-colors duration-150">Methodology</a>
-    <a href="/pricing" class="text-sm text-ink hover:text-indigo transition-colors duration-150">Pricing</a>
-    <a href="/#faq" class="text-sm text-ink hover:text-indigo transition-colors duration-150">FAQ</a>
-    <a href={loginUrl} class="text-sm text-ink hover:text-indigo transition-colors duration-150">Log in</a>
-    {showCta && (
-      <a href="/#get-the-report" class="btn border-edge-strong">
-        <span>Get my free report</span>
-        <span data-arrow aria-hidden="true">→</span>
-      </a>
-    )}
-  </nav>
-  <nav class="md:hidden flex items-center gap-2">
-    {showCta && (
-      <a href="/#get-the-report" class="btn text-[13px] px-3 py-2">Get my free report</a>
-    )}
-    <details class="relative">
-      <summary class="btn text-[13px] px-3 py-2 list-none cursor-pointer select-none">Menu</summary>
-      <div class="absolute right-0 top-full mt-2 w-[220px] border border-edge rounded bg-bone z-30 overflow-hidden">
-        <a href="/#pillars" class="block px-4 py-3 text-sm text-ink hover:bg-paper transition-colors duration-150" style="border-bottom: 0;">What we analyze</a>
-        <a href="/methodology" class="block px-4 py-3 text-sm text-ink border-t border-edge hover:bg-paper transition-colors duration-150" style="border-bottom: 0;">Methodology</a>
-        <a href="/pricing" class="block px-4 py-3 text-sm text-ink border-t border-edge hover:bg-paper transition-colors duration-150" style="border-bottom: 0;">Pricing</a>
-        <a href="/about" class="block px-4 py-3 text-sm text-ink border-t border-edge hover:bg-paper transition-colors duration-150" style="border-bottom: 0;">About</a>
-        <a href="/#faq" class="block px-4 py-3 text-sm text-ink border-t border-edge hover:bg-paper transition-colors duration-150" style="border-bottom: 0;">FAQ</a>
-        <a href={loginUrl} class="block px-4 py-3 text-sm text-ink border-t border-edge hover:bg-paper transition-colors duration-150" style="border-bottom: 0;">Log in</a>
-      </div>
-    </details>
-  </nav>
+<header
+  id="site-header"
+  class="sticky top-0 z-40 border-b border-transparent bg-paper/80 backdrop-blur-md supports-[backdrop-filter]:bg-paper/70 transition-[border-color,box-shadow,background-color] duration-200"
+>
+  <div class="max-w-content mx-auto flex items-center justify-between px-6 sm:px-8 h-[64px]">
+    <a
+      href="/"
+      class="flex items-center gap-2.5 text-[21px] font-semibold tracking-[-0.04em] text-ink"
+      style="border-bottom: 0;"
+    >
+      <img src="/assets/favicon.svg" alt="" class="h-[26px] w-[26px]" />
+      <span>hotelgrader</span>
+    </a>
+
+    <nav class="hidden md:flex items-center gap-0.5">
+      {links.map((l) => (
+        <a
+          href={l.href}
+          class="px-3 py-2 rounded-full text-[14px] text-ink-60 hover:text-ink hover:bg-ink/[0.045] transition-colors duration-150"
+          style="border-bottom: 0;"
+        >{l.label}</a>
+      ))}
+      <a
+        href={loginUrl}
+        class="px-3 py-2 rounded-full text-[14px] text-ink-60 hover:text-ink hover:bg-ink/[0.045] transition-colors duration-150"
+        style="border-bottom: 0;"
+      >Log in</a>
+      {showCta && (
+        <a href="/#get-the-report" class="btn btn--primary ml-2.5 text-[14px] px-4 py-2.5" style="border-bottom: 0;">
+          <span>Get my free report</span>
+          <span data-arrow aria-hidden="true">→</span>
+        </a>
+      )}
+    </nav>
+
+    <nav class="md:hidden flex items-center gap-2">
+      {showCta && (
+        <a href="/#get-the-report" class="btn btn--primary text-[13px] px-3 py-2" style="border-bottom: 0;">Get my free report</a>
+      )}
+      <details class="relative">
+        <summary class="btn text-[13px] px-3 py-2 list-none cursor-pointer select-none">Menu</summary>
+        <div class="absolute right-0 top-full mt-2 w-[220px] border border-edge rounded-lg bg-paper shadow-lg z-30 overflow-hidden">
+          {links.map((l) => (
+            <a href={l.href} class="block px-4 py-3 text-sm text-ink hover:bg-paper-deep transition-colors duration-150 border-b border-edge last:border-b-0" style="border-bottom-width: 1px;">{l.label}</a>
+          ))}
+          <a href="/about" class="block px-4 py-3 text-sm text-ink hover:bg-paper-deep transition-colors duration-150 border-b border-edge" style="border-bottom-width: 1px;">About</a>
+          <a href={loginUrl} class="block px-4 py-3 text-sm text-ink hover:bg-paper-deep transition-colors duration-150" style="border-bottom: 0;">Log in</a>
+        </div>
+      </details>
+    </nav>
+  </div>
+
+  <script is:inline>
+    // Strengthen the header's hairline + shadow once the page scrolls, so it
+    // reads as a distinct sticky bar over content (frosted, not floating loose).
+    (function () {
+      var h = document.getElementById('site-header');
+      if (!h) return;
+      var onScroll = function () {
+        h.classList.toggle('is-scrolled', window.scrollY > 8);
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    })();
+  </script>
 </header>

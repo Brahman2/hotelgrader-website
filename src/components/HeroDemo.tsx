@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pillars } from '../content/pillars';
 import BenchmarkBar from './BenchmarkBar';
+import GradePlacard from './GradePlacard';
 
 // Hero scan theater. Runs the 7-section audit live in the product's own order:
 // rows flip QUEUED -> RUN -> grade, a terminal log narrates, then the master
@@ -83,7 +84,7 @@ export default function HeroDemo() {
       : 'resolving the riverton hotel';
 
   return (
-    <div className="mt-12 mx-auto max-w-[880px] border border-edge rounded bg-bone text-left overflow-hidden">
+    <div className="mx-auto max-w-[880px] border border-edge rounded-lg bg-bone text-left overflow-hidden shadow-[0_24px_60px_-30px_rgba(28,23,64,0.5)]">
 
       {/* Title bar */}
       <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-edge bg-paper">
@@ -91,7 +92,7 @@ export default function HeroDemo() {
           <span
             className="inline-block h-2 w-2 rounded-sm"
             style={{
-              background: done ? '#1E7F4B' : '#5B5BD6',
+              background: done ? '#0D9488' : '#5B5BD6',
               animation: done ? 'none' : 'hg-pulse 1s ease-in-out infinite',
             }}
           />
@@ -107,7 +108,7 @@ export default function HeroDemo() {
             background: 'none',
             padding: 0,
             cursor: done ? 'pointer' : 'default',
-            color: done ? '#5B5BD6' : 'rgba(11,18,32,0.4)',
+            color: done ? '#5B5BD6' : 'rgba(38,34,27,0.4)',
           }}
         >
           {done ? 'RE-RUN SCAN' : 'SCANNING…'}
@@ -118,18 +119,12 @@ export default function HeroDemo() {
       <div className="grid grid-cols-1 sm:grid-cols-[236px_1fr]">
 
         <div className="relative flex flex-col items-center justify-center px-6 py-8 sm:py-6 border-b sm:border-b-0 sm:border-r border-edge min-h-[190px]">
-          <span className="label mb-3">CURRENT GRADE</span>
-          <span
-            className="grade grade--good tabular leading-[0.85] text-[96px] sm:text-[104px]"
-            style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms cubic-bezier(0.2,0,0,1)' }}
-          >
-            B+
-          </span>
+          <GradePlacard grade="B+" tone="good" score="87 / 100" size={96} stamped={done} animate />
           <p
-            className="text-[12px] text-ink-60 mt-3 tabular"
-            style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms 80ms cubic-bezier(0.2,0,0,1)' }}
+            className="text-[12px] text-ink-60 mt-4 tabular"
+            style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms 140ms cubic-bezier(0.2,0,0,1)' }}
           >
-            <span className="font-serif italic">Above market</span> · 87/100 · <span className="whitespace-nowrap">#18 of 74</span>
+            <span className="font-serif">Above market</span> · <span className="whitespace-nowrap">#18 of 74</span>
           </p>
           {!done && (
             <span className="meta tabular absolute inset-0 flex items-center justify-center text-ink-40">
@@ -148,7 +143,7 @@ export default function HeroDemo() {
                 key={p.num}
                 className={`grid grid-cols-[104px_1fr_56px] items-center gap-3 px-4 sm:px-5 py-[8.5px] ${i > 0 ? 'border-t border-edge' : ''}`}
               >
-                <span className="meta tabular" style={{ color: rowDone ? '#0B1220' : undefined, fontSize: 10 }} title={p.name}>
+                <span className="meta tabular" style={{ color: rowDone ? '#26221B' : undefined, fontSize: 10 }} title={p.name}>
                   {ROW_LABEL[p.short] ?? p.short}
                 </span>
 
@@ -168,7 +163,7 @@ export default function HeroDemo() {
                   {rowDone ? (
                     <span className="tabular text-[13px] font-semibold leading-none" style={{ color: hex }}>
                       {p.sample.score}
-                      <span className="text-[10px] font-normal" style={{ color: 'rgba(11,18,32,0.4)' }}>/100</span>
+                      <span className="text-[10px] font-normal" style={{ color: 'rgba(38,34,27,0.4)' }}>/100</span>
                     </span>
                   ) : (
                     <span
@@ -206,7 +201,7 @@ export default function HeroDemo() {
       <div className="px-5 sm:px-6 py-2.5 border-t border-edge bg-paper">
         <span
           className="meta tabular"
-          style={{ color: done && prospectLine ? '#5B5BD6' : 'rgba(11,18,32,0.6)' }}
+          style={{ color: done && prospectLine ? '#5B5BD6' : 'rgba(38,34,27,0.6)' }}
         >
           {'>'} {logLine}
         </span>

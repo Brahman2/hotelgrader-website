@@ -63,7 +63,7 @@ export default function BenchmarkBar({
               className="relative flex items-center justify-center"
               style={{
                 background: b.tint,
-                border: i === activeIdx && live ? '1px solid #0B1220' : '1px solid transparent',
+                border: i === activeIdx && live ? '1px solid #26221B' : '1px solid transparent',
                 borderRadius: i === activeIdx ? 4 : 0,
                 transition: 'border-color 180ms cubic-bezier(0.2,0,0,1)',
               }}

@@ -4,27 +4,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        bone: '#F7F4F0',
-        paper: '#FBF9F6',
-        ink: '#0B1220',
-        'ink-60': 'rgba(11, 18, 32, 0.6)',
-        'ink-40': 'rgba(11, 18, 32, 0.4)',
+        // Clean paper foundation (see BRAND.md) - near-white, not cream
+        paper: '#FCFBF7',         // page background, whisper-warm white
+        'paper-deep': '#F4F2EC',  // cards, section alternation (light warm gray)
+        bone: '#F4F2EC',          // legacy alias -> paper-deep (card/surface fills)
+        ink: '#26221B',           // warm near-black text (never pure #000)
+        'ink-60': 'rgba(38, 34, 27, 0.62)',
+        'ink-40': 'rgba(38, 34, 27, 0.42)',
+        'ink-soft': '#6B6355',    // secondary text, captions
+        // iris: interactive color ONLY (links, focus, selected states, "you" data)
         indigo: '#5B5BD6',
-        cta: '#D9531C',
-        'cta-hover': '#C24716',
-        'cta-press': '#A93D12',
+        'indigo-strong': '#4646B0',
+        // sun: warm brand accent / grade emphasis
+        sun: '#D98A1C',
+        // teal: verification & live-data accent (third brand color)
+        teal: '#0D9488',
+        'teal-strong': '#0F766E',
+        cta: '#D98A1C',
+        'cta-hover': '#C67C12',
+        'cta-press': '#B06E10',
         edge: '#E6E6E1',
         'edge-strong': '#D5D4CE',
         good: '#1E7F4B',
         warn: '#D98A1C',
         attention: '#C6453D',
-        slate: '#69707A',
+        slate: '#6B6355',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        serif: ['"Source Serif 4"', 'Georgia', '"Times New Roman"', 'serif'],
-        display: ['"Inter Display"', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
+        sans: ['"Source Sans 3"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        serif: ['"Fraunces"', 'Georgia', '"Times New Roman"', 'serif'],
+        display: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'Menlo', 'monospace'],
       },
       fontSize: {
         label: ['11px', { lineHeight: '1.2', letterSpacing: '0.08em' }],

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" preserveAspectRatio="xMidYMid slice" role="img" aria-label="">
+  <defs>
+    <radialGradient id="glow-r" cx="-3%" cy="106%" r="46%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vig-r" cx="-3%" cy="106%" r="82%">
+      <stop offset="52%" stop-color="#0B0820" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B0820" stop-opacity="0.55"/>
+    </radialGradient>
+    <pattern id="ht-r" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="4.5" cy="4.5" r="2.4" fill="#0B0820" fill-opacity="0.17"/>
+    </pattern>
+    <filter id="grain-r">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.06"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="900" height="700" fill="#1B2440"/>
+  <circle cx="-30" cy="740" r="1410" fill="none" stroke="#C6D95E" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="1316" fill="none" stroke="#E87A54" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="1222" fill="none" stroke="#3AAFA4" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="1128" fill="none" stroke="#8480D9" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="1034" fill="none" stroke="#C6D95E" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="940" fill="none" stroke="#E87A54" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="846" fill="none" stroke="#3AAFA4" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="752" fill="none" stroke="#8480D9" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="658" fill="none" stroke="#C6D95E" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="564" fill="none" stroke="#E87A54" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="470" fill="none" stroke="#3AAFA4" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="376" fill="none" stroke="#8480D9" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="282" fill="none" stroke="#C6D95E" stroke-width="60" stroke-opacity="0.78"/><circle cx="-30" cy="740" r="188" fill="none" stroke="#E87A54" stroke-width="60" stroke-opacity="0.5"/><circle cx="-30" cy="740" r="94" fill="none" stroke="#3AAFA4" stroke-width="60" stroke-opacity="0.78"/>
+  <rect width="900" height="700" fill="url(#glow-r)"/>
+  <rect width="900" height="700" fill="url(#vig-r)"/>
+  <rect width="900" height="700" fill="url(#ht-r)"/>
+  <rect width="900" height="700" filter="url(#grain-r)"/>
+</svg>

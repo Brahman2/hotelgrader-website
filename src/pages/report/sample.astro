@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import GradeReveal from '../../components/GradeReveal.tsx';
 import BenchmarkBar from '../../components/BenchmarkBar.tsx';
 import CompSet from '../../components/CompSet.tsx';
 import PillarsList from '../../components/PillarsList.astro';
@@ -26,8 +25,8 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
     {/* Property header — mono meta rail, like the live report */}
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
       <div>
-        <span class="label tabular">SAMPLE REPORT · {domain} · 46 METRICS</span>
-        <h1 class="headline text-[30px] sm:text-[38px] mt-2">{property}</h1>
+        <span class="label tabular">Sample report, {domain}, 46 metrics</span>
+        <h1 class="headline text-[38px] sm:text-[50px] mt-2">{property}</h1>
         <p class="text-[14px] text-ink-60 mt-1 tabular">74 keys · ADR $284 · occupancy 74% · RevPAR $210 · Boutique</p>
       </div>
       <div class="flex gap-2 shrink-0">
@@ -39,10 +38,12 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
     {/* Grade hero — anatomy of the live report's first page */}
     <section class="border border-edge rounded mb-5">
       <div class="px-8 py-14 sm:py-[72px] text-center">
-        <span class="label block mb-6">CURRENT GRADE</span>
-        <GradeReveal client:load grade="B+" tone="good" size={220} />
+        <span class="placard" style="font-size: 190px;" role="img" aria-label="Grade B+, 87 out of 100">
+          <span class="placard-grade placard-grade--good tabular" aria-hidden="true">B+</span>
+          <span class="placard-score" aria-hidden="true">87 / 100</span>
+        </span>
         <p class="mt-6 tabular">
-          <span class="font-serif italic text-[20px]">Above market</span>
+          <span class="font-serif text-[20px]">Above market</span>
           <span class="text-[14px] text-ink-60"> · 87/100</span>
         </p>
 
@@ -123,7 +124,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
 
     {/* Why your grade changed — WIRED story rows */}
     <section class="mb-10">
-      <span class="label block mb-4">WHY YOUR GRADE CHANGED · LAST 30 DAYS</span>
+      <span class="label block mb-4">Why your grade changed, last 30 days</span>
       <ul class="border border-edge rounded list-none p-0 m-0">
         {whyBullets.map((b, i) => (
           <li class={`grid grid-cols-[120px_1fr] gap-5 px-7 py-4 ${i > 0 ? 'border-t border-edge' : ''}`}>
@@ -170,7 +171,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
             <p class="text-[13px] text-ink-60 mt-1.5 leading-relaxed max-w-[520px]">Entity pages plus schema lift mention rate fastest. At your ADR, moving from 1 to 3 engines is modeled at +6% direct within two quarters.</p>
           </div>
           <div class="text-left sm:text-right">
-            <span class="meta tabular block">MED EFFORT · 4-6 WKS</span>
+            <span class="meta tabular block">Med effort, 4-6 wks</span>
             <span class="meta tabular block mt-1 text-good">+6% DIRECT MODELED</span>
           </div>
         </div>
@@ -180,7 +181,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
             <p class="text-[13px] text-ink-60 mt-1.5 leading-relaxed max-w-[520px]">Reallocating generic paid spend to brand terms reclaims bookings currently rebooked through OTAs at 18% commission.</p>
           </div>
           <div class="text-left sm:text-right">
-            <span class="meta tabular block">LOW EFFORT · 2-3 WKS</span>
+            <span class="meta tabular block">Low effort, 2-3 wks</span>
             <span class="meta tabular block mt-1 text-good">≈ $2,400 / MO COMMISSION SAVED</span>
           </div>
         </div>
@@ -191,18 +192,18 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
     <section class="mb-10">
       <div class="flex items-baseline justify-between mb-4">
         <span class="label">30-day action plan · week one</span>
-        <span class="meta tabular">FULL PLAN IN PRO</span>
+        <span class="meta tabular">Full plan in Pro</span>
       </div>
       <ul class="list-none p-0 m-0 border border-edge rounded">
         <li class="grid grid-cols-[44px_1fr_auto] gap-4 px-6 py-4 items-center">
           <span class="meta tabular">01</span>
           <p class="text-[14px] text-ink leading-snug">Pull booking-engine funnel for the last 90 days and mark the drop-off step.</p>
-          <span class="meta tabular">REVENUE MGR</span>
+          <span class="meta tabular">Revenue mgr</span>
         </li>
         <li class="grid grid-cols-[44px_1fr_auto] gap-4 px-6 py-4 items-center border-t border-edge">
           <span class="meta tabular">02</span>
           <p class="text-[14px] text-ink leading-snug">Turn on post-checkout review requests via the PMS email trigger.</p>
-          <span class="meta tabular">FRONT DESK</span>
+          <span class="meta tabular">Front desk</span>
         </li>
       </ul>
     </section>
@@ -211,7 +212,7 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
     <section class="mb-12">
       <div class="border border-edge rounded p-7 sm:p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
         <div>
-          <span class="label">REVENUE OPPORTUNITY · 90-DAY MODEL</span>
+          <span class="label">Revenue opportunity, 90-day model</span>
           <p class="headline text-[22px] sm:text-[26px] mt-3 tabular leading-snug">
             +22% direct bookings · ≈ $1.42M annualized at current pace
           </p>
@@ -226,16 +227,16 @@ const toneClass = (t: 'good' | 'warn' | 'attention') =>
   </article>
 
   {/* Live handoff — indigo close */}
-  <section id="your-report" style="background: #5B5BD6;">
+  <section id="your-report" class="panel" style="background: #5B5BD6;">
     <div class="max-w-content mx-auto px-8 py-14 text-center">
-      <span class="label block mb-3" style="color: rgba(255,255,255,0.85);">THIS IS A SAMPLE</span>
+      <span class="label block mb-3" style="color: rgba(255,255,255,0.85);">This is a sample</span>
       <h3 class="headline text-[26px] sm:text-[32px] max-w-[600px] mx-auto" style="color: #fff;">
         Run this exact report <em>for your hotel.</em>
       </h3>
       <div class="max-w-[560px] mx-auto">
         <HeroForm client:load inputId="report-hotel" tone="dark" />
       </div>
-      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">FREE FOREVER · NO CREDIT CARD · ANY HOTEL, ANYWHERE</p>
+      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">Free forever. No credit card. Any hotel, anywhere.</p>
     </div>
   </section>
 </BaseLayout>
