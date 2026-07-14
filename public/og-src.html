@@ -6,17 +6,19 @@
   @font-face { font-family: 'Fraunces'; src: url('/fonts/Fraunces-Variable.woff2') format('woff2-variations'); font-weight: 100 900; }
   @font-face { font-family: 'Source Sans 3'; src: url('/fonts/SourceSans3Variable.woff2') format('woff2-variations'); font-weight: 100 900; }
   @font-face { font-family: 'IBM Plex Mono'; src: url('/fonts/IBMPlexMono-500.woff2') format('woff2'); font-weight: 500; }
+  @font-face { font-family: 'Archivo Black'; src: url('/fonts/ArchivoBlack.woff2') format('woff2'); font-weight: 400; }
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; }
   #og {
     width: 1200px; height: 630px; background: #FCFBF7; color: #26221B;
     font-family: 'Source Sans 3', sans-serif; position: relative; overflow: hidden;
-    display: flex; flex-direction: column; justify-content: space-between;
+    display: flex; flex-direction: column;
   }
   .top { display: flex; align-items: center; gap: 14px; padding: 48px 64px 0; }
+  .mid { flex: 1; display: flex; align-items: center; }
   .mark { width: 44px; height: 44px; background: #5B5BD6; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; }
   .word { font-size: 30px; font-weight: 650; letter-spacing: -0.04em; }
-  .mid { padding: 0 64px; max-width: 760px; }
+  .mid h1 { padding: 0 64px; max-width: 760px; }
   h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 82px; line-height: 1.04; letter-spacing: -0.015em; }
   h1 em { font-style: normal; font-weight: 600; }
 
@@ -25,12 +27,15 @@
     position: absolute; right: 96px; top: 168px;
     display: flex; flex-direction: column; align-items: center;
   }
-  .placard .g { font-family: 'Fraunces', serif; font-weight: 500; font-size: 230px; line-height: 0.8; color: #3E7C4F; letter-spacing: -0.02em; text-shadow: 0 2px 0 rgba(252,251,247,0.7); }
+  .placard .g { font-family: 'Archivo Black', sans-serif; font-weight: 400; font-size: 210px; line-height: 0.8; color: #3E7C4F; letter-spacing: -0.03em; text-shadow: 0 2px 0 rgba(252,251,247,0.7); }
+  .placard .g .mod { font-size: 0.52em; vertical-align: 0.6em; margin-left: 0.03em; }
   .placard .s { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; color: #6B6355; margin-top: 14px; }
 
-  .band { background: #5B5BD6; color: #fff; padding: 26px 64px; display: flex; justify-content: space-between; align-items: baseline; }
+  .band { background: #5B5BD6; color: #fff; padding: 24px 64px; display: flex; justify-content: space-between; align-items: baseline; }
   .band .meta { font-family: 'Source Sans 3', sans-serif; font-size: 19px; color: rgba(255,255,255,0.8); }
   .band .free { font-family: 'Fraunces', serif; font-size: 26px; }
+  /* Bottom edge: a sliver of the abstract art, echoing the site's footer floor */
+  .art { height: 16px; background: url('/images/abstract-rings.svg') center 40% / cover; }
 </style>
 </head>
 <body>
@@ -43,13 +48,14 @@
       <h1>Your hotel has a grade. <em>You just haven&rsquo;t seen it.</em></h1>
     </div>
     <div class="placard">
-      <span class="g">B+</span>
+      <span class="g">B<span class="mod">+</span></span>
       <span class="s">87 / 100</span>
     </div>
     <div class="band">
       <span class="meta">46 metrics, 7 sections, 30 seconds</span>
       <span class="free">The audit is free, forever.</span>
     </div>
+    <div class="art"></div>
   </div>
 </body>
 </html>

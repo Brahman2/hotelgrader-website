@@ -99,6 +99,12 @@
     outline: 2px solid #5B5BD6;
     outline-offset: 2px;
   }
+
+  /* Text selection in the brand iris. */
+  ::selection {
+    background: #5B5BD6;
+    color: #fff;
+  }
 }
 
 @layer components {
