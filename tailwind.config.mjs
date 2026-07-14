@@ -32,7 +32,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Source Sans 3"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        serif: ['"Source Serif 4"', 'Georgia', '"Times New Roman"', 'serif'],
+        serif: ['"Fraunces"', 'Georgia', '"Times New Roman"', 'serif'],
         display: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'Menlo', 'monospace'],
       },

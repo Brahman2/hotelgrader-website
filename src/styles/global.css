@@ -38,19 +38,22 @@
   font-display: swap;
   src: url('/fonts/IBMPlexMono-600.woff2') format('woff2');
 }
+/* Fraunces — a high-contrast, characterful "old style" display serif with
+   SOFT + WONK axes. Chosen over a neutral serif so the editorial voice reads
+   as designed, not defaulted. Self-hosted variable (opsz/wght/SOFT/WONK). */
 @font-face {
-  font-family: 'Source Serif 4';
+  font-family: 'Fraunces';
   font-style: normal;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/SourceSerif4Variable-Roman.woff2') format('woff2-variations');
+  src: url('/fonts/Fraunces-Variable.woff2') format('woff2-variations');
 }
 @font-face {
-  font-family: 'Source Serif 4';
+  font-family: 'Fraunces';
   font-style: italic;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/SourceSerif4Variable-Italic.woff2') format('woff2-variations');
+  src: url('/fonts/Fraunces-Variable-Italic.woff2') format('woff2-variations');
 }
 
 @layer base {
@@ -91,7 +94,9 @@
 @layer components {
   /* The Grade — always serif, large, centered. */
   .grade {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 0, 'WONK' 0;
     font-weight: 500;
     letter-spacing: -0.02em;
     line-height: 0.9;
@@ -130,7 +135,9 @@
     pointer-events: none;
     user-select: none;
     z-index: -1;
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
     font-weight: 500;
     line-height: 0.72;
     letter-spacing: -0.04em;
@@ -150,7 +157,9 @@
     line-height: 1;
   }
   .placard-grade {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 0, 'WONK' 0;
     font-weight: 500;
     font-size: 1em;
     line-height: 0.8;
@@ -193,7 +202,9 @@
   /* Display headline — Source Serif, like the live report's editorial voice.
      Use <em> inside for the italic accent phrase. */
   .headline {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 40, 'WONK' 1;
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.05;
@@ -270,6 +281,12 @@
   }
   .input:focus { border-color: #26221B; }
   .input::placeholder { color: rgba(38, 34, 27, 0.4); }
+
+  /* Sticky header: hairline + soft shadow fade in once the page is scrolled. */
+  #site-header.is-scrolled {
+    border-bottom-color: #E6E6E1;
+    box-shadow: 0 6px 24px -18px rgba(38, 34, 27, 0.35);
+  }
 }
 
 @layer utilities {
