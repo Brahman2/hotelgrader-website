@@ -2,11 +2,11 @@
 import CompSet from './CompSet.tsx';
 ---
 
-<section class="bg-paper border-y border-edge">
+<section class="bg-bone border-y border-edge">
   <div class="max-w-content mx-auto px-8 py-20">
   <div class="mb-8">
     <span class="label block mb-3">Comp set</span>
-    <h2 class="headline text-[30px] sm:text-[38px] tabular">
+    <h2 class="headline text-[38px] sm:text-[50px] tabular">
       Ranked <em>#18</em> in a field of 74.
     </h2>
   </div>
@@ -15,7 +15,19 @@ import CompSet from './CompSet.tsx';
     <CompSet client:visible />
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-10">
+  {/* Big testimonial — the human proof, set large */}
+  <figure class="max-w-[880px] mx-auto text-center mt-16 mb-4" data-reveal>
+    <blockquote class="headline text-[30px] sm:text-[42px] leading-[1.15] text-ink">
+      Booked-direct jumped <span class="text-teal">22%</span> in one quarter. The report
+      named the three fixes to make first. No agency, no guesswork.
+    </blockquote>
+    <figcaption class="mt-6 text-[15px] text-ink-60">
+      <span class="font-semibold text-ink">Marisol Vantana</span>, General Manager
+      <span class="text-ink-40">·</span> The Lark House, Hudson Valley
+    </figcaption>
+  </figure>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-14">
 
     {/* Excerpt from the sample report, typeset like the product itself */}
     <figure class="border border-edge rounded overflow-hidden flex flex-col">

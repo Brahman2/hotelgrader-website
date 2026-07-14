@@ -1,14 +1,37 @@
 ---
-// Trust strip: the platforms whose public data feeds the grade, set as quiet
-// typographic marks (the grayscale logo-bar convention, done in type).
-const sources = ['Google', 'Tripadvisor', 'Booking.com', 'Expedia', 'ChatGPT', 'Instagram'];
+// Trust strip: the platforms whose public data feeds the grade, shown as
+// real brand marks (simple-icons, build-time inlined - zero client JS).
+import {
+  siGoogle,
+  siTripadvisor,
+  siBookingdotcom,
+  siExpedia,
+  siGooglegemini,
+  siPerplexity,
+  siInstagram,
+} from 'simple-icons';
+
+const sources = [
+  { icon: siGoogle, name: 'Google' },
+  { icon: siTripadvisor, name: 'Tripadvisor' },
+  { icon: siBookingdotcom, name: 'Booking.com' },
+  { icon: siExpedia, name: 'Expedia' },
+  { icon: siGooglegemini, name: 'Gemini' },
+  { icon: siPerplexity, name: 'Perplexity' },
+  { icon: siInstagram, name: 'Instagram' },
+];
 ---
 
-<div class="mt-10 text-center">
-  <span class="meta tabular block mb-3">Reads public data from</span>
-  <div class="flex flex-wrap items-baseline justify-center gap-x-8 gap-y-2">
+<div class="mt-12 text-center" data-reveal>
+  <span class="meta tabular block mb-4">Reads public data from</span>
+  <div class="flex flex-wrap items-center justify-center gap-x-9 gap-y-4">
     {sources.map((s) => (
-      <span class="font-display font-semibold text-[16px] sm:text-[17px] tracking-tight text-ink-40 select-none">{s}</span>
+      <span class="inline-flex items-center gap-2.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" role="img" aria-hidden="true" fill={`#${s.icon.hex}`}>
+          <path d={s.icon.path} />
+        </svg>
+        <span class="text-[15px] font-semibold tracking-tight text-ink">{s.name}</span>
+      </span>
     ))}
   </div>
 </div>

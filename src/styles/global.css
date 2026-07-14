@@ -187,10 +187,10 @@
   /* Buttons */
   .btn {
     font-family: 'Source Sans 3', system-ui, sans-serif;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     line-height: 1;
-    padding: 12px 18px;
+    padding: 13px 20px;
     border-radius: 6px;
     border: 1px solid #E6E6E1;
     background: #F4F2EC;
@@ -248,6 +248,19 @@
   .tabular {
     font-feature-settings: "tnum" 1, "ss01" 1;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Scroll reveal: rise + fade on entry. Gated on html.js so content is
+     never hidden without JS; collapses to static under reduced-motion. */
+  html.js [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1), transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  html.js [data-reveal].is-in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-reveal] { opacity: 1; transform: none; transition: none; }
   }
 
   /* Live-scan status dot pulse (subtle opacity only, per motion rules). */

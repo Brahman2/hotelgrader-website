@@ -16,15 +16,17 @@ import FinalCTA from '../components/FinalCTA.astro';
   <HowItWorks />
   <Pillars />
 
-  <section id="evidence" class="max-w-content mx-auto px-8 py-16">
-    <div class="mb-8">
-      <span class="label block mb-3">Evidence</span>
-      <h2 class="headline text-[30px] sm:text-[38px] max-w-[680px]">
-        See the evidence behind <em>every grade.</em>
-      </h2>
-    </div>
-    <div>
-      <EvidenceTabs client:visible />
+  <section id="evidence" style="background: #EDEDFB;">
+    <div class="max-w-content mx-auto px-8 py-20">
+      <div class="mb-8" data-reveal>
+        <span class="label block mb-3">Evidence</span>
+        <h2 class="headline text-[38px] sm:text-[50px] max-w-[680px]">
+          See the evidence behind <em>every grade.</em>
+        </h2>
+      </div>
+      <div data-reveal="100">
+        <EvidenceTabs client:visible />
+      </div>
     </div>
   </section>
 

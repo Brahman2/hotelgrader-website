@@ -89,9 +89,11 @@ or rotation (a framed placard read school-ish and was dropped, 2026-07
 feedback). It appears in the hero scan demo, on report pages, and in OG
 images. Everything else on the page stays quiet so the stamp owns the memory.
 
-Motion budget: one orchestrated moment - the scan completing and the placard
-stamping down (spring easing, single bounce, respects prefers-reduced-motion).
-No scroll-triggered reveals, no parallax, no ambient animation anywhere else.
+Motion budget (revised 2026-07): the scan->stamp remains the one hero moment.
+In addition, gentle scroll reveals are allowed - section content rises + fades
+in on entry (~600ms, ease-out, single pass, honors prefers-reduced-motion).
+Still banned: scroll-jacking, parallax, pinned/scrubbed sections, and any
+looping ambient animation.
 
 ## Imagery
 
@@ -107,7 +109,15 @@ No scroll-triggered reveals, no parallax, no ambient animation anywhere else.
 
 ## Structure and layout
 
-- Light page. Generous whitespace. Max content width ~1100px, asymmetry allowed.
+- Light page, but color-blocked (revised 2026-07, Granola-style energy):
+  sections alternate across 3-4 soft full-bleed tints on the clean paper base -
+  peach #FBF0DB, lavender #EDEDFB, mint/teal #E6F3F0, light gray #F4F2EC - plus
+  the saturated iris bands. No two adjacent sections share a background.
+- Big display type: hero headline 72-84px, section headlines 38-50px.
+- Trust strip uses REAL brand logos (simple-icons, build-time inlined SVG):
+  Google, Tripadvisor, Booking.com, Expedia, Gemini, Perplexity, Instagram.
+- At least one big testimonial set large (30-42px), name + role + property.
+- Generous whitespace. Max content width ~1100px, asymmetry allowed.
 - Numbered markers (01/02/03) only where order is real (the 3-step method qualifies;
   the seven grade sections do not - they get placard-style tabs instead).
 - Middle-dot separators, "FIG." captions, EXHIBITS/METHOD-style caps labels: banned.
