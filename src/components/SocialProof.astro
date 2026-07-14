@@ -29,8 +29,11 @@ import CompSet from './CompSet.tsx';
 
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 lg:gap-16 items-stretch mt-14">
 
-    {/* Excerpt from the sample report, typeset like the product itself */}
-    <figure class="border border-edge rounded overflow-hidden flex flex-col">
+    {/* Excerpt from the sample report, framed in bold abstract art (Granola-style) */}
+    <div class="relative isolate">
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-[16px]" style="background-image: url('/images/abstract-burst-2.svg'); background-size: cover; background-position: center; z-index: 0;"></div>
+      <div class="relative z-10 p-3 sm:p-4 h-full">
+      <figure class="border border-edge rounded-lg overflow-hidden flex flex-col bg-bone h-full">
       <figcaption class="flex items-baseline justify-between px-6 py-3 border-b border-edge bg-paper">
         <span class="meta tabular">Excerpt, sample report, The Riverton Hotel</span>
         <a href="/report/sample" class="meta tabular text-indigo hover:underline" style="border-bottom: 0;">Read it →</a>
@@ -72,7 +75,9 @@ import CompSet from './CompSet.tsx';
           <span class="meta tabular text-good">4.9 ★ · 500+ reports delivered</span>
         </div>
       </blockquote>
-    </figure>
+      </figure>
+      </div>
+    </div>
 
     <figure class="hidden lg:flex flex-col">
       <img
