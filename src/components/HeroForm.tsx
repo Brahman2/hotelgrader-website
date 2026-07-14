@@ -201,7 +201,7 @@ export default function HeroForm({
                   onMouseEnter={() => setHi(i)}
                   onMouseDown={(e) => { e.preventDefault(); pick(s); }}
                   className={`px-4 py-3 cursor-pointer ${i > 0 ? 'border-t border-edge' : ''}`}
-                  style={{ background: i === hi ? '#EFECE7' : 'transparent' }}
+                  style={{ background: i === hi ? '#F1EFE9' : 'transparent' }}
                 >
                   <div className="text-[14px] font-medium text-ink leading-snug">{s.name}</div>
                   <div className="meta mt-0.5">{s.secondary_text}</div>

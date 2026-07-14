@@ -145,7 +145,7 @@ export default function EvidenceTabs() {
               aria-selected={isActive}
               onClick={() => goTo(i, true)}
               className={`relative text-left px-4 py-3 ${isActive ? '' : 'evtab'}`}
-              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F3EBDA' : undefined }}
+              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F4F2EC' : undefined }}
             >
               <span className="meta tabular block" style={{ color: isActive ? '#26221B' : undefined }}>
                 {t.label}

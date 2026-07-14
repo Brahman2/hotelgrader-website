@@ -66,7 +66,7 @@ export default function CompSet({ total = 74, todayRank = 18, fixedRank = 9, med
               border: 'none',
               cursor: 'pointer',
               background: !fixed ? '#26221B' : 'transparent',
-              color: !fixed ? '#F3EBDA' : undefined,
+              color: !fixed ? '#F4F2EC' : undefined,
               transition: 'background 120ms cubic-bezier(0.2,0,0,1)',
             }}
           >

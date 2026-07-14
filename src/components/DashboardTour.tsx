@@ -75,7 +75,7 @@ export default function DashboardTour() {
               aria-selected={isActive}
               onClick={() => goTo(i, true)}
               className={`relative text-left px-4 py-3 ${isActive ? '' : 'evtab'}`}
-              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F3EBDA' : undefined }}
+              style={{ border: 'none', borderLeft: i > 0 ? '1px solid #E6E6E1' : 'none', cursor: 'pointer', background: isActive ? '#F4F2EC' : undefined }}
             >
               <span className="meta tabular block" style={{ color: isActive ? '#26221B' : undefined }}>{t.label}</span>
               {isActive && auto && (
@@ -132,7 +132,7 @@ export default function DashboardTour() {
           <div>
             <ul className="list-none p-0 m-0">
               {PLAN_ROWS.map((row, i) => (
-                <li key={row.n} className={`grid grid-cols-[32px_1fr_auto] items-start gap-4 px-5 sm:px-7 py-5 ${i > 0 ? 'border-t border-edge' : ''}`} style={{ background: row.featured ? '#FBF7EE' : undefined }}>
+                <li key={row.n} className={`grid grid-cols-[32px_1fr_auto] items-start gap-4 px-5 sm:px-7 py-5 ${i > 0 ? 'border-t border-edge' : ''}`} style={{ background: row.featured ? '#FCFBF7' : undefined }}>
                   <span className="meta tabular pt-0.5">{row.n}</span>
                   <div>
                     <p className="text-[15px] font-medium text-ink leading-snug">{row.fix}</p>

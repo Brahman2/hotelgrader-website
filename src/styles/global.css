@@ -55,7 +55,7 @@
 
 @layer base {
   html, body {
-    background: #FBF7EE;
+    background: #FCFBF7;
     color: #26221B;
     font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
     font-size: 15px;
@@ -111,42 +111,17 @@
   /* Warm-graded photography (Daylight-style amber lift), in a 2px ink keyline. */
   .photo-warm { filter: saturate(1.08) contrast(1.02) brightness(1.01); }
 
-  /* ---- Signature: the grade placard (letterpress inspection stamp) ----
-     A physical letter-grade card pressed into paper. Slight rotation, ink
-     keyline, embossed glyph, faint printed grain. font-size sets the scale. */
+  /* ---- Signature: the stamped grade ----
+     A large letterpress serif grade with its mono score, pressed into the
+     paper. No frame or card (a framed placard read school-ish). The single
+     orchestrated motion: it stamps down once when the scan completes.
+     font-size sets the scale. */
   .placard {
     position: relative;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.16em 0.30em 0.12em;
-    background: #FBF7EE;
-    border: 2px solid #26221B;
-    border-radius: 10px;
-    box-shadow:
-      inset 0 0 0 1px rgba(38, 34, 27, 0.14),
-      0 14px 28px -18px rgba(38, 34, 27, 0.55);
-    transform: rotate(-1.6deg);
     line-height: 1;
-  }
-  /* faint printed-paper grain, multiplied into the card */
-  .placard::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    opacity: 0.05;
-    mix-blend-mode: multiply;
-    pointer-events: none;
-  }
-  .placard-kicker {
-    font-family: 'Source Sans 3', system-ui, sans-serif;
-    font-size: 0.1em;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: #6B6355;
-    margin-bottom: 0.4em;
   }
   .placard-grade {
     font-family: 'Source Serif 4', Georgia, serif;
@@ -156,22 +131,22 @@
     letter-spacing: -0.02em;
     font-feature-settings: "ss01";
     /* letterpress: ink pressed into paper (highlight below, faint deboss above) */
-    text-shadow: 0 1px 0 rgba(251, 247, 238, 0.7), 0 -0.5px 0 rgba(38, 34, 27, 0.10);
+    text-shadow: 0 1px 0 rgba(252, 251, 247, 0.7), 0 -0.5px 0 rgba(38, 34, 27, 0.10);
   }
   .placard-grade--good      { color: #3E7C4F; }
   .placard-grade--warn      { color: #C9922A; }
   .placard-grade--attention { color: #C0622F; }
   .placard-score {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 0.09em;
+    font-size: 0.11em;
     color: #6B6355;
-    margin-top: 0.5em;
+    margin-top: 0.55em;
   }
-  /* The one orchestrated motion: the placard stamps down on scan complete. */
+  /* The one orchestrated motion: the grade stamps down on scan complete. */
   @keyframes hg-stamp {
-    0%   { opacity: 0; transform: rotate(-5deg) scale(1.18); }
-    55%  { opacity: 1; transform: rotate(-1.6deg) scale(0.965); }
-    100% { opacity: 1; transform: rotate(-1.6deg) scale(1); }
+    0%   { opacity: 0; transform: scale(1.16); }
+    55%  { opacity: 1; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
   }
   .placard--stamp { animation: hg-stamp 460ms cubic-bezier(0.2, 0.85, 0.25, 1) both; }
   @media (prefers-reduced-motion: reduce) {
@@ -206,7 +181,7 @@
 
   /* Card — hairline border, no shadow. */
   .card {
-    background: #F3EBDA;
+    background: #F4F2EC;
     border: 1px solid #E6E6E1;
     border-radius: 6px;
     padding: 32px;
@@ -221,7 +196,7 @@
     padding: 12px 18px;
     border-radius: 6px;
     border: 1px solid #E6E6E1;
-    background: #F3EBDA;
+    background: #F4F2EC;
     color: #26221B;
     cursor: pointer;
     transition: background 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1);
@@ -229,8 +204,8 @@
     align-items: center;
     gap: 6px;
   }
-  .btn:hover  { background: #EFECE7; }
-  .btn:active { background: #E6E2DB; }
+  .btn:hover  { background: #F1EFE9; }
+  .btn:active { background: #E7E4DD; }
 
   /* Primary action — iris, the brand color. White text, generous presence. */
   .btn--primary {
@@ -262,7 +237,7 @@
     padding: 14px 16px;
     border: 1px solid #E6E6E1;
     border-radius: 6px;
-    background: #FBF7EE;
+    background: #FCFBF7;
     color: #26221B;
     outline: none;
     transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1);

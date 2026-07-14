@@ -92,7 +92,7 @@ export default function HeroDemo() {
           <span
             className="inline-block h-2 w-2 rounded-sm"
             style={{
-              background: done ? '#1E7F4B' : '#5B5BD6',
+              background: done ? '#0D9488' : '#5B5BD6',
               animation: done ? 'none' : 'hg-pulse 1s ease-in-out infinite',
             }}
           />
@@ -119,7 +119,7 @@ export default function HeroDemo() {
       <div className="grid grid-cols-1 sm:grid-cols-[236px_1fr]">
 
         <div className="relative flex flex-col items-center justify-center px-6 py-8 sm:py-6 border-b sm:border-b-0 sm:border-r border-edge min-h-[190px]">
-          <GradePlacard grade="B+" tone="good" score="87 / 100" size={84} stamped={done} animate />
+          <GradePlacard grade="B+" tone="good" score="87 / 100" size={96} stamped={done} animate />
           <p
             className="text-[12px] text-ink-60 mt-4 tabular"
             style={{ opacity: done ? 1 : 0, transition: 'opacity 180ms 140ms cubic-bezier(0.2,0,0,1)' }}

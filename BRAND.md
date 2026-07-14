@@ -31,11 +31,13 @@ to designers.
 
 ## Color tokens
 
-Warm paper, but pushed toward Daylight's amber, not the generic AI cream.
+Clean paper, not cream. The beige/cream page background is a known AI tell
+and is banned (2026-07 feedback). The base is a near-white with only a whisper
+of warmth; color energy comes from the saturated accents, not the background.
 Explicitly avoid terracotta/clay accents near #D97757 (a known AI-default accent).
 
-- --paper: #FBF7EE (page background, warm but near-white)
-- --paper-deep: #F3EBDA (cards, section alternation)
+- --paper: #FCFBF7 (page background, whisper-warm near-white)
+- --paper-deep: #F4F2EC (cards, section alternation - light warm gray, not beige)
 - --ink: #26221B (text, warm near-black - never pure #000)
 - --ink-soft: #6B6355 (secondary text, captions)
 - --sun: #D98A1C (brand accent, CTAs, grade emphasis - carried over from the
@@ -46,6 +48,9 @@ Explicitly avoid terracotta/clay accents near #D97757 (a known AI-default accent
   the page-closing conversion band on every page, plus at most one mid-page
   band. White text on iris. Hover/active shade: #4646B0. Granola-style color
   confidence: saturated, generous where it appears, absent everywhere else.)
+- --teal: #0D9488 (the third brand color: verification and live-data accents
+  only - the scan-complete dot, "verified by N sources" strings, live-status
+  markers. Strong shade: #0F766E. Never for CTAs or links; that is iris's job.)
 - Grade scale (functional only, muted like print): A #3E7C4F, B #7C9A3E,
   C #C9922A, D #C0622F, F #A83232
 
@@ -76,13 +81,13 @@ Rules:
   Never for labels, eyebrows, or navigation.
 - Sentence case everywhere. No all-caps eyebrows or section labels.
 
-## Signature element: the grade placard
+## Signature element: the stamped grade
 
-The one memorable thing. The grade renders as a physical inspection placard or
-rubber stamp: letterpress-style impression on paper, slight rotation (1-2deg),
-subtle emboss/ink texture. It appears in the hero scan demo, on report pages,
-and in OG images. Everything else on the page stays quiet so the placard owns
-the memory.
+The one memorable thing. The grade renders as a large letterpress serif glyph
+with its mono score beneath, pressed into the paper - no frame, card, badge,
+or rotation (a framed placard read school-ish and was dropped, 2026-07
+feedback). It appears in the hero scan demo, on report pages, and in OG
+images. Everything else on the page stays quiet so the stamp owns the memory.
 
 Motion budget: one orchestrated moment - the scan completing and the placard
 stamping down (spring easing, single bounce, respects prefers-reduced-motion).
@@ -114,7 +119,8 @@ No scroll-triggered reveals, no parallax, no ambient animation anywhere else.
 
 Dark hero, purple gradients, violet-on-dark, iris scattered as random tints
 (it is either interactive or a full-bleed band - nothing in between),
-monotone cream pages with no saturated color, gradient text, glassmorphism,
+monotone cream pages with no saturated color, beige/cream page backgrounds,
+framed grade cards or badge-style placards (school-ish), gradient text, glassmorphism,
 bento grids,
 Instrument Serif, italic-serif headline emphasis, all-caps mono eyebrows,
 middle-dot separators, FIG. captions, terracotta #D97757-range accents,

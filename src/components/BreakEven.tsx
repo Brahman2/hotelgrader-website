@@ -28,7 +28,7 @@ export default function BreakEven() {
                 borderBottom: 'none',
                 cursor: 'pointer',
                 background: adr === p ? '#26221B' : 'transparent',
-                color: adr === p ? '#F3EBDA' : undefined,
+                color: adr === p ? '#F4F2EC' : undefined,
                 transition: 'background 120ms cubic-bezier(0.2,0,0,1)',
               }}
             >

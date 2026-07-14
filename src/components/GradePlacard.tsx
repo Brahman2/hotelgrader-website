@@ -4,7 +4,6 @@ interface Props {
   grade?: string;
   tone?: 'good' | 'warn' | 'attention';
   score?: string;
-  kicker?: string;
   /** Pixel size of the grade glyph (drives the whole placard scale). */
   size?: number;
   /** When true, the placard is present. In the hero it flips true on scan-complete. */
@@ -14,16 +13,15 @@ interface Props {
 }
 
 /**
- * The grade placard: a letterpress inspection stamp pressed into paper.
+ * The stamped grade: a large letterpress serif grade pressed into the paper.
  * The site's single memorable object, and its single orchestrated motion —
  * it stamps down once when the scan completes (spring, one press, then rests).
- * Respects prefers-reduced-motion via the CSS animation guard.
+ * No frame or card. Respects prefers-reduced-motion via the CSS guard.
  */
 export default function GradePlacard({
   grade = 'B+',
   tone = 'good',
   score,
-  kicker = 'hotelgrader',
   size = 104,
   stamped = true,
   animate = false,
@@ -51,7 +49,6 @@ export default function GradePlacard({
       role="img"
       aria-label={`Grade ${grade}${score ? `, ${score}` : ''}`}
     >
-      {kicker && <span className="placard-kicker" aria-hidden="true">{kicker}</span>}
       <span className={`placard-grade placard-grade--${tone} tabular`} aria-hidden="true">{grade}</span>
       {score && <span className="placard-score" aria-hidden="true">{score}</span>}
     </span>

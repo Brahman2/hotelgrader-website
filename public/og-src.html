@@ -9,7 +9,7 @@
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; }
   #og {
-    width: 1200px; height: 630px; background: #FBF7EE; color: #26221B;
+    width: 1200px; height: 630px; background: #FCFBF7; color: #26221B;
     font-family: 'Source Sans 3', sans-serif; position: relative; overflow: hidden;
     display: flex; flex-direction: column; justify-content: space-between;
   }
@@ -20,18 +20,13 @@
   h1 { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 82px; line-height: 1.04; letter-spacing: -0.015em; }
   h1 em { font-style: normal; font-weight: 600; }
 
-  /* Grade placard — letterpress inspection stamp */
+  /* The stamped grade — letterpress, no frame */
   .placard {
-    position: absolute; right: 78px; top: 150px;
+    position: absolute; right: 96px; top: 168px;
     display: flex; flex-direction: column; align-items: center;
-    padding: 22px 36px 16px; background: #FBF7EE;
-    border: 3px solid #26221B; border-radius: 14px;
-    box-shadow: inset 0 0 0 1px rgba(38,34,27,0.14), 0 18px 34px -20px rgba(38,34,27,0.55);
-    transform: rotate(-1.6deg);
   }
-  .placard .k { font-size: 20px; font-weight: 600; color: #6B6355; letter-spacing: 0.01em; margin-bottom: 6px; }
-  .placard .g { font-family: 'Source Serif 4', serif; font-weight: 500; font-size: 188px; line-height: 0.8; color: #3E7C4F; letter-spacing: -0.02em; text-shadow: 0 2px 0 rgba(251,247,238,0.7); }
-  .placard .s { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px; color: #6B6355; margin-top: 10px; }
+  .placard .g { font-family: 'Source Serif 4', serif; font-weight: 500; font-size: 230px; line-height: 0.8; color: #3E7C4F; letter-spacing: -0.02em; text-shadow: 0 2px 0 rgba(252,251,247,0.7); }
+  .placard .s { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; color: #6B6355; margin-top: 14px; }
 
   .band { background: #5B5BD6; color: #fff; padding: 26px 64px; display: flex; justify-content: space-between; align-items: baseline; }
   .band .meta { font-family: 'Source Sans 3', sans-serif; font-size: 19px; color: rgba(255,255,255,0.8); }
@@ -48,7 +43,6 @@
       <h1>Your hotel has a grade. <em>You just haven&rsquo;t seen it.</em></h1>
     </div>
     <div class="placard">
-      <span class="k">hotelgrader</span>
       <span class="g">B+</span>
       <span class="s">87 / 100</span>
     </div>
