@@ -87,22 +87,23 @@ export default function HeroDemo() {
     <div className="mx-auto max-w-[880px] border border-edge rounded-lg bg-bone text-left overflow-hidden shadow-[0_24px_60px_-30px_rgba(28,23,64,0.5)]">
 
       {/* Title bar */}
-      <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-edge bg-paper">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-b border-edge bg-paper">
+        <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="inline-block h-2 w-2 rounded-sm"
+            className="inline-block h-2 w-2 rounded-sm shrink-0"
             style={{
               background: done ? '#0D9488' : '#5B5BD6',
               animation: done ? 'none' : 'hg-pulse 1s ease-in-out infinite',
             }}
           />
-          <span className="meta tabular">{done ? 'SCAN COMPLETE · THE RIVERTON HOTEL' : 'SAMPLE SCAN · THE RIVERTON HOTEL'}</span>
+          {/* Truncate on narrow screens so the bar stays one line */}
+          <span className="meta tabular truncate whitespace-nowrap">{done ? 'SCAN COMPLETE · THE RIVERTON HOTEL' : 'SAMPLE SCAN · THE RIVERTON HOTEL'}</span>
         </div>
         <button
           type="button"
           onClick={() => setRunId((r) => r + 1)}
           disabled={!done}
-          className={`meta tabular ${done ? 'hover:underline' : ''}`}
+          className={`meta tabular shrink-0 whitespace-nowrap ${done ? 'hover:underline' : ''}`}
           style={{
             border: 0,
             background: 'none',
