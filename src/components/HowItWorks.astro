@@ -20,12 +20,17 @@ const steps = [
   ></div>
 
   <div class="max-w-content mx-auto px-8 py-20 relative">
+  <div class="mb-10" data-reveal>
+    <span class="label block mb-3">Method</span>
+    <h2 class="headline text-[38px] sm:text-[50px] max-w-[680px]">
+      Three steps, thirty seconds.
+    </h2>
+  </div>
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 lg:gap-16 items-center">
 
     <div>
-      <span class="label block mb-8">Method</span>
       {steps.map((s, i) => (
-        <div class={`flex gap-6 sm:gap-8 items-baseline py-6 ${i > 0 ? 'border-t border-teal/15' : ''}`}>
+        <div class={`flex gap-6 sm:gap-8 items-center py-6 ${i > 0 ? 'border-t border-teal/15' : ''}`}>
           <span class="font-serif text-[44px] sm:text-[52px] leading-none text-teal-strong tabular shrink-0">{s.num}</span>
           <div>
             <h3 class="headline text-[22px] sm:text-[24px]">{s.head}</h3>
