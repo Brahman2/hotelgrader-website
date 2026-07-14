@@ -99,6 +99,12 @@
     outline: 2px solid #5B5BD6;
     outline-offset: 2px;
   }
+
+  /* Text selection in the brand iris. */
+  ::selection {
+    background: #5B5BD6;
+    color: #fff;
+  }
 }
 
 @layer components {
@@ -111,12 +117,22 @@
     color: #26221B;
   }
   /* +/- modifier: smaller and raised toward the cap, so "B+" reads as a grade
-     rather than a letter next to a full-size symbol. */
+     rather than a letter next to a full-size symbol. Raised via relative
+     positioning (not vertical-align) so it never inflates the line box and
+     shifts letters vertically between rows. */
   .grade-mod {
     font-size: 0.52em;
     letter-spacing: 0;
-    vertical-align: 0.6em;
+    position: relative;
+    top: -0.55em;
     margin-left: 0.03em;
+  }
+  /* Fixed-width modifier slot for right-aligned grade columns: letters stay in
+     one clean vertical line whether or not a +/- follows. */
+  .grade-mod--slot {
+    display: inline-block;
+    width: 0.6em;
+    text-align: left;
   }
   .grade--good      { color: #1E7F4B; }
   .grade--warn      { color: #D98A1C; }
@@ -294,6 +310,21 @@
   .input:focus { border-color: #26221B; }
   .input::placeholder { color: rgba(38, 34, 27, 0.4); }
 
+  /* Billing toggle (pricing): quiet pills, the active one filled in ink. */
+  .billing-btn {
+    border: 0;
+    background: none;
+    color: #6B6355;
+    cursor: pointer;
+    transition: background 120ms cubic-bezier(0.2, 0, 0, 1), color 120ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .billing-btn .text-teal { color: #0D9488; }
+  .billing-btn.is-active {
+    background: #26221B;
+    color: #FCFBF7;
+  }
+  .billing-btn.is-active .text-teal { color: #7DE0D3; }
+
   /* Sticky header: hairline + soft shadow fade in once the page is scrolled. */
   #site-header.is-scrolled {
     border-bottom-color: #E6E6E1;
@@ -383,6 +414,23 @@
   @keyframes hg-progress {
     from { width: 0; }
     to   { width: 100%; }
+  }
+
+  /* ---------- Ambient art motion (Granola-style living backgrounds) ---------- */
+
+  /* Continuous slow pan across an oversized art background. */
+  @keyframes hg-pan {
+    from { background-position: 0% 42%; }
+    to   { background-position: 100% 42%; }
+  }
+  /* Slow breathe: the art mat gently scales behind a floating card. */
+  @keyframes hg-breathe {
+    from { transform: scale(1); }
+    to   { transform: scale(1.05); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .art-pan     { animation: hg-pan 70s ease-in-out infinite alternate; }
+    .art-breathe { animation: hg-breathe 16s ease-in-out infinite alternate; will-change: transform; }
   }
 
   /* ---------- Hover micro-interactions (fades and 2px shifts only) ---------- */

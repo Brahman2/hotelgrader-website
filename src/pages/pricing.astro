@@ -24,8 +24,10 @@ const tiers = [
   },
   {
     name: 'Pro',
-    price: '$129',
-    cadence: 'per property / month · $99 billed annually',
+    price: '$99',
+    cadence: 'per property / month, billed annually',
+    priceMonthly: '$129',
+    cadenceMonthly: 'per property / month, billed monthly',
     blurb: 'The professional layer: live data, full action plan, tracked over time.',
     featured: true,
     cta: { label: 'Go Pro', href: upgradeUrl, style: 'btn btn--primary' },
@@ -106,7 +108,7 @@ const pricingSchema = {
         offerCount: 3,
         offers: [
           { '@type': 'Offer', name: 'Audit', price: '0', priceCurrency: 'USD', description: 'The full graded report, free forever.' },
-          { '@type': 'Offer', name: 'Pro', price: '129', priceCurrency: 'USD', description: 'Per property per month. $99 per month billed annually.' },
+          { '@type': 'Offer', name: 'Pro', price: '99', priceCurrency: 'USD', description: 'Per property per month, billed annually. $129 billed monthly.' },
           { '@type': 'Offer', name: 'Portfolio', price: '399', priceCurrency: 'USD', description: 'Per month, up to five properties, then $69 per property.' },
         ],
       },
@@ -141,8 +143,18 @@ const pricingSchema = {
       <BreakEven client:visible />
     </div>
 
+    {/* Billing toggle — Pro shows $99 annually (default) or $129 monthly */}
+    <div class="flex items-center gap-1 mt-12 mb-5 w-fit border border-edge rounded-full p-1 bg-paper" role="group" aria-label="Billing period">
+      <button type="button" data-billing-btn="annual" class="billing-btn is-active text-[13px] font-semibold px-4 py-2 rounded-full">
+        Billed annually <span class="text-teal">· save 23%</span>
+      </button>
+      <button type="button" data-billing-btn="monthly" class="billing-btn text-[13px] font-semibold px-4 py-2 rounded-full">
+        Billed monthly
+      </button>
+    </div>
+
     {/* Tiers */}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {tiers.map((t) => (
         <div
           class={`border rounded flex flex-col ${t.featured ? 'border-ink' : 'border-edge'}`}
@@ -154,9 +166,17 @@ const pricingSchema = {
               {t.featured && <span class="meta tabular text-indigo">Most operators</span>}
             </div>
             <div class="mt-4 flex items-baseline gap-2">
-              <span class="font-serif font-semibold text-[44px] leading-none tabular">{t.price}</span>
+              <span
+                class="font-serif font-semibold text-[44px] leading-none tabular"
+                data-price-annual={t.priceMonthly ? t.price : null}
+                data-price-monthly={t.priceMonthly ?? null}
+              >{t.price}</span>
             </div>
-            <p class="meta tabular mt-2">{t.cadence.toUpperCase()}</p>
+            <p
+              class="meta tabular mt-2"
+              data-cadence-annual={t.priceMonthly ? t.cadence.toUpperCase() : null}
+              data-cadence-monthly={t.cadenceMonthly ? t.cadenceMonthly.toUpperCase() : null}
+            >{t.cadence.toUpperCase()}</p>
             <p class="text-[14px] text-ink-60 mt-3 leading-relaxed">{t.blurb}</p>
           </div>
           <ul class="px-7 py-6 space-y-2.5 flex-1 list-none m-0">
@@ -282,4 +302,25 @@ const pricingSchema = {
       <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">Free forever. No credit card. 30-second analysis.</p>
     </div>
   </section>
+
+  <script is:inline>
+    // Billing toggle: swap Pro's price/cadence between annual and monthly.
+    (function () {
+      var btns = document.querySelectorAll('[data-billing-btn]');
+      function setBilling(mode) {
+        btns.forEach(function (b) {
+          b.classList.toggle('is-active', b.getAttribute('data-billing-btn') === mode);
+        });
+        document.querySelectorAll('[data-price-annual]').forEach(function (el) {
+          el.textContent = el.getAttribute(mode === 'annual' ? 'data-price-annual' : 'data-price-monthly');
+        });
+        document.querySelectorAll('[data-cadence-annual]').forEach(function (el) {
+          el.textContent = el.getAttribute(mode === 'annual' ? 'data-cadence-annual' : 'data-cadence-monthly');
+        });
+      }
+      btns.forEach(function (b) {
+        b.addEventListener('click', function () { setBilling(b.getAttribute('data-billing-btn')); });
+      });
+    })();
+  </script>
 </BaseLayout>

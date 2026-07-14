@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 500" preserveAspectRatio="xMidYMid slice" role="img" aria-label="">
+  <defs>
+    <radialGradient id="glow-w" cx="50%" cy="35%" r="46%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vig-w" cx="50%" cy="35%" r="82%">
+      <stop offset="52%" stop-color="#0B0820" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B0820" stop-opacity="0.55"/>
+    </radialGradient>
+    <pattern id="ht-w" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="4.5" cy="4.5" r="2.4" fill="#0B0820" fill-opacity="0.17"/>
+    </pattern>
+    <filter id="grain-w">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.06"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="1600" height="500" fill="#4A47C9"/>
+  <path d="M 0 111.1 L 0 111.1 L 40 126.9 L 80 139.1 L 120 144.9 L 160 142.9 L 200 133.7 L 240 119.2 L 280 103.0 L 320 88.6 L 360 79.3 L 400 77.4 L 440 83.1 L 480 95.3 L 520 111.1 L 560 126.9 L 600 139.1 L 640 144.9 L 680 142.9 L 720 133.7 L 760 119.2 L 800 103.0 L 840 88.6 L 880 79.3 L 920 77.4 L 960 83.1 L 1000 95.3 L 1040 111.1 L 1080 126.9 L 1120 139.1 L 1160 144.9 L 1200 142.9 L 1240 133.7 L 1280 119.2 L 1320 103.0 L 1360 88.6 L 1400 79.3 L 1440 77.4 L 1480 83.1 L 1520 95.3 L 1560 111.1 L 1600 126.9 L 1600 500 L 0 500 Z" fill="#8480D9" fill-opacity="0.55"/><path d="M 0 180.6 L 0 230.1 L 40 225.4 L 80 215.7 L 120 202.3 L 160 186.5 L 200 170.0 L 240 154.7 L 280 142.2 L 320 133.9 L 360 130.6 L 400 132.7 L 440 140.0 L 480 151.7 L 520 166.5 L 560 182.9 L 600 199.0 L 640 213.1 L 680 223.6 L 720 229.5 L 760 230.1 L 800 225.4 L 840 215.7 L 880 202.3 L 920 186.5 L 960 170.0 L 1000 154.7 L 1040 142.2 L 1080 133.9 L 1120 130.6 L 1160 132.7 L 1200 140.0 L 1240 151.7 L 1280 166.5 L 1320 182.9 L 1360 199.0 L 1400 213.1 L 1440 223.6 L 1480 229.5 L 1520 230.1 L 1560 225.4 L 1600 215.7 L 1600 500 L 0 500 Z" fill="#3AAFA4" fill-opacity="0.34"/><path d="M 0 250.0 L 0 233.1 L 40 205.4 L 80 187.9 L 120 184.6 L 160 196.3 L 200 220.3 L 240 251.1 L 280 281.6 L 320 304.9 L 360 315.6 L 400 311.3 L 440 292.9 L 480 264.7 L 520 233.1 L 560 205.4 L 600 187.9 L 640 184.6 L 680 196.3 L 720 220.3 L 760 251.1 L 800 281.6 L 840 304.9 L 880 315.6 L 920 311.3 L 960 292.9 L 1000 264.7 L 1040 233.1 L 1080 205.4 L 1120 187.9 L 1160 184.6 L 1200 196.3 L 1240 220.3 L 1280 251.1 L 1320 281.6 L 1360 304.9 L 1400 315.6 L 1440 311.3 L 1480 292.9 L 1520 264.7 L 1560 233.1 L 1600 205.4 L 1600 500 L 0 500 Z" fill="#E87A54" fill-opacity="0.55"/><path d="M 0 319.4 L 0 288.0 L 40 293.8 L 80 302.5 L 120 313.0 L 160 324.2 L 200 334.9 L 240 343.9 L 280 350.2 L 320 353.2 L 360 352.6 L 400 348.4 L 440 341.0 L 480 331.3 L 520 320.3 L 560 309.2 L 600 299.3 L 640 291.5 L 680 286.7 L 720 285.5 L 760 288.0 L 800 293.8 L 840 302.5 L 880 313.0 L 920 324.2 L 960 334.9 L 1000 343.9 L 1040 350.2 L 1080 353.2 L 1120 352.6 L 1160 348.4 L 1200 341.0 L 1240 331.3 L 1280 320.3 L 1320 309.2 L 1360 299.3 L 1400 291.5 L 1440 286.7 L 1480 285.5 L 1520 288.0 L 1560 293.8 L 1600 302.5 L 1600 500 L 0 500 Z" fill="#C6D95E" fill-opacity="0.34"/><path d="M 0 388.9 L 0 413.6 L 40 431.0 L 80 438.7 L 120 435.0 L 160 420.8 L 200 399.2 L 240 375.3 L 280 354.5 L 320 341.6 L 360 339.5 L 400 348.7 L 440 367.1 L 480 390.6 L 520 413.6 L 560 431.0 L 600 438.7 L 640 435.0 L 680 420.8 L 720 399.2 L 760 375.3 L 800 354.5 L 840 341.6 L 880 339.5 L 920 348.7 L 960 367.1 L 1000 390.6 L 1040 413.6 L 1080 431.0 L 1120 438.7 L 1160 435.0 L 1200 420.8 L 1240 399.2 L 1280 375.3 L 1320 354.5 L 1360 341.6 L 1400 339.5 L 1440 348.7 L 1480 367.1 L 1520 390.6 L 1560 413.6 L 1600 431.0 L 1600 500 L 0 500 Z" fill="#8480D9" fill-opacity="0.55"/>
+  <rect width="1600" height="500" fill="url(#glow-w)"/>
+  <rect width="1600" height="500" fill="url(#vig-w)"/>
+  <rect width="1600" height="500" fill="url(#ht-w)"/>
+  <rect width="1600" height="500" filter="url(#grain-w)"/>
+</svg>
