@@ -1,0 +1,128 @@
+/* hotelgrader brand tokens + signature classes — framework-free.
+   Pair with brand-kit/BRAND-HANDOFF.md. Fonts: copy public/fonts/* and
+   register @font-face with these exact family names. */
+
+:root {
+  /* foundation */
+  --hg-paper: #FCFBF7;
+  --hg-paper-deep: #F4F2EC;
+  --hg-ink: #26221B;
+  --hg-ink-60: rgba(38, 34, 27, 0.62);
+  --hg-ink-40: rgba(38, 34, 27, 0.42);
+  --hg-ink-soft: #6B6355;
+  --hg-edge: #E6E6E1;
+  --hg-edge-strong: #D5D4CE;
+
+  /* accents — one job each (see handoff §2) */
+  --hg-iris: #5B5BD6;
+  --hg-iris-strong: #4646B0;
+  --hg-teal: #0D9488;
+  --hg-teal-strong: #0F766E;
+  --hg-sun: #D98A1C;
+
+  /* status */
+  --hg-good: #1E7F4B;
+  --hg-warn: #D98A1C;
+  --hg-attention: #C6453D;
+
+  /* grade spectrum */
+  --hg-grade-a: #3E7C4F;
+  --hg-grade-b: #7C9A3E;
+  --hg-grade-c: #C9922A;
+  --hg-grade-d: #C0622F;
+  --hg-grade-f: #A83232;
+
+  /* shape */
+  --hg-radius: 6px;
+  --hg-radius-sm: 4px;
+
+  /* type stacks */
+  --hg-font-display: 'Fraunces', Georgia, serif;
+  --hg-font-body: 'Source Sans 3', system-ui, sans-serif;
+  --hg-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --hg-font-grade: 'Archivo Black', system-ui, sans-serif;
+}
+
+::selection { background: var(--hg-iris); color: #fff; }
+:focus-visible { outline: 2px solid var(--hg-iris); outline-offset: 2px; }
+
+/* Display headline — upright emphasis only (italic-serif is banned). */
+.hg-headline {
+  font-family: var(--hg-font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 40, 'WONK' 1;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  color: var(--hg-ink);
+}
+.hg-headline em { font-style: normal; font-weight: inherit; }
+
+/* The grade — Archivo Black stamp. Markup: A<span class="grade-mod">-</span> */
+.hg-grade {
+  font-family: var(--hg-font-grade);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  color: var(--hg-ink);
+  font-variant-numeric: tabular-nums;
+}
+.hg-grade--a { color: var(--hg-grade-a); }
+.hg-grade--b { color: var(--hg-grade-b); }
+.hg-grade--c { color: var(--hg-grade-c); }
+.hg-grade--d { color: var(--hg-grade-d); }
+.hg-grade--f { color: var(--hg-grade-f); }
+/* Raised +/- : relative positioning so the line box never inflates. */
+.grade-mod {
+  font-size: 0.52em;
+  letter-spacing: 0;
+  position: relative;
+  top: -0.55em;
+  margin-left: 0.03em;
+}
+/* Fixed-width slot for right-aligned grade columns (always render it). */
+.grade-mod--slot { display: inline-block; width: 0.6em; text-align: left; }
+/* Letterpress, for large placard grades on paper. */
+.hg-grade--letterpress {
+  text-shadow: 0 1px 0 rgba(252, 251, 247, 0.7), 0 -0.5px 0 rgba(38, 34, 27, 0.1);
+}
+
+/* Label / meta */
+.hg-label { font-size: 12px; font-weight: 600; color: var(--hg-ink-soft); }
+.hg-meta  { font-family: var(--hg-font-body); font-size: 12px; color: var(--hg-ink-soft); }
+.hg-tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* Buttons */
+.hg-btn {
+  font-family: var(--hg-font-body);
+  font-size: 16px; font-weight: 600; line-height: 1;
+  padding: 13px 20px;
+  border-radius: var(--hg-radius);
+  border: 1px solid var(--hg-edge);
+  background: var(--hg-paper-deep);
+  color: var(--hg-ink);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+.hg-btn--primary { background: var(--hg-iris); border-color: var(--hg-iris); color: #fff; }
+.hg-btn--primary:hover { background: var(--hg-iris-strong); border-color: var(--hg-iris-strong); }
+
+/* Motion contract (see handoff §6). Entry states expect a JS observer that
+   adds .is-in; without JS or with reduced motion everything is static. */
+.hg-reveal { opacity: 0; transform: translateY(16px);
+  transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1), transform 620ms cubic-bezier(0.16, 1, 0.3, 1); }
+.hg-reveal.is-in { opacity: 1; transform: none; }
+.hg-stamp { opacity: 0; transform: scale(1.14); transform-origin: center 62%;
+  transition: opacity 360ms ease, transform 520ms cubic-bezier(0.2, 0.85, 0.25, 1); }
+.hg-stamp.is-in { opacity: 1; transform: none; }
+
+@keyframes hg-pan { from { background-position: 0% 42%; } to { background-position: 100% 42%; } }
+@keyframes hg-breathe { from { transform: scale(1); } to { transform: scale(1.05); } }
+@media (prefers-reduced-motion: no-preference) {
+  .art-pan { animation: hg-pan 70s ease-in-out infinite alternate; }
+  .art-breathe { animation: hg-breathe 16s ease-in-out infinite alternate; will-change: transform; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hg-reveal, .hg-stamp { opacity: 1; transform: none; transition: none; }
+}
