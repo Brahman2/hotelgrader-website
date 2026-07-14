@@ -56,6 +56,16 @@
   src: url('/fonts/Fraunces-Variable-Italic.woff2') format('woff2-variations');
 }
 
+/* Archivo Black — the grade mark. A heavy grotesque so the letter grade reads
+   like a stamped seal, distinct from the body sans and display serif. */
+@font-face {
+  font-family: 'Archivo Black';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ArchivoBlack.woff2') format('woff2');
+}
+
 @layer base {
   html, body {
     background: #FCFBF7;
@@ -94,8 +104,8 @@
 @layer components {
   /* The Grade — always serif, large, centered. */
   .grade {
-    font-family: 'Source Sans 3', system-ui, sans-serif;
-    font-weight: 800;
+    font-family: 'Archivo Black', system-ui, sans-serif;
+    font-weight: 400;
     letter-spacing: -0.03em;
     line-height: 0.9;
     color: #26221B;
@@ -103,11 +113,10 @@
   /* +/- modifier: smaller and raised toward the cap, so "B+" reads as a grade
      rather than a letter next to a full-size symbol. */
   .grade-mod {
-    font-size: 0.5em;
-    font-weight: 700;
+    font-size: 0.52em;
     letter-spacing: 0;
-    vertical-align: 0.62em;
-    margin-left: 0.04em;
+    vertical-align: 0.6em;
+    margin-left: 0.03em;
   }
   .grade--good      { color: #1E7F4B; }
   .grade--warn      { color: #D98A1C; }
@@ -163,8 +172,8 @@
     line-height: 1;
   }
   .placard-grade {
-    font-family: 'Source Sans 3', system-ui, sans-serif;
-    font-weight: 800;
+    font-family: 'Archivo Black', system-ui, sans-serif;
+    font-weight: 400;
     font-size: 1em;
     line-height: 0.8;
     letter-spacing: -0.03em;
