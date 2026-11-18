@@ -3,12 +3,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroForm from '../components/HeroForm.tsx';
 import { pillars } from '../content/pillars';
 
+// Same cutoffs as letterFor() in src/lib/hg.ts, so this page matches the report card.
 const bands = [
-  { letter: 'A', range: '90–100', tint: 'rgba(30, 127, 75, 0.11)',  text: '#1E7F4B', desc: 'Top tier' },
-  { letter: 'B', range: '80–89',  tint: 'rgba(30, 127, 75, 0.07)',  text: '#1E7F4B', desc: 'Above market' },
-  { letter: 'C', range: '65–79',  tint: 'rgba(217, 138, 28, 0.06)', text: '#D98A1C', desc: 'At market' },
-  { letter: 'D', range: '45–64',  tint: 'rgba(217, 138, 28, 0.10)', text: '#D98A1C', desc: 'Below market' },
-  { letter: 'F', range: '0–44',   tint: 'rgba(198, 69, 61, 0.08)',  text: '#C6453D', desc: 'Significantly below' },
+  { letter: 'A', tone: 'grade--a', range: '90-100', plus: 'A+ from 95', desc: 'Top tier' },
+  { letter: 'B', tone: 'grade--b', range: '80-89',  plus: 'B+ from 85', desc: 'Above market' },
+  { letter: 'C', tone: 'grade--c', range: '70-79',  plus: 'C+ from 75', desc: 'At market' },
+  { letter: 'D', tone: 'grade--d', range: '60-69',  plus: 'D+ from 65', desc: 'Below market' },
+  { letter: 'F', tone: 'grade--f', range: '0-59',   plus: '',           desc: 'Significantly below' },
 ];
 
 const signals: Record<string, string> = {
@@ -31,31 +32,35 @@ const sourceGroups = [
 ];
 ---
 
-<BaseLayout title="Methodology · hotelgrader" description="How the hotelgrader grade is built: seven weighted sections, 46 metrics, 38 public sources. Published, comparable, reproducible.">
+<BaseLayout title="Methodology · hotelgrader" description="How the hotelgrader grade is built: seven weighted sections, 43 metrics, 38 public sources. Published, comparable, reproducible.">
   <article class="max-w-[860px] mx-auto px-8 py-14 sm:py-16">
 
     <span class="label block mb-4">Methodology v1, updated July 2026</span>
     <h1 class="headline text-[38px] sm:text-[52px]">How the grade is built.</h1>
     <p class="font-serif text-[17px] sm:text-[18px] text-ink-60 leading-relaxed mt-5 max-w-[560px]">
-      Every hotel gets the same 46 metrics, from the same 38 public sources, weighted
+      Every hotel gets the same 43 metrics, from the same 38 public sources, weighted
       the same way. Nothing to connect, nothing to buy, nothing to argue with.
     </p>
 
     {/* Grade scale */}
     <section class="mt-14">
       <h2 class="headline text-[24px] sm:text-[28px] mb-6">The scale</h2>
-      <div class="border border-edge rounded overflow-hidden">
+      <div class="panel overflow-hidden">
         {bands.map((b, i) => (
-          <div class={`grid grid-cols-[72px_1fr_auto] items-center gap-5 px-6 py-4 ${i > 0 ? 'border-t border-edge' : ''}`} style={`background: ${b.tint};`}>
-            <span class="grade tabular text-[34px] leading-none" style={`color: ${b.text};`}>{b.letter}</span>
-            <span class="text-[14px] text-ink">{b.desc}</span>
+          <div class={`grid grid-cols-[56px_1fr_auto] items-center gap-5 px-6 py-4 ${i > 0 ? 'border-t border-edge' : ''}`}>
+            <span class={`grade ${b.tone} tabular text-[34px] leading-none`}>{b.letter}</span>
+            <span>
+              <span class="text-[14px] text-ink block">{b.desc}</span>
+              {b.plus && <span class="meta tabular">{b.plus}</span>}
+            </span>
             <span class="meta tabular">{b.range} / 100</span>
           </div>
         ))}
       </div>
       <p class="text-[13px] text-ink-60 mt-3 leading-relaxed max-w-[620px]">
-        The overall score is the weighted sum of seven section scores. Plus and minus
-        grades mark the top and bottom thirds of each band.
+        A plus marks the top half of a band. There are no minus grades. The overall
+        score currently counts five of the seven sections: AI visibility and advertising
+        are scored for reference and shown on the report card, but left out of the overall grade.
       </p>
     </section>
 
@@ -75,7 +80,7 @@ const sourceGroups = [
               <p class="meta tabular mt-3 leading-relaxed">{signals[p.num]}</p>
             </div>
             <div class="text-right">
-              <span class="font-serif text-[30px] leading-none text-indigo tabular">{p.weight}%</span>
+              <span class="font-serif text-[30px] leading-none text-accent tabular">{p.weight}%</span>
               <div class="meta tabular mt-1">OF GRADE</div>
             </div>
           </div>
@@ -113,7 +118,7 @@ const sourceGroups = [
       <div>
         <h2 class="headline text-[22px] sm:text-[24px] mb-3">Cadence</h2>
         <p class="text-[14px] text-ink-60 leading-relaxed">
-          A scan takes about thirty seconds. Grades refresh monthly, and every report
+          A scan takes one to two minutes. Grades refresh monthly, and every report
           carries its scan date and source count, so two people can compare notes.
         </p>
       </div>
@@ -131,14 +136,11 @@ const sourceGroups = [
 
   </article>
 
-  {/* The iris close */}
-  <section class="panel" style="background: #5B5BD6;">
-    <div class="max-w-content mx-auto px-8 py-14 text-center">
-      <h2 class="headline text-[28px] sm:text-[34px]" style="text-wrap: balance; color: #fff;">See it applied to <em>your hotel.</em></h2>
-      <div class="max-w-[560px] mx-auto">
-        <HeroForm client:visible inputId="methodology-hotel" tone="dark" />
-      </div>
-      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">Free. No credit card. 30-second analysis.</p>
+  <section class="border-t border-edge">
+    <div class="max-w-[600px] mx-auto px-5 py-14">
+      <h2 class="headline text-[22px] sm:text-[26px] mb-5">See it applied to <em>your hotel.</em></h2>
+      <HeroForm client:visible inputId="methodology-hotel" />
+      <p class="meta mt-3">free · no login · takes a minute or two</p>
     </div>
   </section>
 </BaseLayout>

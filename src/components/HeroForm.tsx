@@ -1,26 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { analyzeUrl, fetchSuggestions, parsePlace, type HotelSuggestion } from '../lib/hg';
+import { gradeUrl, fetchSuggestions, parsePlace, type HotelSuggestion } from '../lib/hg';
 
-// Live property search. Suggestions come from the production hotelgrader API;
-// selecting one hands off to the live audit runner (/analyze) with the same
-// query-param contract the production SPA uses.
+// Live hotel search. Suggestions come from the hotelgrader API; picking one
+// opens the free report card (/grade) for that hotel.
 
 interface Props {
   inputId?: string;
-  ctaLabel?: string;
-  placeholder?: string;
-  align?: 'center' | 'left';
-  /** 'dark' renders labels for the indigo band */
-  tone?: 'light' | 'dark';
+  autoFocus?: boolean;
 }
 
-export default function HeroForm({
-  inputId = 'hero-domain',
-  ctaLabel = 'Get my free report',
-  placeholder = 'Search by hotel name…',
-  align = 'center',
-  tone = 'light',
-}: Props) {
+export default function HeroForm({ inputId = 'hotel-search', autoFocus = false }: Props) {
   const [value, setValue] = useState('');
   const [items, setItems] = useState<HotelSuggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -31,22 +20,12 @@ export default function HeroForm({
   const pickedRef = useRef(false);
   const rootRef = useRef<HTMLFormElement>(null);
 
-  const go = (s: HotelSuggestion) => {
-    const { city, state } = parsePlace(s);
-    window.location.href = analyzeUrl(s.name, city, state);
-  };
-
-  /** Tell listening surfaces (the hero scan demo) which hotel is on deck. */
-  const announce = (s: HotelSuggestion | null) => {
-    const detail = s ? { name: s.name, ...parsePlace(s) } : null;
-    window.dispatchEvent(new CustomEvent('hg:prospect', { detail }));
-  };
-
   const pick = (s: HotelSuggestion) => {
     pickedRef.current = true;
     setValue(s.name);
     setOpen(false);
-    go(s);
+    const { city, state } = parsePlace(s);
+    window.location.href = gradeUrl(s.name, city, state);
   };
 
   // Debounced live search
@@ -91,76 +70,34 @@ export default function HeroForm({
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  // Keep the scan demo in sync with whichever hotel is on deck
-  useEffect(() => {
-    if (items.length > 0 && hi >= 0 && items[hi]) {
-      announce(items[hi]);
-    } else if (items.length === 0) {
-      announce(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hi, items]);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (open && hi >= 0 && items[hi]) {
-      pick(items[hi]);
-      return;
-    }
-    if (items.length > 0) {
-      pick(items[0]);
-      return;
-    }
+    if (open && hi >= 0 && items[hi]) return pick(items[hi]);
+    if (items.length > 0) return pick(items[0]);
     // Button pressed before suggestions arrived: resolve the query ourselves
-    // so the handoff always carries a real hotel with city and state.
+    // so the report card always gets a real hotel with city and state.
     const q = value.trim();
     if (q.length < 2) return;
     setBusy(true);
     try {
       const found = await fetchSuggestions(q);
-      if (found.length > 0) {
-        pick(found[0]);
-        return;
-      }
+      if (found.length > 0) return pick(found[0]);
     } catch {
       /* fall through */
     } finally {
       setBusy(false);
     }
-    window.location.href = analyzeUrl(q, '', '');
+    window.location.href = gradeUrl(q, '', '');
   };
 
   return (
-    <form
-      ref={rootRef}
-      onSubmit={handleSubmit}
-      className={`relative mt-9 max-w-[600px] ${align === 'center' ? 'mx-auto' : ''}`}
-      id="get-the-report"
-      autoComplete="off"
-    >
-      <label
-        htmlFor={inputId}
-        className={`label block text-left mb-2 ${tone === 'dark' ? '' : 'label--muted'}`}
-        style={tone === 'dark' ? { color: 'rgba(255,255,255,0.85)' } : undefined}
-      >
-        Property
-      </label>
-      <div className="flex flex-col sm:flex-row gap-2">
+    <form ref={rootRef} onSubmit={handleSubmit} className="relative text-left" autoComplete="off">
+      <label htmlFor={inputId} className="sr-only">Hotel name</label>
+      <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
-          <svg
-            aria-hidden="true"
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="rgba(38,34,27,0.4)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.6-3.6" />
-          </svg>
+          <span aria-hidden="true" className="dark-only absolute left-4 top-1/2 -translate-y-1/2 text-accent pointer-events-none">
+            &gt;
+          </span>
           <input
             id={inputId}
             name="hotel"
@@ -169,7 +106,8 @@ export default function HeroForm({
             aria-expanded={open}
             aria-controls={`${inputId}-listbox`}
             aria-autocomplete="list"
-            placeholder={placeholder}
+            placeholder="Search for a hotel"
+            autoFocus={autoFocus}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onFocus={() => items.length > 0 && setOpen(true)}
@@ -179,19 +117,17 @@ export default function HeroForm({
               if (e.key === 'ArrowUp')   { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
               if (e.key === 'Escape')    { setOpen(false); }
             }}
-            className="input w-full pl-10 bg-paper border-edge-strong"
+            className="input w-full dark-pad"
           />
           {busy && (
-            <span className="meta tabular absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              Searching
-            </span>
+            <span className="meta absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">searching</span>
           )}
 
           {open && (
             <ul
               id={`${inputId}-listbox`}
               role="listbox"
-              className="absolute z-20 left-0 right-0 top-full mt-1 border border-edge rounded bg-bone overflow-hidden list-none m-0 p-0 text-left"
+              className="absolute z-20 left-0 right-0 top-full mt-1 panel overflow-hidden list-none m-0 p-0"
             >
               {items.map((s, i) => (
                 <li
@@ -200,24 +136,17 @@ export default function HeroForm({
                   aria-selected={i === hi}
                   onMouseEnter={() => setHi(i)}
                   onMouseDown={(e) => { e.preventDefault(); pick(s); }}
-                  className={`px-4 py-3 cursor-pointer ${i > 0 ? 'border-t border-edge' : ''}`}
-                  style={{ background: i === hi ? '#F1EFE9' : 'transparent' }}
+                  className={`px-4 py-2.5 cursor-pointer ${i > 0 ? 'border-t border-edge' : ''} ${i === hi ? 'bg-[var(--accent-soft)]' : ''}`}
                 >
-                  <div className="text-[14px] font-medium text-ink leading-snug">{s.name}</div>
-                  <div className="meta mt-0.5">{s.secondary_text}</div>
+                  <div className={`font-medium leading-snug ${i === hi ? 'text-accent' : 'text-ink'}`}>{s.name}</div>
+                  <div className="meta">{s.secondary_text}</div>
                 </li>
               ))}
-              <li className="px-4 py-2 border-t border-edge bg-paper meta tabular" aria-hidden="true">
-                Live search, any hotel, anywhere
-              </li>
             </ul>
           )}
         </div>
 
-        <button type="submit" className={`justify-center ${tone === 'dark' ? 'btn' : 'btn btn--primary'}`}>
-          <span>{ctaLabel}</span>
-          <span data-arrow aria-hidden="true">{'→'}</span>
-        </button>
+        <button type="submit" className="btn btn--primary justify-center">grade</button>
       </div>
     </form>
   );

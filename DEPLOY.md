@@ -59,3 +59,23 @@ destructive.
 The hero search and CTAs read PUBLIC_HG_API and PUBLIC_HG_APP. With no `.env`
 they default to the live Railway API and `https://app.hotelgrader.com`.
 Copy `.env.example` to `.env` to override for local testing.
+
+## Email verification (report card gate)
+
+The report card asks for a first name and email, then a 6-digit code sent to
+that address. Two Netlify Functions do this (`netlify/functions/send-code.mjs`
+and `verify-code.mjs`), using [Resend](https://resend.com) to send the email.
+
+Set these in Netlify under Site configuration > Environment variables:
+
+| Variable | Required | What it is |
+|---|---|---|
+| `RESEND_API_KEY` | yes | API key from Resend |
+| `VERIFY_SECRET` | yes | Any long random string. Signs the codes. |
+| `MAIL_FROM` | no | Sender, e.g. `hotelgrader <verify@hotelgrader.com>`. The domain must be verified in Resend. |
+| `LEADS_TO` | no | An address that gets an email each time someone verifies. |
+
+Verified leads are also saved to the Netlify form named `report-card`.
+
+Under `npm run dev` there are no functions and no email is sent: the code is
+always `123456`.

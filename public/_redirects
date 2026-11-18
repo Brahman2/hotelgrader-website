@@ -1,7 +1,7 @@
 # App-path redirects (Netlify). When this Astro site serves hotelgrader.com at
 # the root, these send any app-only URL to the React app on the subdomain.
 # Query strings are preserved automatically. Marketing/legal paths
-# (/pricing, /about, /methodology, /privacy, /terms) are served by THIS site
+# (/grade, /about, /methodology, /privacy, /terms) are served by THIS site
 # and must NOT be listed here.
 /analyze          https://app.hotelgrader.com/analyze          301
 /analyze-v2       https://app.hotelgrader.com/analyze-v2       301
@@ -9,6 +9,7 @@
 /results          https://app.hotelgrader.com/results          301
 /dashboard        https://app.hotelgrader.com/dashboard        301
 /account          https://app.hotelgrader.com/account          301
+/pricing          https://app.hotelgrader.com/upgrade          302
 /upgrade          https://app.hotelgrader.com/upgrade          301
 /upgrade/success  https://app.hotelgrader.com/upgrade/success  301
 /login            https://app.hotelgrader.com/login            301

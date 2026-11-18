@@ -1,43 +1,20 @@
 ---
+import ThemeToggle from './ThemeToggle.astro';
 const year = new Date().getFullYear();
 ---
 
-<footer class="border-t border-edge mt-20 overflow-hidden">
-  <div class="max-w-content mx-auto px-8 pt-14">
-    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
-      <div>
-        <nav class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px]">
-          <a href="/about" class="text-ink-60 hover:text-indigo transition-colors duration-150">About</a>
-          <a href="/methodology" class="text-ink-60 hover:text-indigo transition-colors duration-150">Methodology</a>
-          <a href="/pricing" class="text-ink-60 hover:text-indigo transition-colors duration-150">Pricing</a>
-          <a href="/privacy" class="text-ink-60 hover:text-indigo transition-colors duration-150">Privacy</a>
-          <a href="/terms" class="text-ink-60 hover:text-indigo transition-colors duration-150">Terms</a>
-          <a href="mailto:contact@hotelgrader.com" class="text-ink-60 hover:text-indigo transition-colors duration-150">contact@hotelgrader.com</a>
-        </nav>
-        <p class="meta mt-3">The independent grade for hotel marketing</p>
-      </div>
-      <div class="text-left md:text-right shrink-0">
-        <span class="meta tabular block">© {year} hotelgrader</span>
-        <span class="meta tabular text-teal block mt-1">38 sources, monitored continuously</span>
-      </div>
-    </div>
-  </div>
-
-  {/* Big footer wordmark, cropped by the footer edge (Granola-style) */}
-  <a href="/" aria-label="hotelgrader home" class="block px-8 mt-8 select-none" style="border-bottom: 0;">
-    <span
-      class="flex items-center gap-[0.14em] leading-[0.78] font-semibold tracking-[-0.055em] text-ink whitespace-nowrap"
-      style="font-size: clamp(64px, 13.5vw, 230px);"
-    >
-      <img src="/assets/favicon.svg" alt="" class="w-[0.9em] h-[0.9em] shrink-0" />
-      <span>hotelgrader</span>
+<footer class="border-t border-edge">
+  <div class="max-w-content mx-auto px-5 sm:px-8 py-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 meta">
+    <nav class="flex flex-wrap gap-x-5 gap-y-1">
+      <a href="/methodology" class="text-ink-60 hover:text-accent">methodology</a>
+      <a href="/about" class="text-ink-60 hover:text-accent">about</a>
+      <a href="/privacy" class="text-ink-60 hover:text-accent">privacy</a>
+      <a href="/terms" class="text-ink-60 hover:text-accent">terms</a>
+      <a href="mailto:contact@hotelgrader.com" class="text-ink-60 hover:text-accent">contact</a>
+    </nav>
+    <span class="flex items-center gap-4">
+      <span>© {year} hotelgrader. Graded from public data only.</span>
+      <ThemeToggle />
     </span>
-  </a>
-
-  {/* Finish the page on a bold band of the abstract art, drifting slowly */}
-  <div
-    aria-hidden="true"
-    class="h-[88px] sm:h-[128px] mt-6 art-pan"
-    style="background-image: url('/images/abstract-rings.svg'); background-size: 140% auto; background-position: 0% 42%;"
-  ></div>
+  </div>
 </footer>

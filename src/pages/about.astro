@@ -11,7 +11,7 @@ const principles = [
   {
     num: '02',
     head: 'Comparable',
-    body: 'Every hotel gets the same 46 metrics with the same weights. A B+ in Lisbon means what a B+ means in Los Angeles, so owners, GMs, and brokers can finally talk about marketing with one number.',
+    body: 'Every hotel gets the same 43 metrics with the same weights. A B+ in Lisbon means what a B+ means in Los Angeles, so owners, GMs, and brokers can finally talk about marketing with one number.',
   },
   {
     num: '03',
@@ -34,7 +34,7 @@ const principles = [
     <section class="mt-12 border-t border-edge">
       {principles.map((p) => (
         <div class="flex gap-6 sm:gap-8 items-baseline py-7 border-b border-edge">
-          <span class="font-serif text-[40px] sm:text-[48px] leading-none text-indigo tabular shrink-0">{p.num}</span>
+          <span class="font-serif text-[40px] sm:text-[48px] leading-none text-accent tabular shrink-0">{p.num}</span>
           <div>
             <h2 class="headline text-[22px] sm:text-[24px]">{p.head}</h2>
             <p class="text-[14px] text-ink-60 mt-2 leading-relaxed max-w-[520px]">{p.body}</p>
@@ -52,26 +52,23 @@ const principles = [
       </p>
       <p class="text-[14px] text-ink-60 leading-relaxed max-w-[600px] mt-4">
         Questions, corrections, or a grade you want to argue with:
-        <a href="mailto:contact@hotelgrader.com" class="text-indigo hover:underline" style="border-bottom: 0;">contact@hotelgrader.com</a>
+        <a href="mailto:contact@hotelgrader.com" class="text-accent hover:underline">contact@hotelgrader.com</a>
       </p>
     </section>
 
     <section class="mt-12 border-t border-edge pt-10">
       <p class="meta tabular">
-        NEXT · <a href="/methodology" class="text-indigo hover:underline" style="border-bottom: 0;">READ THE METHODOLOGY →</a>
+        NEXT · <a href="/methodology" class="text-accent hover:underline">READ THE METHODOLOGY →</a>
       </p>
     </section>
 
   </article>
 
-  {/* The iris close */}
-  <section class="panel" style="background: #5B5BD6;">
-    <div class="max-w-content mx-auto px-8 py-14 text-center">
-      <h2 class="headline text-[28px] sm:text-[34px]" style="text-wrap: balance; color: #fff;">Grade a hotel. <em>Any hotel.</em></h2>
-      <div class="max-w-[560px] mx-auto">
-        <HeroForm client:visible inputId="about-hotel" tone="dark" />
-      </div>
-      <p class="meta tabular mt-3" style="color: rgba(255,255,255,0.75);">Free. No credit card. 30-second analysis.</p>
+  <section class="border-t border-edge">
+    <div class="max-w-[600px] mx-auto px-5 py-14">
+      <h2 class="headline text-[22px] sm:text-[26px] mb-5">Grade a hotel. <em>Any hotel.</em></h2>
+      <HeroForm client:visible inputId="about-hotel" />
+      <p class="meta mt-3">free · no login · takes a minute or two</p>
     </div>
   </section>
 </BaseLayout>
