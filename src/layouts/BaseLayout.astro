@@ -1,4 +1,5 @@
 ---
+import '@fontsource-variable/schibsted-grotesk';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -8,13 +9,16 @@ interface Props {
   description?: string;
   showHeader?: boolean;
   showFooter?: boolean;
+  /** Keep per-hotel result pages out of search indexes */
+  noindex?: boolean;
 }
 
 const {
-  title = 'hotelgrader · independent performance grading for independent hotels',
-  description = "A 46-metric audit of your property's digital presence, scored across seven categories, delivered in thirty seconds. Free. No credit card.",
+  title = 'hotelgrader · a free report card for any hotel',
+  description = "A free report card for your hotel's marketing, scored across seven sections from public data, delivered in a minute or two. Free.",
   showHeader = true,
   showFooter = true,
+  noindex = false,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -30,7 +34,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
     <link rel="canonical" href={canonical} />
-    <meta name="theme-color" content="#FCFBF7" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#F5F5F7" />
+    <script is:inline>
+      // Light is the default. Apply a saved dark choice before first paint.
+      try { if (localStorage.getItem('hg-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+    </script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
@@ -40,7 +49,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:image" content="https://hotelgrader.com/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="hotelgrader — your hotel has a grade. A stamped B+ beside the headline." />
+    <meta property="og:image:alt" content="hotelgrader: your hotel has a grade. A stamped B+ beside the headline." />
     <meta property="og:site_name" content="hotelgrader" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
@@ -55,7 +64,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
           name: 'hotelgrader',
           url: 'https://hotelgrader.com',
           logo: 'https://hotelgrader.com/assets/favicon.svg',
-          description: 'The independent grade for hotel marketing. 46 metrics, 38 public sources, seven weighted sections.',
+          description: 'The independent grade for hotel marketing. 43 metrics, 38 public sources, seven weighted sections.',
           contactPoint: { '@type': 'ContactPoint', email: 'contact@hotelgrader.com', contactType: 'customer support' },
         },
         {
@@ -67,90 +76,32 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         },
       ],
     })} />
-    <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
-  <body class="bg-paper text-ink font-sans antialiased">
+  <body class="text-ink font-sans antialiased">
     {showHeader && <Header />}
     <main>
       <slot />
     </main>
     {showFooter && <Footer />}
     <script is:inline>
-      // Motion controller. All effects honor prefers-reduced-motion.
-      //  - [data-reveal]  : rise + fade on entry (data-reveal="120" staggers)
-      //  - [data-stamp]   : grade "stamps" in (scale) on entry
-      //  - [data-countup] : number counts from 0 to its value on entry
-      //  - [data-parallax]: background drifts on scroll for depth
       (function () {
-        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var hasIO = 'IntersectionObserver' in window;
-
-        // Reveal + stamp
-        var revealEls = document.querySelectorAll('[data-reveal], [data-stamp]');
-        if (reduce || !hasIO) {
-          revealEls.forEach(function (el) { el.classList.add('is-in'); });
-        } else {
-          var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-              if (!entry.isIntersecting) return;
-              var el = entry.target;
-              var d = el.getAttribute('data-reveal') || el.getAttribute('data-stamp');
-              if (d) el.style.transitionDelay = d + 'ms';
-              el.classList.add('is-in');
-              io.unobserve(el);
-            });
-          }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
-          revealEls.forEach(function (el) { io.observe(el); });
+        var root = document.documentElement;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        var icon = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+        function sync() {
+          var dark = root.dataset.theme === 'dark';
+          if (meta) meta.content = dark ? '#0B0D0C' : '#F5F5F7';
+          // The logo mark in light, the terminal mark in dark.
+          if (icon) icon.href = dark ? '/assets/favicon-terminal.svg' : '/assets/favicon.svg';
         }
-
-        // Count-up
-        if (!reduce && hasIO) {
-          document.querySelectorAll('[data-countup]').forEach(function (el) {
-            var finalText = el.textContent.trim();
-            var m = finalText.match(/^(\D*)(\d[\d,]*)(.*)$/);
-            if (!m) return;
-            var pre = m[1], num = parseInt(m[2].replace(/,/g, ''), 10), post = m[3];
-            var cio = new IntersectionObserver(function (entries) {
-              entries.forEach(function (e) {
-                if (!e.isIntersecting) return;
-                cio.disconnect();
-                var start = null;
-                function tick(t) {
-                  if (start === null) start = t;
-                  var p = Math.min((t - start) / 900, 1);
-                  var eased = 1 - Math.pow(1 - p, 3);
-                  el.textContent = pre + Math.round(eased * num) + post;
-                  if (p < 1) requestAnimationFrame(tick); else el.textContent = finalText;
-                }
-                requestAnimationFrame(tick);
-              });
-            }, { threshold: 0.6 });
-            cio.observe(el);
-          });
-        }
-
-        // Parallax — shift background-position on scroll (subtle depth, no layout shift)
-        if (!reduce) {
-          var pxEls = [].slice.call(document.querySelectorAll('[data-parallax]'));
-          if (pxEls.length) {
-            var ticking = false;
-            var updatePx = function () {
-              var vh = window.innerHeight;
-              for (var i = 0; i < pxEls.length; i++) {
-                var el = pxEls[i], r = el.getBoundingClientRect();
-                if (r.bottom < -80 || r.top > vh + 80) continue;
-                var progress = ((r.top + r.height / 2) - vh / 2) / vh;
-                var f = parseFloat(el.getAttribute('data-parallax')) || 16;
-                el.style.backgroundPosition = '50% ' + (50 + progress * f).toFixed(1) + '%';
-              }
-              ticking = false;
-            };
-            var onScroll = function () { if (!ticking) { ticking = true; requestAnimationFrame(updatePx); } };
-            window.addEventListener('scroll', onScroll, { passive: true });
-            window.addEventListener('resize', onScroll, { passive: true });
-            updatePx();
-          }
-        }
+        sync();
+        document.addEventListener('click', function (e) {
+          if (!e.target.closest || !e.target.closest('[data-theme-toggle]')) return;
+          var dark = root.dataset.theme !== 'dark';
+          if (dark) root.dataset.theme = 'dark'; else delete root.dataset.theme;
+          try { localStorage.setItem('hg-theme', dark ? 'dark' : 'light'); } catch (err) {}
+          sync();
+        });
       })();
     </script>
   </body>

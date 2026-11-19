@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ReportCard from '../components/ReportCard.tsx';
+---
+
+<BaseLayout
+  title="Your report card · hotelgrader"
+  description="A free report card for your hotel's marketing: one grade, seven section scores, and what to fix first."
+  noindex
+>
+  <section class="max-w-content mx-auto px-5 sm:px-8 py-10 sm:py-14">
+    <ReportCard client:only="react" />
+    <!-- Netlify Forms finds this static form at build time. The report card and
+         the verify-code function post to it; it is never shown. -->
+    <form name="report-card" method="POST" data-netlify="true" netlify-honeypot="company" hidden>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="text" name="hotel" />
+      <input type="text" name="city" />
+      <input type="text" name="state" />
+      <input type="text" name="company" />
+    </form>
+    <noscript>
+      <p class="text-center text-ink-60 py-16">The report card runs a live scan and needs JavaScript turned on.</p>
+    </noscript>
+  </section>
+</BaseLayout>
