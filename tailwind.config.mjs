@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 // Two themes, one set of names. Every colour, the font and the corner radius
-// are CSS variables defined in src/styles/global.css: light (the default) is
-// clean and sans-serif, dark is the terminal look in IBM Plex Mono.
+// are CSS variables defined in src/styles/global.css: light is
+// clean and sans-serif, dark (the default) is the terminal look in IBM Plex Mono.
 const mono = ['"IBM Plex Mono"', 'ui-monospace', 'Menlo', 'monospace'];
 
 export default {

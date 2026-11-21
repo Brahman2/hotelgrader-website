@@ -25,7 +25,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -35,10 +35,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex" />}
-    <meta name="theme-color" content="#F5F5F7" />
+    <meta name="theme-color" content="#0B0D0C" />
     <script is:inline>
-      // Light is the default. Apply a saved dark choice before first paint.
-      try { if (localStorage.getItem('hg-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+      // Dark is the default (set on <html>). Apply a saved light choice before first paint.
+      try { if (localStorage.getItem('hg-theme') === 'light') delete document.documentElement.dataset.theme; } catch (e) {}
     </script>
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -46,15 +46,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content="https://hotelgrader.com/og.png" />
+    <meta property="og:image" content="https://hotelgrader.com/og.png?v=2" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="hotelgrader: your hotel has a grade. A stamped B+ beside the headline." />
+    <meta property="og:image:alt" content="hotelgrader. Your hotel has a grade. You just haven’t seen it. A sample grade of B+ sits beside the headline." />
     <meta property="og:site_name" content="hotelgrader" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content="https://hotelgrader.com/og.png" />
+    <meta name="twitter:image" content="https://hotelgrader.com/og.png?v=2" />
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
       '@context': 'https://schema.org',
       '@graph': [
@@ -64,7 +64,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
           name: 'hotelgrader',
           url: 'https://hotelgrader.com',
           logo: 'https://hotelgrader.com/assets/favicon.svg',
-          description: 'The independent grade for hotel marketing. 43 metrics, 38 public sources, seven weighted sections.',
+          description: 'A free report card for any hotel’s marketing, graded from public data across seven sections.',
           contactPoint: { '@type': 'ContactPoint', email: 'contact@hotelgrader.com', contactType: 'customer support' },
         },
         {
