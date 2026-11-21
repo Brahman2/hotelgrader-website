@@ -37,7 +37,12 @@ const same = (a, b) => !!a && !!b && String(a).trim().toLowerCase() === String(b
 
 export function summarize(audit) {
   const c = audit._meta?.competitors;
-  const all = SECTIONS.flatMap(([key]) => audit.categories?.[key]?.metrics ?? []).filter(measured);
+  // Findings the scan itself contradicts are left out, as on the page (see contradicted() in src/lib/hg.ts).
+  const hide = new Set();
+  if (c?.review_rank != null && c.total_in_set != null && c.review_rank > c.total_in_set / 2) hide.add('Review Volume');
+  const mention = (audit.categories?.searchAndAI?.metrics ?? []).find((m) => /ai mention rate/i.test(m.name));
+  if (mention && measured(mention) && mention.score === 0) hide.add('Recommendation Position');
+  const all = SECTIONS.flatMap(([key]) => audit.categories?.[key]?.metrics ?? []).filter((m) => measured(m) && !hide.has(m.name));
   const fixes = [...all].sort((a, b) => a.score - b.score).filter((m) => m.score < 85).slice(0, 5).map((m) => {
     const step = (m.actionSteps ?? []).find((s) => s.action);
     return { name: m.name, score: m.score, letter: letterFor(m.score), step: step ? String(step.action).replace(/[.:]\s*$/, '') + '.' : '' };
@@ -46,6 +51,7 @@ export function summarize(audit) {
   // The API sometimes writes a section's internal key into its summary sentence.
   let keyFinding = audit.executiveSummary?.keyFinding || '';
   for (const [key, name] of SECTIONS) keyFinding = keyFinding.split(key).join(name);
+  keyFinding = keyFinding.split(/(?<=\.)\s+/).filter((s) => ![...hide].some((n) => s.includes(n))).join(' ');
 
   // One night's price on the hotel's own site against the booking sites.
   const bp = audit._meta?.booking_pricing;
