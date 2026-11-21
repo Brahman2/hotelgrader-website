@@ -5,6 +5,9 @@
 export interface User { name: string; email: string; proof: string }
 
 const KEY = 'hg-user';
+/** send-code answers 503 when the site has no email keys yet. */
+export const UNCONFIGURED = 'unconfigured';
+
 const WRONG = 'That code isn’t right. Check the email and try again.';
 
 export function loadUser(): User | null {
@@ -26,6 +29,7 @@ async function post(path: string, body: unknown): Promise<Record<string, string>
     throw new Error('Couldn’t reach the server. Check your connection and try again.');
   }
   const data = await res.json().catch(() => ({}));
+  if (res.status === 503) return { token: UNCONFIGURED };
   if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
   return data;
 }

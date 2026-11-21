@@ -24,7 +24,8 @@ const examples = [
 
 <BaseLayout showHeader={false}>
   <Contours />
-  <div class="absolute top-4 right-5"><ThemeToggle /></div>
+  <!-- z-10: the hero section below is positioned and would otherwise sit on top of this button. -->
+  <div class="absolute top-4 right-5 z-10"><ThemeToggle /></div>
   <section class="relative min-h-[calc(100dvh-70px)] flex flex-col items-center justify-center px-5 pb-[12vh] text-center">
     <h1 class="headline text-[40px] sm:text-[64px] flex items-center justify-center gap-3 sm:gap-4">
       <img src="/assets/favicon.svg" alt="" width="52" height="52" class="light-only w-[34px] h-[34px] sm:w-[52px] sm:h-[52px] rounded-[8px] sm:rounded-[12px]" />
