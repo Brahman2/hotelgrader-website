@@ -73,7 +73,8 @@ Set these in Netlify under Site configuration > Environment variables:
 | `RESEND_API_KEY` | yes | API key from Resend |
 | `VERIFY_SECRET` | yes | Any long random string. Signs the codes. |
 | `MAIL_FROM` | no | Sender, e.g. `hotelgrader <verify@hotelgrader.com>`. The domain must be verified in Resend. |
-| `LEADS_TO` | no | An address that gets an email each time someone verifies. |
+| `LEADS_TO` | no | An address that gets an email each time someone verifies. Replies to our emails also go here. |
+| `REPLY_TO` | no | Overrides where replies go, if different from `LEADS_TO`. |
 
 Verified leads are also saved to the Netlify form named `report-card`.
 
