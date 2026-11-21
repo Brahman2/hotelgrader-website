@@ -3,7 +3,8 @@ import { pillars } from '../content/pillars';
 import { isMeasured, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
 import { checkLink, loadUser, saveUser, sendReport, type User } from '../lib/verify';
 import Gate from './Gate';
-import FullReport from './FullReport';
+import FullReport, { pickHighlight, shareText } from './FullReport';
+import { Radar } from './Charts';
 import { geocode, geocodeCity, offset, type LatLon } from '../lib/geo';
 import HeroForm from './HeroForm';
 import Scanner, { type Blip } from './Scanner';
@@ -14,10 +15,14 @@ import Scanner, { type Blip } from './Scanner';
 //
 // The card is gated: the scan starts right away, but the grade only shows once
 // the visitor gives a first name and email and confirms a code we send there.
-// One verified email unlocks every card in that browser. The full report below
-// the card unlocks separately, by sharing on LinkedIn (see FullReport.tsx).
+// One verified email unlocks every card in that browser, including the full
+// report below the card. Sharing on LinkedIn is optional, one button.
 
-const SHARED_KEY = 'hg-shared';
+
+const SHORT: Record<string, string> = {
+  searchAndAI: 'AI & search', digitalPresence: 'Website', reputation: 'Reputation', socialMedia: 'Social',
+  advertising: 'Advertising', booking: 'Booking', competitive: 'Competitive',
+};
 const MAILED_KEY = 'hg-mailed';
 const LEADS_KEY = 'hg-leads';
 
@@ -94,6 +99,11 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
   return { center, located, approximate, blips, rivals };
 }
 
+/** The API sometimes writes a section's internal key into its summary sentence. */
+function plainFinding(text: string): string {
+  return pillars.reduce((t, p) => t.split(p.key).join(p.name), text);
+}
+
 function Grade({ letter, size }: { letter: string; size: number }) {
   return (
     <span className={`grade ${gradeTone(letter)} tabular`} style={{ fontSize: size }}>
@@ -109,30 +119,6 @@ function scored(audit: Audit): (Metric & { section: string })[] {
     (audit.categories[p.key]?.metrics ?? [])
       .filter(isMeasured)
       .map((m) => ({ ...m, section: p.name })),
-  );
-}
-
-function MetricList({ title, items, tone }: { title: string; items: (Metric & { section: string })[]; tone: string }) {
-  return (
-    <div>
-      <h2 className="label label--ink mb-4">{title}</h2>
-      <ol className="list-none m-0 p-0 space-y-5">
-        {items.map((m) => (
-          <li key={m.id}>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="font-semibold">{m.name}</span>
-              <span className={`${tone} num`}>{m.score}</span>
-            </div>
-            <div className="meta">{m.section}</div>
-            {(m.recommendation || m.insight) && (
-              <p className="text-ink-60 text-[13px] mt-1.5">
-                {tone === 'text-attention' ? m.recommendation || m.insight : m.insight || m.recommendation}
-              </p>
-            )}
-          </li>
-        ))}
-      </ol>
-    </div>
   );
 }
 
@@ -173,18 +159,19 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
               {market.rivals.map((r) => (
                 <tr key={r.n} className="border-t border-edge">
                   <td className="py-2">
-                    <span className={`scanner-key ${plotted.has(r.n) ? '' : 'scanner-key--off'}`}>{r.n}</span>
+                    <span className="scanner-key">{r.n}</span>
                   </td>
-                  <td className="py-2">{r.name}</td>
+                  <td className="py-2">{r.name}{!plotted.has(r.n) && market.located && <span className="text-ink-40"> (not on map)</span>}</td>
                   <td className="py-2 text-right num">{r.rating ?? 'n/a'}</td>
                   <td className="py-2 text-right text-ink-60 num">{r.reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {comp?.compset_avg_rating != null && (
-            <p className="meta mt-3">Nearby average rating: {comp.compset_avg_rating}. Numbered hotels are pinned where we could locate them.</p>
-          )}
+          <p className="meta mt-3">
+            {comp?.total_in_set != null && `These are the ${market.rivals.length} hotels most like yours out of ${comp.total_in_set}${comp.tier_label ? ` ${comp.tier_label.toLowerCase()}` : ''} hotels nearby, which is why their ratings and review counts sit close together. `}
+            {comp?.compset_avg_rating != null && `Average rating across the set: ${comp.compset_avg_rating}.`}
+          </p>
         </div>
       </div>
     </section>
@@ -201,8 +188,6 @@ function ReportCardView({ audit, market }: { audit: Audit; market: Market }) {
     ? new Date(/(?:Z|[+-]\d\d:?\d\d)$/i.test(stamp) ? stamp : `${stamp}Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
   const metrics = scored(audit);
-  const fixes = [...metrics].sort((a, b) => a.score! - b.score!).slice(0, 3);
-  const wins = [...metrics].sort((a, b) => b.score! - a.score!).slice(0, 3);
   const place = [audit.city, audit.state].filter(Boolean).join(', ');
 
   return (
@@ -220,39 +205,33 @@ function ReportCardView({ audit, market }: { audit: Audit; market: Market }) {
         <div>
           <h1 className="headline text-[26px] sm:text-[32px]">{audit.hotelName}</h1>
           {place && <p className="text-ink-60 mt-1">{place}</p>}
-          {audit.executiveSummary?.keyFinding && <p className="mt-4">{audit.executiveSummary.keyFinding}</p>}
+          {audit.executiveSummary?.keyFinding && <p className="mt-4">{plainFinding(audit.executiveSummary.keyFinding)}</p>}
         </div>
       </section>
 
       <MarketSection audit={audit} market={market} />
 
       <section className="px-5 sm:px-8 py-7 border-t border-edge">
-        <h2 className="label label--ink mb-2">The seven sections</h2>
-        {pillars.map((p) => {
-          const s = audit.categories[p.key]?.score ?? null;
-          const l = letterFor(s);
-          const reference = counted && !counted.includes(p.key);
-          return (
-            <div key={p.key} className={'grid grid-cols-[1fr_auto] sm:grid-cols-[250px_1fr_auto] items-center gap-x-5 py-2'}>
-              <div>
-                <div>{p.name}</div>
-                {reference && <div className="meta">for reference, not in the overall grade</div>}
-              </div>
-              <div className="bar hidden sm:block" aria-hidden="true">
-                <div className={gradeTone(l)} style={{ width: `${s ?? 0}%` }} />
-              </div>
-              <div className="flex items-baseline justify-end gap-3 w-[84px]">
-                <span className="text-ink-60 num">{s ?? 'n/a'}</span>
-                <span className="w-[34px]"><Grade letter={l} size={22} /></span>
-              </div>
-            </div>
-          );
-        })}
-      </section>
-
-      <section className="px-5 sm:px-8 py-7 border-t border-edge grid grid-cols-1 md:grid-cols-2 gap-10">
-        <MetricList title="Fix these first" items={fixes} tone="text-attention" />
-        <MetricList title="What is working" items={wins} tone="text-good" />
+        <h2 className="label label--ink mb-4">The seven sections</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <Radar items={pillars.map((p) => ({ label: SHORT[p.key] ?? p.name, score: audit.categories[p.key]?.score ?? null }))} />
+          <div>
+            {pillars.map((p, i) => {
+              const s = audit.categories[p.key]?.score ?? null;
+              const l = letterFor(s);
+              return (
+                <div key={p.key} className={`flex items-baseline gap-3 py-2 ${i > 0 ? 'border-t border-edge' : ''}`}>
+                  <span className="flex-1 min-w-0">{p.name}{counted && !counted.includes(p.key) ? <span className="text-ink-40"> *</span> : ''}</span>
+                  <span className="text-ink-60 num">{s ?? '-'}</span>
+                  <span className="w-[34px] text-right"><Grade letter={l} size={22} /></span>
+                </div>
+              );
+            })}
+            {counted && pillars.some((p) => !counted.includes(p.key)) && (
+              <p className="meta mt-3">* Scored, but not counted in the overall grade yet. See <a href="/methodology">how the grade is built</a>.</p>
+            )}
+          </div>
+        </div>
       </section>
 
       <footer className="px-5 sm:px-8 py-3 border-t border-edge flex flex-wrap justify-between gap-2 meta">
@@ -315,7 +294,6 @@ export default function ReportCard() {
   const [target, setTarget] = useState<Target | null | undefined>(undefined);
   const [user, setUser] = useState<User | null>(null);
   const [viaLink, setViaLink] = useState(false); // opened from an emailed report link
-  const [shared, setShared] = useState(false);
   const [audit, setAudit] = useState<Audit | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
@@ -327,7 +305,6 @@ export default function ReportCard() {
     const q = new URLSearchParams(window.location.search);
     const hotel = (q.get('hotel') || '').trim();
     setUser(loadUser());
-    setShared(readStore(SHARED_KEY) === '1');
     const k = q.get('k');
     if (hotel && k) {
       checkLink({ hotel, city: q.get('city') || '', state: q.get('state') || '' }, k).then((ok) => { if (ok) setViaLink(true); });
@@ -416,8 +393,11 @@ export default function ReportCard() {
   return (
     <div>
       <ReportCardView audit={audit} market={market} />
-      <FullReport audit={audit} unlocked={shared} onUnlock={() => { writeStore(SHARED_KEY, '1'); setShared(true); }} />
+      <FullReport audit={audit} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
+        <button type="button" className="btn" onClick={() => {
+          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, pickHighlight(audit)))}`, '_blank', 'noopener');
+        }}>share on LinkedIn</button>
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy link'}</button>
         <button type="button" className="btn" onClick={() => window.print()}>print</button>
         <a href="/" className="btn btn--primary">grade another hotel</a>

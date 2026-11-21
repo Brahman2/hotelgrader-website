@@ -66,6 +66,8 @@ export interface Metric {
   verified: boolean | null;
   insight?: string;
   recommendation?: string;
+  /** Raw facts the API collected for this metric. Shape varies by metric. */
+  verified_data?: Record<string, any> | null;
 }
 
 /** True when a metric has real data behind it this scan. */
@@ -93,7 +95,18 @@ export interface Audit {
       compset_avg_rating?: number;
       rating_rank?: number;
       total_in_set?: number;
+      tier_label?: string;
       top_competitors?: { name: string; rating?: number; reviews?: number }[];
+    };
+    /** One-night prices found on Google's hotel search, per booking site. */
+    booking_pricing?: {
+      matched_name?: string;
+      ota_rates?: { rate: number; source: string }[];
+      identity?: { check_in?: string };
+    };
+    /** Whether each named competitor runs Google or Meta ads. null = couldn't tell. */
+    compset_ads?: {
+      competitors?: { name: string; google_ads?: boolean | null; meta_ads?: boolean | null; meta_ads_count?: number }[];
     };
     coverage?: { metrics_delivered?: number; metrics_expected?: number };
     overall_scoring?: { included?: string[] };
