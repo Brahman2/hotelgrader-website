@@ -70,11 +70,20 @@ function bar(t, score, letter) {
 <td style="background:${t.edge};height:8px;font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
 }
 
-/** The report card email: grade, sections as bars, top fixes, link back. */
+const usd = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+const num = (n) => (n == null ? '-' : Number(n).toLocaleString('en-US'));
+
+/** The report card email: the grade, then the same substance as the page. */
 export function reportEmail({ theme, name, summary: s, link }) {
   const t = themeOf(theme);
   const lead = tone(t, s.letter);
-  const label = (txt) => `<p style="margin:26px 0 10px;padding-top:20px;border-top:1px solid ${t.edge};font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:${t.muted};">${e(txt)}</p>`;
+  const label = (txt) => `<p style="margin:26px 0 12px;padding-top:20px;border-top:1px solid ${t.edge};font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:${t.muted};">${e(txt)}</p>`;
+  const th = `font-weight:normal;font-size:12px;color:${t.muted};text-align:left;padding:0 0 6px;`;
+  const td = `padding:7px 0;border-top:1px solid ${t.edge};font-size:13.5px;`;
+
+  const tally = s.tally ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;"><tr>
+${[[s.tally.fix, 'to fix', t.grade.F], [s.tally.improve, 'to improve', t.grade.C], [s.tally.good, 'working well', t.grade.A]].map(([n, l, c]) => `<td width="33%" style="font-family:${t.num};"><div style="font-size:34px;line-height:1;font-weight:600;color:${c};">${n}</div><div style="font-size:12px;color:${t.muted};margin-top:5px;font-family:${t.font};">${l}</div></td>`).join('')}
+</tr></table>` : '';
 
   const sections = s.sections.map((x) => `<tr>
 <td style="padding:6px 10px 6px 0;font-size:13.5px;color:${t.ink};white-space:nowrap;">${e(x.name)}</td>
@@ -85,6 +94,32 @@ export function reportEmail({ theme, name, summary: s, link }) {
 <td width="46" valign="top" style="padding:8px 12px 8px 0;"><div style="width:44px;height:44px;line-height:44px;text-align:center;border:2px solid ${tone(t, f.letter)};border-radius:50%;font-family:${t.num};font-size:15px;font-weight:600;color:${t.ink};">${f.score}</div></td>
 <td valign="top" style="padding:8px 0;"><div style="font-weight:600;">${e(f.name)}</div>${f.step ? `<div style="color:${t.muted};font-size:13.5px;margin-top:2px;">${e(f.step)}</div>` : ''}</td></tr>`).join('');
 
+  let prices = '';
+  if (s.prices) {
+    const p = s.prices;
+    const line = p.direct == null ? ''
+      : p.cheaper > 0
+        ? `<p style="margin:0 0 12px;"><span style="font-weight:600;">${p.cheaper} of ${p.total} booking sites undercut your own.</span> <span style="color:${t.muted};">Your site lists the night at ${usd(p.direct)}. The lowest elsewhere is ${usd(p.lowest.rate)} on ${e(p.lowest.source)}.</span></p>`
+        : `<p style="margin:0 0 12px;"><span style="font-weight:600;">Your own site has the lowest price,</span> <span style="color:${t.muted};">at ${usd(p.direct)}.</span></p>`;
+    const rows = p.rows.map((r) => `<tr>
+<td style="padding:4px 10px 4px 0;font-size:13px;white-space:nowrap;${r.mine ? 'font-weight:600;' : `color:${t.muted};`}">${r.mine ? 'Your site' : e(r.source)}</td>
+<td width="48%" style="padding:4px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="${Math.max(4, Math.round((r.rate / p.max) * 100))}%" style="background:${r.mine ? t.accent : t.faint};height:9px;font-size:0;line-height:0;">&nbsp;</td><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table></td>
+<td align="right" style="padding:4px 0 4px 12px;font-family:${t.num};font-size:13px;white-space:nowrap;${r.mine ? 'font-weight:600;' : ''}">${usd(r.rate)}</td></tr>`).join('');
+    prices = label('One night, priced on each booking site') + line + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+<p style="margin:10px 0 0;font-size:12px;color:${t.faint};">${p.checkIn ? `Check-in ${e(p.checkIn)}. ` : ''}As shown on Google's hotel search at scan time. Room types and taxes can differ.</p>`;
+  }
+
+  const adCell = (v) => v == null ? `<span style="color:${t.faint};">couldn't tell</span>` : v ? `<span style="color:${t.accent};">&#9679;</span> running` : `<span style="color:${t.faint};">none found</span>`;
+  const ads = s.ads ? label('Who is advertising near you') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="${th}">hotel</th><th style="${th}" width="27%">Google ads</th><th style="${th}" width="27%">Meta ads</th></tr>
+${s.ads.map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td style="${td}">${adCell(r.google)}</td><td style="${td}">${adCell(r.meta)}</td></tr>`).join('')}
+</table>` : '';
+
+  const market = s.market && s.market.rivals.length ? label('Your market') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="${th}">hotel</th><th style="${th}text-align:right;">rating</th><th style="${th}text-align:right;">reviews</th></tr>
+${[{ ...s.market.own, you: true }, ...s.market.rivals].map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td align="right" style="${td}font-family:${t.num};${r.you ? 'font-weight:600;' : ''}">${r.rating ?? '-'}</td><td align="right" style="${td}font-family:${t.num};color:${t.muted};">${num(r.reviews)}</td></tr>`).join('')}
+</table>` : '';
+
   const html = shell(t, `${s.hotel}: ${s.letter}, ${s.score} out of 100`, `
 <p style="margin:0 0 4px;color:${t.accent};font-size:13px;">report card</p>
 <h1 style="margin:0;font-family:${t.font};font-size:24px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:${t.ink};">${e(s.hotel)}</h1>
@@ -94,24 +129,32 @@ ${s.place ? `<p style="margin:2px 0 0;color:${t.muted};">${e(s.place)}</p>` : ''
 <td valign="bottom" style="padding:0 0 10px 18px;font-family:${t.num};font-size:18px;color:${t.muted};">${s.score} / 100</td></tr></table>
 ${s.keyFinding ? `<p style="margin:14px 0 0;">${e(s.keyFinding)}</p>` : ''}
 ${s.rank ? `<p style="margin:10px 0 0;color:${t.muted};"><span style="color:${t.ink};font-weight:600;">#${s.rank.place} of ${s.rank.total}</span> on guest rating among nearby hotels.</p>` : ''}
+${tally}
+<div style="margin-top:24px;">${button(t, link, 'Open the full report')}</div>
+${s.fixes.length ? label('Start here') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fixes}</table>` : ''}
 ${label('The seven sections')}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sections}</table>
-${s.fixes.length ? label('Fix these first') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fixes}</table>` : ''}
-<div style="margin-top:26px;">${button(t, link, 'Open the full report')}</div>
-<p style="margin:14px 0 0;color:${t.faint};font-size:13px;">Hi ${e(name)}, this link opens your report card without asking for a code again.</p>`);
+${prices}
+${ads}
+${market}
+<div style="margin-top:28px;padding-top:22px;border-top:1px solid ${t.edge};">${button(t, link, 'Open the full report')}</div>
+<p style="margin:14px 0 0;color:${t.faint};font-size:13px;">Hi ${e(name)}, the full report has every finding with its steps. This link opens it without asking for a code again. Questions? Just reply to this email.</p>`);
 
   const text = [
     `${s.hotel}${s.place ? ` (${s.place})` : ''}`,
     `Grade: ${s.letter}, ${s.score} out of 100`,
     s.keyFinding || '',
     s.rank ? `#${s.rank.place} of ${s.rank.total} on guest rating among nearby hotels.` : '',
+    s.tally ? `${s.tally.fix} to fix, ${s.tally.improve} to improve, ${s.tally.good} working well.` : '',
+    '',
+    s.fixes.length ? 'Start here:' : '',
+    ...s.fixes.map((f) => `  ${f.name} (${f.score})${f.step ? `: ${f.step}` : ''}`),
     '',
     'The seven sections:',
     ...s.sections.map((x) => `  ${x.name}: ${x.score ?? 'not scored'}`),
     '',
-    s.fixes.length ? 'Fix these first:' : '',
-    ...s.fixes.map((f) => `  ${f.name} (${f.score})${f.step ? `: ${f.step}` : ''}`),
-    '',
+    ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} booking sites list it for less${s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}.`, ''] : []),
+    ...(s.ads ? ['Who is advertising near you:', ...s.ads.map((r) => `  ${r.name}: Google ${r.google == null ? "couldn't tell" : r.google ? 'running' : 'none found'}, Meta ${r.meta == null ? "couldn't tell" : r.meta ? 'running' : 'none found'}`), ''] : []),
     `Open the full report: ${link}`,
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
 

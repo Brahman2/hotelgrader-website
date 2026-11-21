@@ -89,5 +89,7 @@ always `123456`.
   templates are in `netlify/lib/email.mjs`.
 - The button in that email carries a signed link (`&k=...`) that opens that one
   hotel's report card without the gate. `check-link.mjs` validates it.
+- The full report is open to every verified visitor. Sharing on LinkedIn is an
+  optional button under the report card, not a gate.
 - For testing, open any page with `?test=on` to skip both gates in that browser
   (no lead is recorded), and `?test=off` to bring them back.
