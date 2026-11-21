@@ -40,6 +40,8 @@ export async function sendMail({ to, subject, text, html }) {
     body: JSON.stringify({
       from: process.env.MAIL_FROM || 'hotelgrader <verify@hotelgrader.com>',
       to: [to],
+      // Replies reach the team instead of bouncing off the send-only subdomain.
+      ...(process.env.REPLY_TO || process.env.LEADS_TO ? { reply_to: process.env.REPLY_TO || process.env.LEADS_TO } : {}),
       subject,
       text,
       html,
