@@ -64,7 +64,7 @@ export default function Gate({ target, ready, onUnlock }: {
       {!token ? (
         <form onSubmit={submitDetails} noValidate>
           <h2 className="headline text-[18px]">{ready ? 'Your grade is ready.' : 'Where should we send your code?'}</h2>
-          <p className="text-ink-60 text-[13px] mt-1">We’ll email a 6-digit code to confirm it’s you, then show the grade.</p>
+          <p className="text-ink-60 text-[13px] mt-1">We’ll email a 6-digit code to confirm it’s you, then show the grade and send you a copy.</p>
           <div className="flex flex-col gap-2 mt-4">
             <label htmlFor="gate-name" className="text-[13px] font-medium">First name</label>
             <input id="gate-name" name="given-name" type="text" autoComplete="given-name" autoFocus

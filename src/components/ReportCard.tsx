@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pillars } from '../content/pillars';
 import { isMeasured, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
-import { loadUser, saveUser, type User } from '../lib/verify';
+import { checkLink, loadUser, saveUser, sendReport, type User } from '../lib/verify';
 import Gate from './Gate';
 import FullReport from './FullReport';
 import { geocode, geocodeCity, offset, type LatLon } from '../lib/geo';
@@ -18,6 +18,7 @@ import Scanner, { type Blip } from './Scanner';
 // the card unlocks separately, by sharing on LinkedIn (see FullReport.tsx).
 
 const SHARED_KEY = 'hg-shared';
+const MAILED_KEY = 'hg-mailed';
 const LEADS_KEY = 'hg-leads';
 
 type Target = { hotel: string; city: string; state: string };
@@ -313,6 +314,7 @@ function ScanScreen({ target, elapsed, ready, locked, market, onUnlock }: {
 export default function ReportCard() {
   const [target, setTarget] = useState<Target | null | undefined>(undefined);
   const [user, setUser] = useState<User | null>(null);
+  const [viaLink, setViaLink] = useState(false); // opened from an emailed report link
   const [shared, setShared] = useState(false);
   const [audit, setAudit] = useState<Audit | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -326,6 +328,10 @@ export default function ReportCard() {
     const hotel = (q.get('hotel') || '').trim();
     setUser(loadUser());
     setShared(readStore(SHARED_KEY) === '1');
+    const k = q.get('k');
+    if (hotel && k) {
+      checkLink({ hotel, city: q.get('city') || '', state: q.get('state') || '' }, k).then((ok) => { if (ok) setViaLink(true); });
+    }
     setTarget(hotel ? { hotel, city: q.get('city') || '', state: q.get('state') || '' } : null);
   }, []);
 
@@ -347,9 +353,19 @@ export default function ReportCard() {
 
   // Log the lead for every hotel an unlocked visitor grades.
   useEffect(() => {
-    // Testers (see the ?tester= bypass in BaseLayout) don't count as leads.
+    // Testers (see the ?test=on switch in BaseLayout) don't count as leads.
     if (target && user && user.proof !== 'tester') recordLead(user, target);
   }, [target, user]);
+
+  // Email the report card once per hotel to visitors who verified their address.
+  useEffect(() => {
+    if (!target || !audit || !user || ['tester', 'unverified'].includes(user.proof)) return;
+    const id = [target.hotel, target.city, target.state].join('|').toLowerCase();
+    const mailed = readStore(MAILED_KEY).split('\n').filter(Boolean);
+    if (mailed.includes(id)) return;
+    writeStore(MAILED_KEY, [...mailed, id].slice(-50).join('\n'));
+    void sendReport(user, target);
+  }, [target, audit, user]);
 
   if (target === undefined) return <div className="min-h-[420px]" />;
 
@@ -376,13 +392,13 @@ export default function ReportCard() {
     );
   }
 
-  if (!audit || !user) {
+  if (!audit || (!user && !viaLink)) {
     return (
       <ScanScreen
         target={target}
         elapsed={elapsed}
         ready={!!audit}
-        locked={!user}
+        locked={!user && !viaLink}
         market={market}
         onUnlock={(u) => { saveUser(u); setUser(u); }}
       />
@@ -405,12 +421,12 @@ export default function ReportCard() {
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy link'}</button>
         <button type="button" className="btn" onClick={() => window.print()}>print</button>
         <a href="/" className="btn btn--primary">grade another hotel</a>
-        {user.proof === 'tester' && (
+        {user?.proof === 'tester' && (
           <span className="meta self-center">
             Tester mode: gates bypassed.{' '}
             <button type="button" className="link" onClick={() => {
               const u = new URL(window.location.href);
-              u.searchParams.set('tester', 'off');
+              u.searchParams.set('test', 'off');
               window.location.href = u.toString();
             }}>Turn off</button>
           </span>
