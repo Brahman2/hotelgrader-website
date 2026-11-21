@@ -1,5 +1,5 @@
 import { pillars } from '../content/pillars';
-import { isMeasured, type Audit, type Metric } from '../lib/hg';
+import { contradicted, isMeasured, type Audit, type Metric } from '../lib/hg';
 import { DotStrip, MarketScatter, Ring, toneFor, type MarketPoint } from './Charts';
 
 // The full report, shown to every verified visitor. It is built around charts
@@ -108,6 +108,19 @@ function StartHere({ findings }: { findings: Finding[] }) {
   );
 }
 
+const ratesOf = (audit: Audit) => (audit._meta?.booking_pricing?.ota_rates ?? []).filter((r) => r && r.rate > 0 && r.source);
+const hasPrices = (audit: Audit) => ratesOf(audit).length >= 3;
+
+/** The questions put to the AI assistants, so a "not mentioned" finding says what was asked. */
+function asked(f: Full): { queries: string[]; models: string[] } | null {
+  const recs = ((f.verified_data as { records?: { query?: string; model?: string }[] } | undefined)?.records ?? []);
+  const queries = [...new Set(recs.map((r) => r.query).filter(Boolean) as string[])];
+  if (!queries.length) return null;
+  const models = [...new Set(recs.map((r) => r.model).filter(Boolean) as string[])]
+    .map((m) => (/gpt/i.test(m) ? 'ChatGPT' : /gemini/i.test(m) ? 'Gemini' : m));
+  return { queries, models: [...new Set(models)] };
+}
+
 /** What one night costs on the hotel's own site against each booking site. */
 function Prices({ audit }: { audit: Audit }) {
   const bp = audit._meta?.booking_pricing;
@@ -141,7 +154,7 @@ function Prices({ audit }: { audit: Audit }) {
             <p className="text-ink-60 text-[14px]">We found {all.length} rates for the same night and couldn’t tell which one is your direct rate.</p>
           )}
           <p className="meta mt-3">
-            {night ? `Check-in ${night}. ` : ''}Prices as shown on Google’s hotel search at scan time. Room types and taxes can differ between sites.
+            {night ? `Check-in ${night}. ` : ''}These are the lowest rates each site showed on Google’s hotel search at scan time. They may not be the same room type or include the same fees, so treat the gap as a signal to check, not an exact figure.
           </p>
         </div>
         <ul className="list-none m-0 p-0 space-y-1.5">
@@ -222,13 +235,14 @@ function Market({ audit }: { audit: Audit }) {
   ];
   const higher = rivals.filter((r) => r.rating! > c.own_rating!).length;
   const louder = rivals.filter((r) => r.reviews! > c.own_reviews!).length;
+  const reviewRank = c.review_rank != null && c.total_in_set != null ? ` You rank #${c.review_rank} of ${c.total_in_set} on review count.` : '';
   return (
     <Block title="Rating and reviews against your comp set">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div>
           <p className="text-ink-60 text-[14px]">
             {higher === 0 ? 'No hotel in your comp set has a higher guest rating.' : `${higher} of ${rivals.length} hotels in your comp set have a higher guest rating.`}{' '}
-            {louder === 0 ? 'None has more reviews.' : `${louder} ${louder === 1 ? 'has' : 'have'} more reviews.`}
+            {louder === 0 ? 'None has more reviews.' : `${louder} ${louder === 1 ? 'has' : 'have'} more reviews.`}{reviewRank}
           </p>
           <p className="meta mt-3">Higher is a better rating. Further right is more reviews. Numbers match the market table above.</p>
         </div>
@@ -240,6 +254,7 @@ function Market({ audit }: { audit: Audit }) {
 
 function FindingCard({ f }: { f: Finding }) {
   const steps = (f.actionSteps ?? []).filter((s) => s.action);
+  const q = /^ai /i.test(f.name) ? asked(f) : null;
   return (
     <div className="py-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
       <div className="flex gap-4 items-start">
@@ -247,6 +262,13 @@ function FindingCard({ f }: { f: Finding }) {
         <div className="min-w-0">
           <h4 className="font-semibold leading-snug">{f.name}</h4>
           {f.insight && <p className="text-ink-60 text-[13.5px] mt-1.5">{f.insight}</p>}
+          {q && (
+            <p className="meta mt-2.5">
+              {q.queries.length === 1 ? 'The one question asked' : 'Questions asked'}{q.models.length ? ` of ${q.models.join(' and ')}` : ''}:{' '}
+              {q.queries.map((t) => `“${t}”`).join(' ')}
+              {q.queries.length === 1 && ' A broad question like this favours the biggest names, so read this score as a floor.'}
+            </p>
+          )}
         </div>
       </div>
       <div>
@@ -264,8 +286,11 @@ function FindingCard({ f }: { f: Finding }) {
 }
 
 export default function FullReport({ audit }: { audit: Audit }) {
+  const hide = contradicted(audit);
+  // Rate parity is shown in its own block when the scan found prices.
+  if (hasPrices(audit)) { hide.add('Rate Parity'); hide.add('Price Positioning'); }
   const groups = pillars.map((p) => {
-    const all = (audit.categories[p.key]?.metrics ?? []) as Full[];
+    const all = ((audit.categories[p.key]?.metrics ?? []) as Full[]).filter((m) => !hide.has(m.name));
     const measured = (all.filter(isMeasured) as Finding[])
       .map((m) => ({ ...m, section: p.name }))
       .sort((a, b) => a.score - b.score);

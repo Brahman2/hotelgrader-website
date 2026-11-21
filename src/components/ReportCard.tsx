@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { pillars } from '../content/pillars';
-import { isMeasured, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
+import { contradicted, isMeasured, keyFindingFor, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
 import { checkLink, loadUser, saveUser, sendReport, type User } from '../lib/verify';
 import Gate from './Gate';
 import FullReport, { pickHighlight, shareText } from './FullReport';
@@ -115,9 +115,10 @@ function Grade({ letter, size }: { letter: string; size: number }) {
 
 /** Measured metrics only. Rows the API could not back with data are skipped. */
 function scored(audit: Audit): (Metric & { section: string })[] {
+  const hide = contradicted(audit);
   return pillars.flatMap((p) =>
     (audit.categories[p.key]?.metrics ?? [])
-      .filter(isMeasured)
+      .filter((m) => isMeasured(m) && !hide.has(m.name))
       .map((m) => ({ ...m, section: p.name })),
   );
 }
@@ -169,7 +170,7 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
             </tbody>
           </table>
           <p className="meta mt-3">
-            {comp?.total_in_set != null && `These are the ${market.rivals.length} hotels most like yours out of ${comp.total_in_set}${comp.tier_label ? ` ${comp.tier_label.toLowerCase()}` : ''} hotels nearby, which is why their ratings and review counts sit close together. `}
+            {comp?.total_in_set != null && `These are the ${market.rivals.length} hotels most like yours out of ${comp.total_in_set} comparable hotels nearby, which is why their ratings and review counts sit close together. `}
             {comp?.compset_avg_rating != null && `Average rating across the set: ${comp.compset_avg_rating}. `}
             Ratings and review counts are Google’s, read at scan time.
           </p>
@@ -206,7 +207,7 @@ function ReportCardView({ audit, market }: { audit: Audit; market: Market }) {
         <div>
           <h1 className="headline text-[26px] sm:text-[32px]">{audit.hotelName}</h1>
           {place && <p className="text-ink-60 mt-1">{place}</p>}
-          {audit.executiveSummary?.keyFinding && <p className="mt-4">{plainFinding(audit.executiveSummary.keyFinding)}</p>}
+          {keyFindingFor(audit) && <p className="mt-4">{plainFinding(keyFindingFor(audit))}</p>}
         </div>
       </section>
 

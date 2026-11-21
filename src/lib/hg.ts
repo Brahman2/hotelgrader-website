@@ -75,6 +75,31 @@ export function isMeasured(m: Metric): boolean {
   return !!m.verified && m.score != null && !/not collected|no data/i.test(m.insight ?? '');
 }
 
+/**
+ * Findings that contradict the rest of the scan, by name. They are left out of
+ * the report instead of being shown next to the data that disproves them.
+ *  - Review Volume is scored on an absolute scale, so it can read 100 while the
+ *    hotel has fewer Google reviews than most of its comp set.
+ *  - Recommendation Position repeats AI Mention Rate when no assistant named the
+ *    hotel: one result, counted twice.
+ */
+export function contradicted(audit: Audit): Set<string> {
+  const out = new Set<string>();
+  const c = audit._meta?.competitors;
+  if (c?.review_rank != null && c.total_in_set != null && c.review_rank > c.total_in_set / 2) out.add('Review Volume');
+  const ai = audit.categories?.searchAndAI?.metrics ?? [];
+  const mention = ai.find((m) => /ai mention rate/i.test(m.name));
+  if (mention && isMeasured(mention) && mention.score === 0) out.add('Recommendation Position');
+  return out;
+}
+
+/** The summary sentence, minus any strength the scan itself contradicts. */
+export function keyFindingFor(audit: Audit): string {
+  const text = audit.executiveSummary?.keyFinding ?? '';
+  const hide = contradicted(audit);
+  return text.split(/(?<=\.)\s+/).filter((s) => ![...hide].some((n) => s.includes(n))).join(' ');
+}
+
 export interface Category {
   score: number | null;
   metrics: Metric[];
@@ -94,6 +119,7 @@ export interface Audit {
       own_reviews?: number;
       compset_avg_rating?: number;
       rating_rank?: number;
+      review_rank?: number;
       total_in_set?: number;
       tier_label?: string;
       top_competitors?: { name: string; rating?: number; reviews?: number }[];
