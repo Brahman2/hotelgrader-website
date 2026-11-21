@@ -79,3 +79,14 @@ Verified leads are also saved to the Netlify form named `report-card`.
 
 Under `npm run dev` there are no functions and no email is sent: the code is
 always `123456`.
+
+### Report email and tester switch
+
+- After a visitor verifies, the site emails them their report card
+  (`netlify/functions/send-report.mjs`). It uses the same two variables as the
+  code email. The email follows the theme the visitor is in (dark or light);
+  templates are in `netlify/lib/email.mjs`.
+- The button in that email carries a signed link (`&k=...`) that opens that one
+  hotel's report card without the gate. `check-link.mjs` validates it.
+- For testing, open any page with `?test=on` to skip both gates in that browser
+  (no lead is recorded), and `?test=off` to bring them back.

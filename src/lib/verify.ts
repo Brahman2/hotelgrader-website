@@ -34,6 +34,9 @@ async function post(path: string, body: unknown): Promise<Record<string, string>
   return data;
 }
 
+/** Which theme the visitor is in, so emails can match it. */
+const theme = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+
 /** Emails a 6-digit code. Returns the token to pass back with the code. */
 export async function sendCode(input: { name: string; email: string; hotel: string }): Promise<string> {
   if (import.meta.env.DEV) {
@@ -41,7 +44,7 @@ export async function sendCode(input: { name: string; email: string; hotel: stri
     console.info('[dev] no email sent. The verification code is 123456.');
     return 'dev';
   }
-  return (await post('/api/send-code', input)).token;
+  return (await post('/api/send-code', { ...input, theme: theme() })).token;
 }
 
 /** Checks the code. Returns the proof to store with the user. */
@@ -53,4 +56,33 @@ export async function checkCode(input: {
     return 'dev';
   }
   return (await post('/api/verify-code', input)).proof;
+}
+
+/** Emails the finished report card to a verified visitor. Never throws. */
+export async function sendReport(user: User, t: { hotel: string; city: string; state: string }): Promise<boolean> {
+  if (import.meta.env.DEV) {
+    console.info('[dev] no report email sent.');
+    return false;
+  }
+  try {
+    const res = await fetch('/api/send-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...user, ...t, theme: theme() }),
+    });
+    return res.ok;
+  } catch { return false; }
+}
+
+/** True when the page was opened from a genuine emailed report link. */
+export async function checkLink(t: { hotel: string; city: string; state: string }, k: string): Promise<boolean> {
+  if (import.meta.env.DEV) return false;
+  try {
+    const res = await fetch('/api/check-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...t, k }),
+    });
+    return res.ok && (await res.json()).ok === true;
+  } catch { return false; }
 }

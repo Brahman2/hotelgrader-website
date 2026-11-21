@@ -149,8 +149,8 @@ html[data-theme='dark'] {
   .link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
   .link:hover { text-decoration: underline; text-underline-offset: 3px; }
   summary::-webkit-details-marker { display: none; }
-  details > summary::before { content: '+'; display: inline-block; width: 1.1em; color: var(--ink-40); font-family: var(--font-num); }
-  details[open] > summary::before { content: '-'; }
+  details > summary::after { content: '+'; width: 1em; text-align: right; color: var(--ink-40); font-family: var(--font-num); }
+  details[open] > summary::after { content: '-'; }
   .btn--primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); font-weight: 600; box-shadow: var(--btn-shadow); }
   .btn--primary:hover { background: var(--btn-bg-hover); border-color: var(--btn-bg-hover); color: var(--btn-fg); }
 

@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { pillars } from '../content/pillars';
 import { isMeasured, type Audit, type Metric } from '../lib/hg';
+import { DotStrip, MarketScatter, Radar, Ring, toneFor, type MarketPoint } from './Charts';
 
-// The full report: every measured metric with its finding, what to do, and
-// the steps. It unlocks when the visitor shares on LinkedIn. We can't confirm
+// The full report, built around charts: a radar of the seven sections, every
+// finding as a dot on a 0-100 line, the hotel against its competitors, then
+// the findings themselves, worst first. Findings that score well collapse to a
+// row of chips, so the page spends its length on what needs work.
+// It unlocks when the visitor shares on LinkedIn. We can't confirm
 // a post went out, so opening the LinkedIn composer is what unlocks it.
 //
 // What gets shared is never the grade. It's the hotel's best result, picked
@@ -144,24 +148,125 @@ function SharePanel({ audit, onShared }: { audit: Audit; onShared: () => void })
 
 type Step = { action?: string; details?: string };
 type Full = Metric & { actionSteps?: Step[] };
+type Finding = Full & { score: number; section: string };
 
-function MetricDetail({ m }: { m: Full }) {
-  const steps = (m.actionSteps ?? []).filter((s) => s.action);
+const GOOD = 85; // B+ and up counts as working well
+
+const SHORT: Record<string, string> = {
+  searchAndAI: 'AI & search', digitalPresence: 'Website', reputation: 'Reputation', socialMedia: 'Social',
+  advertising: 'Advertising', booking: 'Booking', competitive: 'Competitive',
+};
+
+const firstStep = (m: Full) => (m.actionSteps ?? []).find((s) => s.action);
+const tidy = (t?: string) => (t ?? '').replace(/[.:]\s*$/, '');
+
+/** Three big counts: how many findings need fixing, improving, or nothing. */
+function Tally({ findings }: { findings: Finding[] }) {
+  const fix = findings.filter((f) => f.score < 70).length;
+  const improve = findings.filter((f) => f.score >= 70 && f.score < GOOD).length;
+  const good = findings.filter((f) => f.score >= GOOD).length;
+  const cell = (n: number, label: string, tone: string) => (
+    <div>
+      <div className={`num text-[40px] leading-none font-semibold ${tone}`}>{n}</div>
+      <div className="meta mt-1.5">{label}</div>
+    </div>
+  );
   return (
-    <div className="py-5">
-      <div className="flex items-baseline justify-between gap-4">
-        <h4 className="font-semibold">{m.name}</h4>
-        <span className="num text-ink-60">{m.score} / 100</span>
+    <div className="grid grid-cols-3 gap-4">
+      {cell(fix, 'to fix', 'grade--f')}
+      {cell(improve, 'to improve', 'grade--c')}
+      {cell(good, 'working well', 'grade--a')}
+    </div>
+  );
+}
+
+function Overview({ audit, findings }: { audit: Audit; findings: Finding[] }) {
+  const radar = pillars.map((p) => ({ label: SHORT[p.key], score: audit.categories[p.key]?.score ?? null }));
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <Radar items={radar} />
+      <div>
+        <Tally findings={findings} />
+        <div className="mt-7">
+          <DotStrip scores={findings} />
+          <p className="meta mt-2">Each dot is one finding, placed by its score. Left needs work, right is working.</p>
+        </div>
       </div>
-      {m.insight && <p className="text-ink-60 text-[14px] mt-1.5 max-w-[68ch]">{m.insight}</p>}
-      {m.recommendation && <p className="text-[14px] mt-2.5 max-w-[68ch]"><span className="font-semibold">What to do: </span>{m.recommendation}</p>}
-      {steps.length > 0 && (
-        <ol className="mt-2.5 pl-5 text-[14px] text-ink-60 space-y-1.5 max-w-[68ch] list-decimal">
-          {steps.map((s, i) => (
-            <li key={i}><span className="text-ink">{s.action!.replace(/[.:]\s*$/, '')}.</span>{s.details ? ` ${s.details}` : ''}</li>
-          ))}
-        </ol>
-      )}
+    </div>
+  );
+}
+
+function StartHere({ findings }: { findings: Finding[] }) {
+  const worst = findings.filter((f) => f.score < GOOD).slice(0, 5);
+  if (!worst.length) return null;
+  return (
+    <div className="mt-9 pt-7 border-t border-edge">
+      <h3 className="label label--ink mb-4">Start here</h3>
+      <ol className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+        {worst.map((f, i) => {
+          const step = firstStep(f);
+          return (
+            <li key={f.id} className="flex gap-4 items-start">
+              <Ring score={f.score} size={58} />
+              <div className="min-w-0">
+                <div className="font-semibold leading-snug"><span className="num text-ink-40 mr-1.5">{i + 1}</span>{f.name}</div>
+                <div className="meta">{f.section}</div>
+                {step && <p className="text-[13px] text-ink-60 mt-1.5">{tidy(step.action)}.</p>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function Market({ audit }: { audit: Audit }) {
+  const c = audit._meta?.competitors;
+  const rivals = (c?.top_competitors ?? []).filter((r) => r.rating != null && r.reviews != null);
+  if (c?.own_rating == null || !c.own_reviews || rivals.length < 2) return null;
+  const points: MarketPoint[] = [
+    ...rivals.map((r, i) => ({ label: String(i + 1), name: r.name, rating: r.rating!, reviews: r.reviews! })),
+    { label: 'you', name: audit.hotelName, rating: c.own_rating, reviews: c.own_reviews, you: true },
+  ];
+  const higher = rivals.filter((r) => r.rating! > c.own_rating!).length;
+  const louder = rivals.filter((r) => r.reviews! > c.own_reviews!).length;
+  return (
+    <div className="mt-9 pt-7 border-t border-edge grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <div>
+        <h3 className="label label--ink mb-3">You against the market</h3>
+        <p className="text-ink-60 text-[14px]">
+          {higher === 0 ? 'No named competitor has a higher guest rating.' : `${higher} of ${rivals.length} named competitors have a higher guest rating.`}{' '}
+          {louder === 0 ? 'None has more reviews.' : `${louder} ${louder === 1 ? 'has' : 'have'} more reviews.`}
+        </p>
+        <p className="meta mt-3">Higher is a better rating. Further right is more reviews. Numbers match the market table above.</p>
+      </div>
+      <MarketScatter points={points} />
+    </div>
+  );
+}
+
+function FindingCard({ f }: { f: Finding }) {
+  const steps = (f.actionSteps ?? []).filter((s) => s.action);
+  return (
+    <div className="py-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+      <div className="flex gap-4 items-start">
+        <Ring score={f.score} size={52} />
+        <div className="min-w-0">
+          <h4 className="font-semibold leading-snug">{f.name}</h4>
+          {f.insight && <p className="text-ink-60 text-[13.5px] mt-1.5">{f.insight}</p>}
+        </div>
+      </div>
+      <div>
+        {f.recommendation && <p className="text-[13.5px]"><span className="font-semibold">What to do: </span>{f.recommendation}</p>}
+        {steps.length > 0 && (
+          <ol className="mt-2.5 pl-5 text-[13.5px] text-ink-60 space-y-1.5 list-decimal">
+            {steps.map((s, i) => (
+              <li key={i}><span className="text-ink">{tidy(s.action)}.</span>{s.details ? ` ${s.details}` : ''}</li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   );
 }
@@ -170,41 +275,70 @@ export default function FullReport({ audit, unlocked, onUnlock }: { audit: Audit
   const top = useRef<HTMLElement>(null);
   const groups = pillars.map((p) => {
     const all = (audit.categories[p.key]?.metrics ?? []) as Full[];
-    return { p, score: audit.categories[p.key]?.score ?? null, measured: all.filter(isMeasured), missing: all.filter((m) => !isMeasured(m)) };
-  });
-  const count = groups.reduce((n, g) => n + g.measured.length, 0);
+    const measured = (all.filter(isMeasured) as Finding[])
+      .map((m) => ({ ...m, section: p.name }))
+      .sort((a, b) => a.score - b.score);
+    return { p, score: audit.categories[p.key]?.score ?? null, measured, missing: all.filter((m) => !isMeasured(m)) };
+  }).sort((a, b) => (a.score ?? 101) - (b.score ?? 101)); // weakest section first
+  const findings = groups.flatMap((g) => g.measured).sort((a, b) => a.score - b.score);
   const missing = groups.flatMap((g) => g.missing.map((m) => m.name));
 
   return (
     <section ref={top} className="panel mt-6 px-5 sm:px-8 py-7">
       <h2 className="headline text-[22px] sm:text-[26px]">The full report</h2>
-      <p className="text-ink-60 mt-1.5">
-        {count} findings across seven sections, each with what we found, what to do about it, and the steps.
+      <p className="text-ink-60 mt-1.5 mb-7">
+        {findings.length} findings across seven sections, with what to do about each one.
       </p>
 
+      <Overview audit={audit} findings={findings} />
+
       {!unlocked ? (
-        <div className="mt-7 pt-7 border-t border-edge no-print">
+        <div className="mt-9 pt-7 border-t border-edge no-print">
           <SharePanel audit={audit} onShared={() => { onUnlock(); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />
         </div>
       ) : (
-        <div className="mt-6">
-          {groups.filter((g) => g.measured.length > 0).map((g, i) => (
-            <details key={g.p.key} open={i === 0} className="border-t border-edge group">
-              <summary className="flex items-baseline gap-1 py-4 cursor-pointer list-none">
-                <span className="font-semibold text-[17px] flex-1">{g.p.name}</span>
-                <span className="meta num">{g.measured.length} findings{g.score != null ? `, ${g.score} / 100` : ''}</span>
-              </summary>
-              <div className="divide-y divide-[var(--edge)] pb-3">
-                {g.measured.map((m) => <MetricDetail key={m.id} m={m} />)}
-              </div>
-            </details>
-          ))}
+        <>
+          <StartHere findings={findings} />
+          <Market audit={audit} />
+
+          <div className="mt-9">
+            {groups.filter((g) => g.measured.length > 0).map((g, i) => {
+              const work = g.measured.filter((m) => m.score < GOOD);
+              const good = g.measured.filter((m) => m.score >= GOOD);
+              return (
+                <details key={g.p.key} open={i === 0} className="border-t border-edge">
+                  <summary className="flex items-center gap-3 py-4 cursor-pointer list-none">
+                    <Ring score={g.score} size={44} label={`${g.p.name}: ${g.score ?? 'not scored'} out of 100`} />
+                    <span className="font-semibold text-[17px] flex-1 min-w-0">{g.p.name}</span>
+                    <span className="hidden sm:block w-[180px]"><DotStrip scores={g.measured} height={20} axis={false} /></span>
+                    <span className="meta num w-[92px] text-right">{work.length ? `${work.length} to work on` : 'none flagged'}</span>
+                  </summary>
+                  <div className="pb-4">
+                    {work.length > 0 && <div className="divide-y divide-[var(--edge)]">{work.map((m) => <FindingCard key={m.id} f={m} />)}</div>}
+                    {good.length > 0 && (
+                      <div className={work.length ? 'pt-4 border-t border-edge' : ''}>
+                        <div className="meta mb-2.5">Working well</div>
+                        <ul className="list-none m-0 p-0 flex flex-wrap gap-2">
+                          {good.map((m) => (
+                            <li key={m.id} className="inline-flex items-baseline gap-2 border border-edge-strong rounded px-3 py-1.5 text-[13px]">
+                              {m.name}<span className={`num font-semibold ${toneFor(m.score)}`}>{m.score}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+
           {missing.length > 0 && (
             <p className="meta mt-6 pt-5 border-t border-edge max-w-[80ch]">
               Not measured this scan, so left out: {missing.join(', ')}.
             </p>
           )}
-        </div>
+        </>
       )}
     </section>
   );
