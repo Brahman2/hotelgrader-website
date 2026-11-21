@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { checkCode, sendCode, type User } from '../lib/verify';
+import { UNCONFIGURED, checkCode, sendCode, type User } from '../lib/verify';
 
 // The gate in front of the grade: first name and email, then a 6-digit code
 // we email to that address. It sits beside the live scan, so the visitor can
@@ -31,7 +31,11 @@ export default function Gate({ target, ready, onUnlock }: {
     if (!EMAIL_RE.test(e)) return setError('That doesn’t look like an email address.');
     setBusy(true); setError('');
     try {
-      setToken(await sendCode({ name: n, email: e, hotel: target.hotel }));
+      const t = await sendCode({ name: n, email: e, hotel: target.hotel });
+      // Until the email keys are set in Netlify, don't strand the visitor:
+      // take the name and email as given and show the grade.
+      if (t === UNCONFIGURED) return onUnlock({ name: n, email: e, proof: 'unverified' });
+      setToken(t);
       setCode('');
     } catch (err) {
       setError((err as Error).message);
