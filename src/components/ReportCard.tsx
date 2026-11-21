@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pillars } from '../content/pillars';
 import { contradicted, isMeasured, keyFindingFor, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
-import { checkLink, loadUser, saveUser, sendReport, type User } from '../lib/verify';
+import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import Gate from './Gate';
 import FullReport, { pickHighlight, shareText } from './FullReport';
 import { Radar } from './Charts';
@@ -301,6 +301,7 @@ export default function ReportCard() {
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [share, setShare] = useState(''); // link that opens this report without the gate
   const market = useMarket(target, audit);
 
   useEffect(() => {
@@ -346,6 +347,12 @@ export default function ReportCard() {
     void sendReport(user, target);
   }, [target, audit, user]);
 
+  // Fetched ahead of the click, so copying stays a single tap.
+  useEffect(() => {
+    if (!target || !audit || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
+    void shareLink(user, target).then(setShare);
+  }, [target, audit, user, viaLink]);
+
   if (target === undefined) return <div className="min-h-[420px]" />;
 
   if (target === null) {
@@ -386,7 +393,8 @@ export default function ReportCard() {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      // A link opened from a share already carries its key; otherwise use the one fetched above.
+      await navigator.clipboard.writeText(viaLink ? window.location.href : share || window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* clipboard blocked; the URL bar still works */ }
@@ -394,13 +402,22 @@ export default function ReportCard() {
 
   return (
     <div>
+      {viaLink && !user && (
+        <div className="panel px-5 sm:px-8 py-5 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 no-print">
+          <p className="flex-1 min-w-[240px]">
+            <span className="font-semibold">This report was shared with you.</span>{' '}
+            <span className="text-ink-60">See how your own hotel scores. It’s free and takes two minutes.</span>
+          </p>
+          <a href="/" className="btn btn--primary">grade your hotel</a>
+        </div>
+      )}
       <ReportCardView audit={audit} market={market} />
       <FullReport audit={audit} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
           window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, pickHighlight(audit)))}`, '_blank', 'noopener');
         }}>share on LinkedIn</button>
-        <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy link'}</button>
+        <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy share link'}</button>
         <button type="button" className="btn" onClick={() => window.print()}>print</button>
         <a href="/" className="btn btn--primary">grade another hotel</a>
         {user?.proof === 'tester' && (
