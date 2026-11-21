@@ -86,3 +86,16 @@ export async function checkLink(t: { hotel: string; city: string; state: string 
     return res.ok && (await res.json()).ok === true;
   } catch { return false; }
 }
+
+/** The signed link that opens this hotel's report for anyone, or '' if it can't be made. */
+export async function shareLink(user: User, t: { hotel: string; city: string; state: string }): Promise<string> {
+  if (import.meta.env.DEV) return '';
+  try {
+    const res = await fetch('/api/share-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, proof: user.proof, ...t }),
+    });
+    return res.ok ? ((await res.json()).link as string) || '' : '';
+  } catch { return ''; }
+}
