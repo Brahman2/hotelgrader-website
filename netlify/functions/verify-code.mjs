@@ -4,6 +4,7 @@
 // returns a proof the browser keeps so the visitor isn't asked again.
 
 import { EMAIL_RE, clean, escapeHtml, json, matches, sendMail, sign } from '../lib/verify.mjs';
+import { reportLink } from '../lib/report.mjs';
 
 async function recordLead(lead) {
   const jobs = [];
@@ -16,12 +17,20 @@ async function recordLead(lead) {
     }));
   }
   if (process.env.LEADS_TO) {
+    // Tell the team about each new verified lead, with a link to the report they saw.
     const where = [lead.hotel, lead.city, lead.state].filter(Boolean).join(', ');
+    const link = lead.hotel ? reportLink(process.env.VERIFY_SECRET, lead.hotel, lead.city, lead.state) : '';
     jobs.push(sendMail({
       to: process.env.LEADS_TO,
-      subject: `New hotelgrader lead: ${lead.name}${lead.hotel ? ` (${lead.hotel})` : ''}`,
-      text: `${lead.name} <${lead.email}> verified their email.\nHotel: ${where || 'not given'}`,
-      html: `<p><strong>${escapeHtml(lead.name)}</strong> &lt;${escapeHtml(lead.email)}&gt; verified their email.</p><p>Hotel: ${escapeHtml(where || 'not given')}</p>`,
+      subject: `New hotelgrader lead: ${lead.name}${lead.hotel ? `, ${lead.hotel}` : ''}`,
+      text: `New verified lead on hotelgrader.com\n\nName: ${lead.name}\nEmail: ${lead.email}\nHotel: ${where || 'not given'}${link ? `\n\nTheir report: ${link}` : ''}`,
+      html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6;color:#14151A">
+<p style="margin:0 0 12px;font-weight:600">New verified lead on hotelgrader.com</p>
+<table cellpadding="0" cellspacing="0" style="font-size:15px">
+<tr><td style="padding:2px 16px 2px 0;color:#5E5F66">Name</td><td>${escapeHtml(lead.name)}</td></tr>
+<tr><td style="padding:2px 16px 2px 0;color:#5E5F66">Email</td><td><a href="mailto:${escapeHtml(lead.email)}">${escapeHtml(lead.email)}</a></td></tr>
+<tr><td style="padding:2px 16px 2px 0;color:#5E5F66">Hotel</td><td>${escapeHtml(where || 'not given')}</td></tr>
+</table>${link ? `<p style="margin:14px 0 0"><a href="${escapeHtml(link)}">Open the report they saw</a></p>` : ''}</div>`,
     }));
   }
   await Promise.allSettled(jobs); // a failed notification never blocks the visitor
