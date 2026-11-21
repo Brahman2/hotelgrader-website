@@ -61,31 +61,39 @@ for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) {
 const html = `<!doctype html>
 <html><head><meta charset="utf-8">
 <style>
-  @font-face { font-family: 'Schibsted Grotesk'; font-weight: 400 900;
-    src: url('../node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2') format('woff2-variations'); }
+  @font-face { font-family: 'IBM Plex Mono'; font-weight: 400; src: url('../public/fonts/IBMPlexMono-400.woff2') format('woff2'); }
   @font-face { font-family: 'IBM Plex Mono'; font-weight: 500; src: url('../public/fonts/IBMPlexMono-500.woff2') format('woff2'); }
+  @font-face { font-family: 'IBM Plex Mono'; font-weight: 600; src: url('../public/fonts/IBMPlexMono-600.woff2') format('woff2'); }
   * { margin: 0; box-sizing: border-box; }
   html, body { width: ${W}px; height: ${H}px; overflow: hidden; }
-  body { position: relative; background: #F5F5F7; color: #14151A; font-family: 'Schibsted Grotesk', sans-serif; }
+  /* The dark terminal theme, which is what the site opens in. */
+  body { position: relative; background: #0B0D0C; color: #E6EAE7; font-family: 'IBM Plex Mono', monospace; }
   svg { position: absolute; inset: 0; }
-  .fade { position: absolute; inset: 0; background: linear-gradient(90deg, #F5F5F7 0%, #F5F5F7 38%, rgba(245,245,247,0) 72%); }
-  .brand { position: absolute; left: 72px; top: 60px; display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 650; letter-spacing: -0.03em; }
-  .mark { width: 52px; height: 52px; border-radius: 11px; background: #5B5BD6; color: #fff; display: grid; place-items: center; font-size: 27px; font-weight: 600; letter-spacing: -0.04em; }
-  h1 { position: absolute; left: 72px; top: 178px; width: 640px; font-size: 76px; line-height: 1.04; font-weight: 680; letter-spacing: -0.04em; }
-  .sub { position: absolute; left: 74px; top: 498px; font-size: 27px; color: rgba(20,21,26,0.66); }
-  .url { position: absolute; left: 74px; top: 546px; font-family: 'IBM Plex Mono', monospace; font-size: 22px; color: #5B5BD6; }
-  .grade { position: absolute; left: 815px; top: 150px; width: 300px; text-align: center; }
-  .letter { font-size: 250px; line-height: 0.9; font-weight: 720; letter-spacing: -0.05em; color: #1E8E5A; }
-  .letter sup { font-size: 0.5em; position: relative; top: -0.12em; margin-left: -0.02em; }
-  .score { margin-top: 20px; font-family: 'IBM Plex Mono', monospace; font-size: 26px; color: rgba(20,21,26,0.66); }
+  .fade { position: absolute; inset: 0; background: linear-gradient(90deg, #0B0D0C 0%, #0B0D0C 40%, rgba(11,13,12,0) 74%); }
+  .brand { position: absolute; left: 72px; top: 62px; display: flex; align-items: center; font-size: 34px; font-weight: 600; letter-spacing: -0.03em; }
+  .caret { display: inline-block; width: 19px; height: 36px; margin-left: 5px; background: #6EF3A5; }
+  h1 { position: absolute; left: 72px; top: 176px; width: 690px; font-size: 62px; line-height: 1.12; font-weight: 600; letter-spacing: -0.045em; }
+  .sub { position: absolute; left: 74px; top: 494px; font-size: 24px; color: rgba(230,234,231,0.64); letter-spacing: -0.02em; }
+  .url { position: absolute; left: 74px; top: 544px; font-size: 22px; color: #6EF3A5; }
+  .url b { font-weight: 500; color: rgba(230,234,231,0.42); }
+  .grade { position: absolute; left: 815px; top: 140px; width: 300px; text-align: center; }
+  .letter { font-size: 262px; line-height: 0.9; font-weight: 600; letter-spacing: -0.06em; color: #B6E36A; }
+  .letter sup { font-size: 0.5em; position: relative; top: -0.14em; }
+  .score { margin-top: 26px; font-size: 26px; color: rgba(230,234,231,0.64); }
 </style></head>
 <body>
-  <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><path d="${seg.join('')}" fill="none" stroke="#14151A" stroke-opacity="0.14" stroke-width="1"/></svg>
+  <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="${HILL.x}" cy="${HILL.y}" r="${HILL.r * 1.9}">
+      <stop offset="0" stop-color="#6EF3A5" stop-opacity="0.75"/><stop offset="1" stop-color="#6EF3A5" stop-opacity="0"/>
+    </radialGradient></defs>
+    <path d="${seg.join('')}" fill="none" stroke="#E6EAE7" stroke-opacity="0.16" stroke-width="1"/>
+    <path d="${seg.join('')}" fill="none" stroke="url(#g)" stroke-width="1"/>
+  </svg>
   <div class="fade"></div>
-  <div class="brand"><span class="mark">hg</span>hotelgrader</div>
+  <div class="brand">hotelgrader<span class="caret"></span></div>
   <h1>Your hotel has a grade. You just haven’t seen it.</h1>
   <p class="sub">A free report card on how guests find and book it.</p>
-  <p class="url">hotelgrader.com</p>
+  <p class="url"><b>&gt;</b> hotelgrader.com</p>
   <div class="grade"><div class="letter">B<sup>+</sup></div><div class="score">87 / 100</div></div>
 </body></html>`;
 
