@@ -104,5 +104,36 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         });
       })();
     </script>
+    <script is:inline>
+      // Tester bypass for the team. Opening any page with ?tester=<code> unlocks
+      // both gates (email and LinkedIn) in this browser and records no lead;
+      // ?tester=off locks them again. Only the SHA-256 of the code lives here.
+      // The gates are a lead-capture step, not security, so this protects nothing
+      // sensitive: it just saves typing while testing.
+      (function () {
+        var q = new URLSearchParams(location.search);
+        var code = q.get('tester');
+        if (code === null) return;
+        q.delete('tester');
+        var rest = q.toString();
+        var clean = location.pathname + (rest ? '?' + rest : '') + location.hash;
+        function go() { location.replace(clean); }
+        try {
+          if (code === 'off') {
+            localStorage.removeItem('hg-user');
+            localStorage.removeItem('hg-shared');
+            return go();
+          }
+          crypto.subtle.digest('SHA-256', new TextEncoder().encode(code)).then(function (buf) {
+            var hex = Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+            if (hex === '092e744dfb78375066177d289b1ec1f095daf33c22f509a6ce50cd929a791000') {
+              localStorage.setItem('hg-user', JSON.stringify({ name: 'Tester', email: 'tester@hotelgrader.com', proof: 'tester' }));
+              localStorage.setItem('hg-shared', '1');
+            }
+            go();
+          }, go);
+        } catch (e) { go(); }
+      })();
+    </script>
   </body>
 </html>

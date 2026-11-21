@@ -347,7 +347,8 @@ export default function ReportCard() {
 
   // Log the lead for every hotel an unlocked visitor grades.
   useEffect(() => {
-    if (target && user) recordLead(user, target);
+    // Testers (see the ?tester= bypass in BaseLayout) don't count as leads.
+    if (target && user && user.proof !== 'tester') recordLead(user, target);
   }, [target, user]);
 
   if (target === undefined) return <div className="min-h-[420px]" />;
@@ -404,6 +405,16 @@ export default function ReportCard() {
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy link'}</button>
         <button type="button" className="btn" onClick={() => window.print()}>print</button>
         <a href="/" className="btn btn--primary">grade another hotel</a>
+        {user.proof === 'tester' && (
+          <span className="meta self-center">
+            Tester mode: gates bypassed.{' '}
+            <button type="button" className="link" onClick={() => {
+              const u = new URL(window.location.href);
+              u.searchParams.set('tester', 'off');
+              window.location.href = u.toString();
+            }}>Turn off</button>
+          </span>
+        )}
       </div>
     </div>
   );
