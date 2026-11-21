@@ -75,6 +75,7 @@ Set these in Netlify under Site configuration > Environment variables:
 | `MAIL_FROM` | no | Sender, e.g. `hotelgrader <verify@hotelgrader.com>`. The domain must be verified in Resend. |
 | `LEADS_TO` | no | An address that gets an email each time someone verifies. Replies to our emails also go here. |
 | `REPLY_TO` | no | Overrides where replies go, if different from `LEADS_TO`. |
+| `LEADS_WEBHOOK` | no | Web-app URL of the Apps Script on the leads Google Sheet. Each verified lead becomes a row, and the grade is filled in when the report is emailed. The script is in `brand-kit/leads-sheet.gs`. |
 
 Verified leads are also saved to the Netlify form named `report-card`.
 
