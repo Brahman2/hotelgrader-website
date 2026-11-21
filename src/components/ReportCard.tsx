@@ -137,7 +137,7 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
         <div>
           {comp?.rating_rank != null && comp.total_in_set != null && (
             <p className="headline text-[20px] sm:text-[24px] mb-4">
-              #{comp.rating_rank} of {comp.total_in_set} <span className="text-ink-60 font-normal">on guest rating nearby</span>
+              #{comp.rating_rank} of {comp.total_in_set} <span className="text-ink-60 font-normal">on Google rating in your comp set</span>
             </p>
           )}
           <table className="w-full border-collapse text-[13px]">
@@ -145,7 +145,7 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
               <tr className="meta text-left">
                 <th className="font-normal py-1.5 w-8"></th>
                 <th className="font-normal py-1.5">hotel</th>
-                <th className="font-normal py-1.5 text-right">rating</th>
+                <th className="font-normal py-1.5 text-right">Google rating</th>
                 <th className="font-normal py-1.5 text-right">reviews</th>
               </tr>
             </thead>
@@ -153,7 +153,7 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
               <tr className="border-t border-edge">
                 <td className="py-2"><span className="scanner-key scanner-key--home" /></td>
                 <td className="py-2 font-semibold">{audit.hotelName}</td>
-                <td className="py-2 text-right font-semibold num">{comp?.own_rating ?? 'n/a'}</td>
+                <td className="py-2 text-right font-semibold num">{comp?.own_rating?.toFixed(1) ?? 'n/a'}</td>
                 <td className="py-2 text-right num">{comp?.own_reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
               </tr>
               {market.rivals.map((r) => (
@@ -162,7 +162,7 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
                     <span className="scanner-key">{r.n}</span>
                   </td>
                   <td className="py-2">{r.name}{!plotted.has(r.n) && market.located && <span className="text-ink-40"> (not on map)</span>}</td>
-                  <td className="py-2 text-right num">{r.rating ?? 'n/a'}</td>
+                  <td className="py-2 text-right num">{r.rating?.toFixed(1) ?? 'n/a'}</td>
                   <td className="py-2 text-right text-ink-60 num">{r.reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
                 </tr>
               ))}
@@ -170,7 +170,8 @@ function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
           </table>
           <p className="meta mt-3">
             {comp?.total_in_set != null && `These are the ${market.rivals.length} hotels most like yours out of ${comp.total_in_set}${comp.tier_label ? ` ${comp.tier_label.toLowerCase()}` : ''} hotels nearby, which is why their ratings and review counts sit close together. `}
-            {comp?.compset_avg_rating != null && `Average rating across the set: ${comp.compset_avg_rating}.`}
+            {comp?.compset_avg_rating != null && `Average rating across the set: ${comp.compset_avg_rating}. `}
+            Ratings and review counts are Google’s, read at scan time.
           </p>
         </div>
       </div>
@@ -250,7 +251,7 @@ function ReportCardView({ audit, market }: { audit: Audit; market: Market }) {
 const STAGES: [number, string][] = [
   [0, 'Finding the hotel on Google'],
   [12, 'Reading reviews and ratings'],
-  [30, 'Checking prices on booking sites'],
+  [30, 'Checking rate parity across the OTAs'],
   [55, 'Asking AI assistants about the hotel'],
   [85, 'Comparing with nearby hotels'],
   [115, 'Scoring the seven sections'],

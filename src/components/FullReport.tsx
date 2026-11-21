@@ -122,23 +122,23 @@ function Prices({ audit }: { audit: Audit }) {
     ? new Date(`${bp.identity.check_in}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
   return (
-    <Block title="One night, priced on each booking site">
+    <Block title="Rate parity: one night across the OTAs">
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-8 items-start">
         <div>
           {direct ? (
             <>
               <p className="headline text-[22px] sm:text-[26px]">
                 {cheaper.length > 0
-                  ? <>{cheaper.length} of {others.length} sites <span className="grade--f">undercut</span> your own.</>
-                  : <>Your own site has the <span className="grade--a">lowest</span> price.</>}
+                  ? <>{cheaper.length} of {others.length} OTAs <span className="grade--f">undercut</span> your direct rate.</>
+                  : <>Your direct rate is the <span className="grade--a">lowest</span>. Parity holds.</>}
               </p>
               <p className="text-ink-60 text-[14px] mt-3">
                 Your site lists the night at <span className="text-ink num">{usd(direct.rate)}</span>.
-                {cheaper.length > 0 && <> The lowest price elsewhere is <span className="text-ink num">{usd(others[0].rate)}</span> on {others[0].source}, {usd(direct.rate - others[0].rate)} less.</>}
+                {cheaper.length > 0 && <> The lowest OTA rate is <span className="text-ink num">{usd(others[0].rate)}</span> on {others[0].source}, {usd(direct.rate - others[0].rate)} less. Every booking that moves there pays a commission and pulls down your net ADR.</>}
               </p>
             </>
           ) : (
-            <p className="text-ink-60 text-[14px]">We found {all.length} prices for the same night and couldn’t tell which one is your own site.</p>
+            <p className="text-ink-60 text-[14px]">We found {all.length} rates for the same night and couldn’t tell which one is your direct rate.</p>
           )}
           <p className="meta mt-3">
             {night ? `Check-in ${night}. ` : ''}Prices as shown on Google’s hotel search at scan time. Room types and taxes can differ between sites.
@@ -182,9 +182,9 @@ function Ads({ audit }: { audit: Audit }) {
   const gCount = rivals.filter((r) => r.google_ads).length;
   const mCount = rivals.filter((r) => r.meta_ads).length;
   return (
-    <Block title="Who is advertising near you">
+    <Block title="Who in your comp set is advertising">
       <p className="text-ink-60 text-[14px] mb-4 max-w-[70ch]">
-        {gCount} of {rivals.length} named competitors run Google ads and {mCount} run ads on Facebook or Instagram.
+        {gCount} of {rivals.length} hotels in your comp set run Google ads and {mCount} run ads on Facebook or Instagram. They’re bidding for the same demand that fills your rooms.
       </p>
       <table className="w-full border-collapse text-[13px]">
         <thead>
@@ -223,11 +223,11 @@ function Market({ audit }: { audit: Audit }) {
   const higher = rivals.filter((r) => r.rating! > c.own_rating!).length;
   const louder = rivals.filter((r) => r.reviews! > c.own_reviews!).length;
   return (
-    <Block title="Rating and reviews against the market">
+    <Block title="Rating and reviews against your comp set">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div>
           <p className="text-ink-60 text-[14px]">
-            {higher === 0 ? 'No named competitor has a higher guest rating.' : `${higher} of ${rivals.length} named competitors have a higher guest rating.`}{' '}
+            {higher === 0 ? 'No hotel in your comp set has a higher guest rating.' : `${higher} of ${rivals.length} hotels in your comp set have a higher guest rating.`}{' '}
             {louder === 0 ? 'None has more reviews.' : `${louder} ${louder === 1 ? 'has' : 'have'} more reviews.`}
           </p>
           <p className="meta mt-3">Higher is a better rating. Further right is more reviews. Numbers match the market table above.</p>
@@ -331,7 +331,7 @@ export default function FullReport({ audit }: { audit: Audit }) {
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-8 items-start">
             <div>
               <p className="text-ink-60 text-[14px] mb-4">
-                {missing.length} checks came back without data this time. Most need a look from the inside, or a second pass.
+                {missing.length} checks came back without data this time. A public scan also can’t see your occupancy, ADR or RevPAR, or how much of your room revenue books direct. Those take a look from the inside.
               </p>
               <ul className="list-none m-0 p-0 flex flex-wrap gap-2">
                 {missing.map((name) => (
@@ -341,7 +341,7 @@ export default function FullReport({ audit }: { audit: Audit }) {
             </div>
             <div className="no-print">
               <p className="font-semibold">Want these measured too?</p>
-              <p className="text-ink-60 text-[14px] mt-1.5">We’ll go through the report with you and fill in what’s missing.</p>
+              <p className="text-ink-60 text-[14px] mt-1.5">We’ll go through the report with you and tie it to your occupancy, ADR and direct-booking mix.</p>
               <a className="btn btn--primary mt-4"
                 href={`mailto:hello@hotelgrader.com?subject=${encodeURIComponent(`Full audit for ${audit.hotelName}`)}`}>talk to us</a>
             </div>

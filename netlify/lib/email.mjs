@@ -99,25 +99,25 @@ ${[[s.tally.fix, 'to fix', t.grade.F], [s.tally.improve, 'to improve', t.grade.C
     const p = s.prices;
     const line = p.direct == null ? ''
       : p.cheaper > 0
-        ? `<p style="margin:0 0 12px;"><span style="font-weight:600;">${p.cheaper} of ${p.total} booking sites undercut your own.</span> <span style="color:${t.muted};">Your site lists the night at ${usd(p.direct)}. The lowest elsewhere is ${usd(p.lowest.rate)} on ${e(p.lowest.source)}.</span></p>`
-        : `<p style="margin:0 0 12px;"><span style="font-weight:600;">Your own site has the lowest price,</span> <span style="color:${t.muted};">at ${usd(p.direct)}.</span></p>`;
+        ? `<p style="margin:0 0 12px;"><span style="font-weight:600;">${p.cheaper} of ${p.total} OTAs undercut your direct rate.</span> <span style="color:${t.muted};">Your site lists the night at ${usd(p.direct)}. The lowest OTA rate is ${usd(p.lowest.rate)} on ${e(p.lowest.source)}. Every booking that moves there pays a commission and pulls down your net ADR.</span></p>`
+        : `<p style="margin:0 0 12px;"><span style="font-weight:600;">Your direct rate is the lowest,</span> <span style="color:${t.muted};">at ${usd(p.direct)}.</span></p>`;
     const rows = p.rows.map((r) => `<tr>
 <td style="padding:4px 10px 4px 0;font-size:13px;white-space:nowrap;${r.mine ? 'font-weight:600;' : `color:${t.muted};`}">${r.mine ? 'Your site' : e(r.source)}</td>
 <td width="48%" style="padding:4px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="${Math.max(4, Math.round((r.rate / p.max) * 100))}%" style="background:${r.mine ? t.accent : t.faint};height:9px;font-size:0;line-height:0;">&nbsp;</td><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table></td>
 <td align="right" style="padding:4px 0 4px 12px;font-family:${t.num};font-size:13px;white-space:nowrap;${r.mine ? 'font-weight:600;' : ''}">${usd(r.rate)}</td></tr>`).join('');
-    prices = label('One night, priced on each booking site') + line + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    prices = label('Rate parity: one night across the OTAs') + line + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
 <p style="margin:10px 0 0;font-size:12px;color:${t.faint};">${p.checkIn ? `Check-in ${e(p.checkIn)}. ` : ''}As shown on Google's hotel search at scan time. Room types and taxes can differ.</p>`;
   }
 
   const adCell = (v) => v == null ? `<span style="color:${t.faint};">couldn't tell</span>` : v ? `<span style="color:${t.accent};">&#9679;</span> running` : `<span style="color:${t.faint};">none found</span>`;
-  const ads = s.ads ? label('Who is advertising near you') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  const ads = s.ads ? label('Who in your comp set is advertising') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><th style="${th}">hotel</th><th style="${th}" width="27%">Google ads</th><th style="${th}" width="27%">Meta ads</th></tr>
 ${s.ads.map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td style="${td}">${adCell(r.google)}</td><td style="${td}">${adCell(r.meta)}</td></tr>`).join('')}
 </table>` : '';
 
-  const market = s.market && s.market.rivals.length ? label('Your market') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><th style="${th}">hotel</th><th style="${th}text-align:right;">rating</th><th style="${th}text-align:right;">reviews</th></tr>
-${[{ ...s.market.own, you: true }, ...s.market.rivals].map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td align="right" style="${td}font-family:${t.num};${r.you ? 'font-weight:600;' : ''}">${r.rating ?? '-'}</td><td align="right" style="${td}font-family:${t.num};color:${t.muted};">${num(r.reviews)}</td></tr>`).join('')}
+  const market = s.market && s.market.rivals.length ? label('Your comp set') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="${th}">hotel</th><th style="${th}text-align:right;">Google rating</th><th style="${th}text-align:right;">reviews</th></tr>
+${[{ ...s.market.own, you: true }, ...s.market.rivals].map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td align="right" style="${td}font-family:${t.num};${r.you ? 'font-weight:600;' : ''}">${r.rating != null ? Number(r.rating).toFixed(1) : '-'}</td><td align="right" style="${td}font-family:${t.num};color:${t.muted};">${num(r.reviews)}</td></tr>`).join('')}
 </table>` : '';
 
   const html = shell(t, `${s.hotel}: ${s.letter}, ${s.score} out of 100`, `
@@ -128,7 +128,7 @@ ${s.place ? `<p style="margin:2px 0 0;color:${t.muted};">${e(s.place)}</p>` : ''
 <td valign="bottom" style="font-family:${t.font};font-size:96px;line-height:0.9;font-weight:700;letter-spacing:-4px;color:${lead};">${e(s.letter.charAt(0))}<span style="font-size:52px;vertical-align:36px;letter-spacing:0;">${e(s.letter.slice(1))}</span></td>
 <td valign="bottom" style="padding:0 0 10px 18px;font-family:${t.num};font-size:18px;color:${t.muted};">${s.score} / 100</td></tr></table>
 ${s.keyFinding ? `<p style="margin:14px 0 0;">${e(s.keyFinding)}</p>` : ''}
-${s.rank ? `<p style="margin:10px 0 0;color:${t.muted};"><span style="color:${t.ink};font-weight:600;">#${s.rank.place} of ${s.rank.total}</span> on guest rating among nearby hotels.</p>` : ''}
+${s.rank ? `<p style="margin:10px 0 0;color:${t.muted};"><span style="color:${t.ink};font-weight:600;">#${s.rank.place} of ${s.rank.total}</span> on Google rating in your comp set.</p>` : ''}
 ${tally}
 <div style="margin-top:24px;">${button(t, link, 'Open the full report')}</div>
 ${s.fixes.length ? label('Start here') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fixes}</table>` : ''}
@@ -144,7 +144,7 @@ ${market}
     `${s.hotel}${s.place ? ` (${s.place})` : ''}`,
     `Grade: ${s.letter}, ${s.score} out of 100`,
     s.keyFinding || '',
-    s.rank ? `#${s.rank.place} of ${s.rank.total} on guest rating among nearby hotels.` : '',
+    s.rank ? `#${s.rank.place} of ${s.rank.total} on Google rating in your comp set.` : '',
     s.tally ? `${s.tally.fix} to fix, ${s.tally.improve} to improve, ${s.tally.good} working well.` : '',
     '',
     s.fixes.length ? 'Start here:' : '',
@@ -153,7 +153,7 @@ ${market}
     'The seven sections:',
     ...s.sections.map((x) => `  ${x.name}: ${x.score ?? 'not scored'}`),
     '',
-    ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} booking sites list it for less${s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}.`, ''] : []),
+    ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} OTAs undercut your direct rate${s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}.`, ''] : []),
     ...(s.ads ? ['Who is advertising near you:', ...s.ads.map((r) => `  ${r.name}: Google ${r.google == null ? "couldn't tell" : r.google ? 'running' : 'none found'}, Meta ${r.meta == null ? "couldn't tell" : r.meta ? 'running' : 'none found'}`), ''] : []),
     `Open the full report: ${link}`,
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');

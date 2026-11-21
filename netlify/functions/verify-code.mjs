@@ -1,13 +1,15 @@
 // POST /api/verify-code  { name, email, code, token, hotel, city, state }
 // Checks the code against the signed token from /api/send-code. On success it
-// records the lead (Netlify Forms, plus an optional email to LEADS_TO) and
+// records the lead (Netlify Forms, the leads sheet, an email to LEADS_TO) and
 // returns a proof the browser keeps so the visitor isn't asked again.
 
 import { EMAIL_RE, clean, escapeHtml, json, matches, sendMail, sign } from '../lib/verify.mjs';
 import { reportLink } from '../lib/report.mjs';
+import { logToSheet } from '../lib/sheet.mjs';
 
 async function recordLead(lead) {
-  const jobs = [];
+  const link = lead.hotel && process.env.VERIFY_SECRET ? reportLink(process.env.VERIFY_SECRET, lead.hotel, lead.city, lead.state) : '';
+  const jobs = [logToSheet({ event: 'lead', ...lead, link })];
   if (process.env.URL) {
     // Same hidden form the site declares in grade.astro.
     jobs.push(fetch(`${process.env.URL}/`, {
@@ -19,7 +21,6 @@ async function recordLead(lead) {
   if (process.env.LEADS_TO) {
     // Tell the team about each new verified lead, with a link to the report they saw.
     const where = [lead.hotel, lead.city, lead.state].filter(Boolean).join(', ');
-    const link = lead.hotel ? reportLink(process.env.VERIFY_SECRET, lead.hotel, lead.city, lead.state) : '';
     jobs.push(sendMail({
       to: process.env.LEADS_TO,
       subject: `New hotelgrader lead: ${lead.name}${lead.hotel ? `, ${lead.hotel}` : ''}`,

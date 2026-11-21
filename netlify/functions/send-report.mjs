@@ -7,6 +7,7 @@
 import { EMAIL_RE, clean, json, matches, sendMail, sign } from '../lib/verify.mjs';
 import { reportEmail } from '../lib/email.mjs';
 import { fetchAudit, reportLink, summarize } from '../lib/report.mjs';
+import { logToSheet } from '../lib/sheet.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Use POST.' });
@@ -26,13 +27,15 @@ export default async (req) => {
   const audit = await fetchAudit(hotel, city, state).catch(() => null);
   if (!audit) return json(409, { error: 'That report isn’t ready yet.' });
 
-  const mail = reportEmail({
-    theme: clean(body.theme),
-    name: clean(body.name).slice(0, 60) || 'there',
-    summary: summarize(audit),
-    link: reportLink(secret, hotel, city, state),
-  });
-  const sent = await sendMail({ to: email, ...mail }).catch(() => false);
+  const summary = summarize(audit);
+  const link = reportLink(secret, hotel, city, state);
+  const name = clean(body.name).slice(0, 60);
+  const mail = reportEmail({ theme: clean(body.theme), name: name || 'there', summary, link });
+  const [sent] = await Promise.all([
+    sendMail({ to: email, ...mail }).catch(() => false),
+    // Puts the grade on this lead's row in the sheet.
+    logToSheet({ event: 'report', name, email, hotel, city, state, grade: summary.letter, score: summary.score, link }),
+  ]);
   return sent ? json(200, { ok: true }) : json(502, { error: 'We couldn’t send the report.' });
 };
 
