@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { pillars } from '../content/pillars';
 import { contradicted, isMeasured, keyFindingFor, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
+import { hotelParams, track } from '../lib/track';
 import Gate from './Gate';
 import FullReport, { pickHighlight, shareText } from './FullReport';
 import { Radar } from './Charts';
@@ -310,7 +311,7 @@ export default function ReportCard() {
     setUser(loadUser());
     const k = q.get('k');
     if (hotel && k) {
-      checkLink({ hotel, city: q.get('city') || '', state: q.get('state') || '' }, k).then((ok) => { if (ok) setViaLink(true); });
+      checkLink({ hotel, city: q.get('city') || '', state: q.get('state') || '' }, k).then((ok) => { if (ok) { setViaLink(true); track('shared_report_view', { hotel }); } });
     }
     setTarget(hotel ? { hotel, city: q.get('city') || '', state: q.get('state') || '' } : null);
   }, []);
@@ -324,9 +325,17 @@ export default function ReportCard() {
     const started = Date.now();
     const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
     document.title = `${target.hotel} · report card · hotelgrader`;
+    track('grade_start', hotelParams(target));
     runAudit(target.hotel, target.city, target.state, ctrl.signal)
-      .then(setAudit)
-      .catch((e) => { if (e?.name !== 'AbortError') setError(e?.message || 'The scan failed.'); })
+      .then((a) => {
+        setAudit(a);
+        track('grade_complete', { ...hotelParams(target), score: Math.round(a.overallScore), seconds: Math.round((Date.now() - started) / 1000) });
+      })
+      .catch((e) => {
+        if (e?.name === 'AbortError') return;
+        setError(e?.message || 'The scan failed.');
+        track('grade_error', hotelParams(target));
+      })
       .finally(() => window.clearInterval(tick));
     return () => { ctrl.abort(); window.clearInterval(tick); };
   }, [target, attempt]);
@@ -386,7 +395,12 @@ export default function ReportCard() {
         ready={!!audit}
         locked={!user && !viaLink}
         market={market}
-        onUnlock={(u) => { saveUser(u); setUser(u); }}
+        onUnlock={(u) => {
+          saveUser(u);
+          setUser(u);
+          // The conversion: a visitor gave a name and email to see the grade.
+          track('generate_lead', { ...hotelParams(target), method: u.proof === 'unverified' ? 'unverified' : 'email_code' });
+        }}
       />
     );
   }
@@ -396,6 +410,7 @@ export default function ReportCard() {
       // A link opened from a share already carries its key; otherwise use the one fetched above.
       await navigator.clipboard.writeText(viaLink ? window.location.href : share || window.location.href);
       setCopied(true);
+      track('share', { method: 'copy_link', content_type: 'report', item_id: target.hotel });
       setTimeout(() => setCopied(false), 2000);
     } catch { /* clipboard blocked; the URL bar still works */ }
   };
@@ -415,10 +430,11 @@ export default function ReportCard() {
       <FullReport audit={audit} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
+          track('share', { method: 'linkedin', content_type: 'report', item_id: target.hotel });
           window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, pickHighlight(audit)))}`, '_blank', 'noopener');
         }}>share on LinkedIn</button>
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy share link'}</button>
-        <button type="button" className="btn" onClick={() => window.print()}>print</button>
+        <button type="button" className="btn" onClick={() => { track('print_report', { hotel: target.hotel }); window.print(); }}>print</button>
         <a href="/" className="btn btn--primary">grade another hotel</a>
         {user?.proof === 'tester' && (
           <span className="meta self-center">
