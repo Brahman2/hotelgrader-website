@@ -22,6 +22,9 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
+
+// Google Analytics 4 (property "hotelgrader.com"). Production builds only.
+const GA_ID = import.meta.env.PROD ? 'G-3G3TFQZW00' : '';
 ---
 
 <!doctype html>
@@ -40,6 +43,29 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       // Dark is the default (set on <html>). Apply a saved light choice before first paint.
       try { if (localStorage.getItem('hg-theme') === 'light') delete document.documentElement.dataset.theme; } catch (e) {}
     </script>
+    {GA_ID && (
+      <script is:inline define:vars={{ GA_ID }}>
+        // Skipped for the team's tester browsers (?test=on) so our own runs stay out of the numbers.
+        (function () {
+          try {
+            if (new URLSearchParams(location.search).get('test')) return;
+            var u = JSON.parse(localStorage.getItem('hg-user') || 'null');
+            if (u && u.proof === 'tester') return;
+          } catch (e) {}
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+          document.head.appendChild(s);
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () { dataLayer.push(arguments); };
+          gtag('js', new Date());
+          // A shared report link carries a key (?k=) that opens the report. Keep it out of analytics.
+          var url = new URL(location.href);
+          url.searchParams.delete('k');
+          gtag('config', GA_ID, { page_location: url.toString() });
+        })();
+      </script>
+    )}
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />

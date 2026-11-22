@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { UNCONFIGURED, checkCode, sendCode, type User } from '../lib/verify';
+import { track } from '../lib/track';
 
 // The gate in front of the grade: first name and email, then a 6-digit code
 // we email to that address. It sits beside the live scan, so the visitor can
@@ -37,6 +38,7 @@ export default function Gate({ target, ready, onUnlock }: {
       if (t === UNCONFIGURED) return onUnlock({ name: n, email: e, proof: 'unverified' });
       setToken(t);
       setCode('');
+      track('code_requested', { hotel: target.hotel });
     } catch (err) {
       setError((err as Error).message);
     } finally { setBusy(false); }

@@ -1,5 +1,6 @@
 import { pillars } from '../content/pillars';
 import { contradicted, isMeasured, type Audit, type Metric } from '../lib/hg';
+import { track } from '../lib/track';
 import { DotStrip, MarketScatter, Ring, toneFor, type MarketPoint } from './Charts';
 
 // The full report, shown to every verified visitor. It is built around charts
@@ -367,7 +368,7 @@ export default function FullReport({ audit }: { audit: Audit }) {
             <div className="no-print">
               <p className="font-semibold">Want these measured too?</p>
               <p className="text-ink-60 text-[14px] mt-1.5">We’ll go through the report with you and tie it to your occupancy, ADR and direct-booking mix.</p>
-              <a className="btn btn--primary mt-4"
+              <a className="btn btn--primary mt-4" onClick={() => track('contact_click', { hotel: audit.hotelName, placement: 'full_report' })}
                 href={`mailto:hello@hotelgrader.com?subject=${encodeURIComponent(`Full audit for ${audit.hotelName}`)}`}>talk to us</a>
             </div>
           </div>
