@@ -68,7 +68,7 @@ export async function liveFor(audit, { fresh = true } = {}) {
   // If the first round already took a while, leave it for the page's retry so this call stays short.
   const slow = Date.now() - started > 2500;
   const aiTarget = { ...target, hotelClass: prices?.hotel?.hotelClass ?? null };
-  const ai = await cached('ai-answers-v2', key, { fresh: fresh && !slow, allowed }, () => aiAnswer(aiTarget)).catch(() => null);
+  const ai = await cached('ai-answers-v3', key, { fresh: fresh && !slow, allowed }, () => aiAnswer(aiTarget)).catch(() => null);
   const pending = prices?.done === false || (fresh && slow && !ai && hasKey());
 
   return { prices, search, ai, pending, outOfBudget: hasKey() && budget != null && budget < RESERVE + PER_SCAN };

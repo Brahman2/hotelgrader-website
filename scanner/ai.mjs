@@ -32,10 +32,10 @@ export async function aiAnswer(target) {
   if (!r.ok) return { ok: false, error: r.error, searches: 0, records: [{ ...base, ok: false, response_text: '', sources: [] }] };
   const d = r.data;
   // The provider's rebuilt markdown keeps the hotel names (they are headings and links); the blocks alone can drop them.
-  const md = typeof d.reconstructed_markdown === 'string' ? d.reconstructed_markdown.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') : '';
+  const md = typeof d.reconstructed_markdown === 'string' ? d.reconstructed_markdown.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\\([\-().!#*_])/g, '$1').replace(/ ?\[\d+\]/g, '') : '';
   const text = (md.trim() || textOf(d.text_blocks ?? []).join('\n')).slice(0, 6000);
   const notGoogle = (h) => h && !/(^|\.)google\.[a-z.]+$/.test(h);
-  const sources = [...new Set((d.references ?? []).map((x) => (notGoogle(host(x.link ?? '')) ? host(x.link) : String(x.source ?? '').trim())).filter(Boolean))].slice(0, 12);
+  const sources = [...new Set((d.references ?? []).map((x) => (notGoogle(host(x.link ?? '')) ? host(x.link) : String(x.source ?? '').trim())).filter((x) => x && !/^google$/i.test(x)))].slice(0, 12);
   return {
     ok: text.length > 0, error: text.length ? '' : 'empty', searches: 1, fetchedAt: base.fetched_at,
     records: [{ ...base, ok: text.length > 0, response_text: text, sources }],
