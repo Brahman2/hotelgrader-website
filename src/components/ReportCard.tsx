@@ -329,14 +329,11 @@ export default function ReportCard() {
     if (speedCached?.mobile && speedCached?.desktop) { setSpeed(speedCached); setSpeedDone(true); return; }
     if (speedCached) setSpeed(speedCached);
     const ctrl = new AbortController();
-    const ask = () => fetchSpeed(target.hotel, target.city, target.state, ctrl.signal);
-    // One of the two runs sometimes times out. Show what came back, then ask once more for the other.
-    ask().then(async (sp: any) => {
+    // The test runs in the background on the server; this keeps asking until it is in or has clearly failed.
+    fetchSpeed(target.hotel, target.city, target.state, ctrl.signal).then((sp) => {
       if (ctrl.signal.aborted) return;
       if (sp) setSpeed(sp);
-      // The first answer settles the grade. A second ask only fills in a run that timed out.
       setSpeedDone(true);
-      if (sp && (!sp.mobile || !sp.desktop)) { const again = await ask(); if (!ctrl.signal.aborted && again) setSpeed(again); }
     });
     return () => ctrl.abort();
   }, [target, siteKnown, speedCached, scanDone]);

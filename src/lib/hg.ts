@@ -195,18 +195,29 @@ export async function fetchScan(hotel: string, city: string, state: string, sign
   return last;
 }
 
-/** The page speed run for the hotel's website. Slow (up to half a minute), so it's asked for on the side. Null when there's none. */
+/**
+ * The page speed reading for the hotel's website. The test runs in the background on the server and can take
+ * up to a minute and a half, so this asks every few seconds until it is in. Null when there's none.
+ */
 export async function fetchSpeed(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
-  try {
-    const res = await fetch('/api/speed', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hotel, city, state }),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(55000)]) : AbortSignal.timeout(55000),
-    });
-    if (!res.ok) return null;
-    return (await res.json())?.speed ?? null;
-  } catch { return null; }
+  let last: unknown | null = null;
+  for (let ask = 0; ask < 18; ask++) {
+    try {
+      const res = await fetch('/api/speed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hotel, city, state }),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(32000)]) : AbortSignal.timeout(32000),
+      });
+      if (!res.ok) return last;
+      const body = await res.json();
+      last = body?.speed ?? last;
+      if (!body?.pending) return last;
+    } catch { if (signal?.aborted) return last; }
+    await sleep(6000);
+    if (signal?.aborted) return last;
+  }
+  return last;
 }
 
 /** The hotel's newest reviews grouped into themes. A model call of several seconds, so it's asked for on the side. Null when there's none. */
