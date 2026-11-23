@@ -60,6 +60,8 @@ export interface NightPrices { night: string | null; kind: string; direct: Rate 
 export interface LabRun { score: number; fcp: number | null; lcp: number | null; tbt: number | null; cls: number | null; si: number | null; bytes: number | null }
 export interface FieldMetric { value: number; rating: string }
 
+export interface ListedSite { name: string; listed: boolean; nights: number; low: number | null }
+
 export interface Assessment {
   version: string;
   scannedAt: string | null;
@@ -126,6 +128,14 @@ export interface Assessment {
   recent: {
     when: string; total: number; replied: number; low: number; lowUnanswered: number; average: number | null;
     rows: { source: string; rating: number | null; when: string; text: string; replied: boolean }[];
+  } | null;
+  /** Where the hotel is listed: booking sites showing a rate, review sites with a rating, and who ranks for its name. */
+  listings: {
+    nights: number; own: boolean; total: number;
+    majors: ListedSite[]; metas: ListedSite[]; others: string[];
+    google: { rating: number; reviews: number | null } | null;
+    reviewSites: { source: string; rating: number; max: number; reviews: number | null }[];
+    ranking: { domain: string; position: number }[];
   } | null;
   /** Our own page speed run. Timings are milliseconds. Null when it hasn't run. */
   speed: {

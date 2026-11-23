@@ -326,7 +326,9 @@ export function assess(audit, crawl = null, live = null) {
   // --- Reputation (14) ---
   const gRating = comp?.own_rating ?? gbp?.rating ?? platforms?.per_platform?.google?.rating ?? null;
   const gCount = comp?.own_reviews ?? gbp?.review_count ?? platforms?.per_platform?.google?.review_count ?? null;
-  const ta = platforms?.per_platform?.tripadvisor ?? null;
+  // Tripadvisor as the grading API read it, or as Google shows it on the hotel's own listing when we read that ourselves.
+  const taSeen = (px?.hotel?.otherSites ?? []).filter((o) => /tripadvisor/i.test(o.source) && o.rating != null).sort((x, y) => (y.reviews ?? 0) - (x.reviews ?? 0))[0] ?? null;
+  const ta = platforms?.per_platform?.tripadvisor ?? (taSeen ? { rating: (taSeen.rating / (taSeen.max || 5)) * 5, review_count: taSeen.reviews ?? 0, ours: true } : null);
   // Tripadvisor's rating as Google shows it on the hotel's listing, when the grading API didn't read one.
   const taG = (px?.hotel?.otherSites ?? []).find((o) => /tripadvisor/i.test(o.source) && o.rating != null && (o.max ?? 5) === 5);
   check('reputation', 'google-rating', 'Google rating', 30,
@@ -444,9 +446,11 @@ export function assess(audit, crawl = null, live = null) {
       : 'Not read this scan.',
     'Google hotel search');
   check('profiles', 'tripadvisor-listed', 'A Tripadvisor listing with reviews', 15,
-    platforms ? (ta?.review_count > 0 ? 1 : 0) : null,
-    platforms ? (ta?.review_count > 0 ? `Found, with ${n0(ta.review_count)} reviews.` : 'No Tripadvisor listing was matched to this hotel.') : 'Not read this scan.',
-    'Tripadvisor');
+    platforms || px ? (ta?.review_count > 0 ? 1 : platforms ? 0 : null) : null,
+    ta?.review_count > 0 ? `Found, with ${n0(ta.review_count)} reviews${ta.ours ? ', as shown on your Google hotel listing' : ''}.`
+      : platforms ? 'No Tripadvisor listing was matched to this hotel.'
+        : px ? 'Your Google hotel listing shows no Tripadvisor rating. That isn’t proof there is no listing, so this isn’t scored.' : 'Not read this scan.',
+    ta?.ours ? 'Google hotel listing' : 'Tripadvisor');
   check('profiles', 'accuracy', 'Room, amenity and policy details are right on each listing', 40, null,
     'Not observed. We confirm the listings exist; we don’t yet compare their details against your site. Apple Maps, Bing and ChatGPT business profiles aren’t read yet.', '');
 
@@ -954,6 +958,35 @@ export function assess(audit, crawl = null, live = null) {
     rows: rv.reviews.filter((x) => x.text).slice(0, 6).map((x) => ({ source: x.source, rating: x.rating, when: x.when, text: x.text.length > 240 ? `${x.text.slice(0, 240).replace(/\s+\S*$/, '')}…` : x.text, replied: !!x.reply })),
   } : null;
 
+  // Where the hotel is listed, from what we already read: the sites showing a rate on Google's hotel search
+  // (both sampled nights), the review sites Google gathers on the listing, and who ranks for the hotel's name.
+  const listings = px ? (() => {
+    const key = (x) => norm(x).replace(/\b(com|net|ca|co|uk)\b/g, '').replace(/ /g, '');
+    const nightsRead = px.nights.filter((n) => n.ok && n.rates?.length);
+    const seen = new Map();
+    for (const n of nightsRead) for (const r of n.rates) { if (r.official) continue; const k = key(r.source); const e = seen.get(k) ?? { name: r.source, nights: 0, low: null }; e.nights += 1; e.low = e.low == null ? r.rate : Math.min(e.low, r.rate); seen.set(k, e); }
+    const has = (name) => [...seen.entries()].find(([k]) => k.includes(key(name)) || key(name).includes(k))?.[1] ?? null;
+    const MAJOR = ['Booking.com', 'Expedia', 'Hotels.com', 'Agoda', 'Priceline', 'Trip.com'];
+    const META = ['Tripadvisor', 'KAYAK', 'trivago', 'momondo', 'Hotelscombined', 'Skyscanner'];
+    const row = (name) => { const e = has(name); return { name, listed: !!e, nights: e?.nights ?? 0, low: e?.low ?? null }; };
+    const majors = MAJOR.map(row);
+    const metas = META.map(row);
+    const named = new Set([...MAJOR, ...META].map((n) => has(n)).filter(Boolean));
+    const others = [...seen.values()].filter((e) => !named.has(e)).map((e) => e.name);
+    const reviewSites = [];
+    for (const o of px.hotel?.otherSites ?? []) {
+      if (o.rating == null || reviewSites.some((r) => norm(r.source) === norm(o.source))) continue;
+      reviewSites.push({ source: o.source, rating: o.rating, max: o.max ?? 5, reviews: o.reviews ?? null });
+    }
+    const ranking = bs ? bs.results.filter((r) => r.owner === 'ota' || r.owner === 'review').map((r) => ({ domain: r.domain, position: r.position })) : [];
+    return {
+      nights: nightsRead.length, own: nightsRead.some((n) => n.rates.some((r) => r.official)),
+      majors, metas, others, total: seen.size,
+      google: lh?.rating != null ? { rating: lh.rating, reviews: lh.reviews ?? null } : null,
+      reviewSites, ranking,
+    };
+  })() : null;
+
   // The page speed run in detail, for the report. Null when the old lab scores are all we have.
   const speedView = sp ? { when: sp.fetchedAt, mobile: sp.mobile ?? null, desktop: sp.desktop ?? null, field: sp.field ?? null, screenshot: sp.screenshot || '' } : null;
 
@@ -990,7 +1023,7 @@ export function assess(audit, crawl = null, live = null) {
     letter: graded ? letterFor(score) : '-',
     graded,
     coverage,
-    functions, priorities, strengths, identity, choice, example, ads, themes, voice, recent, visibility, speed: speedView, prices, headline,
+    functions, priorities, strengths, identity, choice, example, ads, themes, voice, recent, visibility, listings, speed: speedView, prices, headline,
     ai: { samples, queries },
     counts: {
       checks: functions.reduce((n, f) => n + f.checks.filter((c) => c.status !== 'na').length, 0),
