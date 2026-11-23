@@ -437,8 +437,8 @@ function Correction({ audit }: { audit: Audit }) {
   );
 }
 
-export default function Report({ audit, market }: { audit: Audit; market: MarketView }) {
-  const a = useMemo(() => assess(audit), [audit]);
+export default function Report({ audit, crawl = null, market }: { audit: Audit; crawl?: unknown | null; market: MarketView }) {
+  const a = useMemo(() => assess(audit, crawl), [audit, crawl]);
   const fnName = (key: string) => a.functions.find((f) => f.key === key)?.name ?? '';
   const unseen = a.functions.filter((f) => f.coverage < 1 && f.notYet);
 
@@ -476,6 +476,7 @@ export default function Report({ audit, market }: { audit: Audit; market: Market
             The grade says how well the hotel runs the marketing, listing and booking work a public scan can observe. It isn’t a verdict on the hotel, or on which hotel a guest would pick.
             {a.identity.hotelClass && <> We placed the hotel in the <span className="text-ink">{a.identity.hotelClass.toLowerCase()}</span> class to choose comparisons. That’s our model’s estimate, not a star rating.</>}
           </p>
+          {a.siteNote && <p className="meta mt-3 max-w-[70ch]">{a.siteNote}</p>}
           {a.identity.flags.length > 0 && (
             <div className="mt-4 border border-dashed border-edge-strong rounded px-4 py-3">
               <div className="meta mb-1">Check these: we may have matched the wrong record</div>

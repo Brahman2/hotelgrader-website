@@ -159,6 +159,23 @@ export function gradeTone(letter: string): string {
   return TONES[letter.charAt(0)] ?? '';
 }
 
+/**
+ * Our own reading of the hotel's website, from /api/site-scan. Null when it
+ * couldn't be read; the report then falls back to the scan's older reading.
+ */
+export async function fetchSite(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
+  try {
+    const res = await fetch('/api/site-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel, city, state }),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return null;
+    return (await res.json())?.crawl ?? null;
+  } catch { return null; }
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**

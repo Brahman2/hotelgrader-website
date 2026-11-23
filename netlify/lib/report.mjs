@@ -21,8 +21,8 @@ export async function fetchAudit(hotel, city, state) {
   return body && body.cached && body.data ? body.data : null;
 }
 
-export function summarize(audit) {
-  const a = assess(audit);
+export function summarize(audit, crawl = null) {
+  const a = assess(audit, crawl);
   const c = audit._meta?.competitors;
   const p = a.prices;
   return {

@@ -59,6 +59,8 @@ export interface Rate { rate: number; source: string; mine?: boolean }
 export interface Assessment {
   version: string;
   scannedAt: string | null;
+  siteRead: boolean;
+  siteNote: string;
   /** null when too little was observed to grade. */
   score: number | null;
   rawScore: number | null;
@@ -95,4 +97,5 @@ export interface Assessment {
   counts: { checks: number; observed: number };
 }
 
-export function assess(audit: unknown): Assessment;
+export function assess(audit: unknown, crawl?: unknown): Assessment;
+export function websiteOf(audit: unknown): string;

@@ -8,6 +8,7 @@ import { EMAIL_RE, clean, json, matches, sendMail, sign } from '../lib/verify.mj
 import { reportEmail } from '../lib/email.mjs';
 import { fetchAudit, reportLink, summarize } from '../lib/report.mjs';
 import { logToSheet } from '../lib/sheet.mjs';
+import { siteFor } from '../lib/site.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Use POST.' });
@@ -27,7 +28,9 @@ export default async (req) => {
   const audit = await fetchAudit(hotel, city, state).catch(() => null);
   if (!audit) return json(409, { error: 'That report isn’t ready yet.' });
 
-  const summary = summarize(audit);
+  // The page read the hotel's site moments ago and cached it; use the same reading so the grades match.
+  const crawl = await Promise.race([siteFor(audit).catch(() => null), new Promise((r) => setTimeout(() => r(null), 5000))]);
+  const summary = summarize(audit, crawl);
   const link = reportLink(secret, hotel, city, state);
   const name = clean(body.name).slice(0, 60);
   const mail = reportEmail({ theme: clean(body.theme), name: name || 'there', summary, link });

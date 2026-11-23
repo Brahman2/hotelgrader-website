@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { runAudit, type Audit } from '../lib/hg';
+import { fetchSite, runAudit, type Audit } from '../lib/hg';
 import { assess } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -105,6 +105,7 @@ const STAGES: [number, string][] = [
   [30, 'Checking rate parity across the OTAs'],
   [55, 'Asking AI assistants about the hotel'],
   [85, 'Comparing with nearby hotels'],
+  [100, 'Reading the hotel’s own website'],
   [115, 'Weighing the evidence'],
 ];
 
@@ -147,6 +148,8 @@ export default function ReportCard() {
   const [user, setUser] = useState<User | null>(null);
   const [viaLink, setViaLink] = useState(false); // opened from an emailed report link
   const [audit, setAudit] = useState<Audit | null>(null);
+  // Our own crawl of the hotel's website. undefined = still reading, null = couldn't read.
+  const [crawl, setCrawl] = useState<unknown | null | undefined>(undefined);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -170,15 +173,21 @@ export default function ReportCard() {
     const ctrl = new AbortController();
     setError('');
     setAudit(null);
+    setCrawl(undefined);
     setElapsed(0);
     const started = Date.now();
     const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
     document.title = `${target.hotel} · report card · hotelgrader`;
     track('grade_start', hotelParams(target));
     runAudit(target.hotel, target.city, target.state, ctrl.signal)
-      .then((a) => {
+      .then(async (a) => {
+        // Read the hotel's own site before showing the grade, so the grade doesn't shift on screen.
+        const site = await fetchSite(target.hotel, target.city, target.state, ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        setCrawl(site);
         setAudit(a);
-        track('grade_complete', { ...hotelParams(target), score: assess(a).rawScore ?? undefined, coverage: Math.round(assess(a).coverage * 100), seconds: Math.round((Date.now() - started) / 1000) });
+        const done = assess(a, site);
+        track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, seconds: Math.round((Date.now() - started) / 1000) });
       })
       .catch((e) => {
         if (e?.name === 'AbortError') return;
@@ -275,11 +284,11 @@ export default function ReportCard() {
           <a href="/" className="btn btn--primary">grade your hotel</a>
         </div>
       )}
-      <Report audit={audit} market={market} />
+      <Report audit={audit} crawl={crawl ?? null} market={market} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
           track('share', { method: 'linkedin', content_type: 'report', item_id: target.hotel });
-          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, assess(audit)))}`, '_blank', 'noopener');
+          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, assess(audit, crawl ?? null)))}`, '_blank', 'noopener');
         }}>share on LinkedIn</button>
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy share link'}</button>
         <button type="button" className="btn" onClick={() => { track('print_report', { hotel: target.hotel }); window.print(); }}>print</button>

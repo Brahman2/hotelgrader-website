@@ -24,8 +24,8 @@ export const METHOD_VERSION = '2.0';
 /** Importance of each function, in points out of 100. */
 export const FUNCTIONS = [
   { key: 'booking', name: 'Website and booking path', short: 'Booking', weight: 21,
-    covers: 'Whether a guest can get from your listing to your site to a working booking engine.',
-    notYet: 'Room selection, fees, policies and checkout inside the booking engine. Mobile usability beyond speed.' },
+    covers: 'Whether a guest can get from your listing to your site to a booking engine that answers, on a usable date, on a phone.',
+    notYet: 'Room selection, fees, policies and checkout inside the booking engine.' },
   { key: 'rates', name: 'Rates and offer', short: 'Rates', weight: 20,
     covers: 'Whether your direct rate shows where guests compare prices, and how it sits against the OTAs for the same night.',
     notYet: 'A room-for-room, fee-for-fee match across channels. More than one date. Competitor prices.' },
@@ -34,7 +34,7 @@ export const FUNCTIONS = [
     notYet: 'Booking.com and Expedia review scores.' },
   { key: 'discovery', name: 'Search and local discovery', short: 'Search', weight: 12,
     covers: 'Whether your own site wins a search for your name, and whether the page is built so search engines can read it.',
-    notYet: 'Searches that don’t include your name, such as “boutique hotel near the beach”. Indexing.' },
+    notYet: 'Searches that don’t include your name, such as “boutique hotel near the beach”.' },
   { key: 'profiles', name: 'Profiles and listings', short: 'Profiles', weight: 10,
     covers: 'Your Google profile, your presence in Google’s hotel prices, and the main review and booking sites.',
     notYet: 'Whether room and amenity details are right on each listing. Apple Maps, Bing and ChatGPT business profiles.' },
@@ -53,7 +53,8 @@ export const FUNCTIONS = [
     covers: 'Whether Facebook and Instagram profiles for this hotel can be found.',
     notYet: 'Whether the profiles are current and answer guest questions.' },
   { key: 'contact', name: 'Guest communication', short: 'Email', weight: 2,
-    covers: '', notYet: 'Contact paths and email signup on your site. Your email programme itself is private and can’t be scored from outside.' },
+    covers: 'Whether your home page gives guests a phone number, a way to write, and a way to join your email list.',
+    notYet: 'Your email programme itself: pre-arrival, post-stay, win-back and results. It’s private and can’t be scored from outside.' },
   { key: 'ai', name: 'AI visibility (sampled)', short: 'AI', weight: 1,
     covers: 'Whether AI assistants named the hotel for the questions we asked.',
     notYet: 'A wider set of guest questions and assistants.' },
@@ -116,7 +117,15 @@ function looksLikeHotel(candidate, hotelName) {
 
 // ---------- the assessment ----------
 
-export function assess(audit) {
+/**
+ * @param audit  One scan from the grading API.
+ * @param crawl  Optional result of our own website collector (scanner/site.mjs). When present it
+ *               replaces the API's reading of the hotel's site and fills checks the API never made.
+ */
+export function assess(audit, crawl = null) {
+  const web = crawl && crawl.ok ? crawl : null;
+  // A page built in the browser by script reads as nearly empty, so "not found" there means "couldn't read".
+  const webSolid = !!web && web.rendered !== 'script';
   const meta = audit._meta ?? {};
   const when = meta.generatedAt ?? null;
   const gbp = evidence(audit, /^google business profile/i);
@@ -148,20 +157,48 @@ export function assess(audit) {
     gbp ? (gbp.has_website ? 1 : 0) : null,
     gbp ? (gbp.has_website ? `Links to ${hostOf(site) || 'your site'}.` : 'No website link on the profile.') : 'Profile not read this scan.',
     'Google Business Profile');
-  check('booking', 'engine', 'A booking engine is reachable from your site', 10,
-    links ? (links.main ? 1 : 0) : null,
-    links ? (links.main ? `Booking links lead to ${links.engine || hostOf(links.main)}.` : 'No booking link was found on the home page.') : 'Your site wasn’t crawled this scan.',
-    'Crawl of your home page', { when: links?.checked_at });
-  check('booking', 'buttons', 'Booking buttons work', 15,
-    links && links.buttons != null ? (links.buttons > 0 ? (links.stale_buttons > 0 ? 0.3 : 1) : 0) : null,
-    links && links.buttons != null
-      ? (links.buttons > 0
-        ? (links.stale_buttons > 0 ? `${links.stale_buttons} of ${links.buttons} booking buttons open the booking engine on a date that has already passed${staleDate ? ` (${niceDay(staleDate)})` : ''}.` : `${links.buttons} booking buttons found, none out of date.`)
-        : 'No booking buttons found on the home page.')
-      : 'Your site wasn’t crawled this scan.',
-    'Crawl of your home page', { when: links?.checked_at });
-  check('booking', 'journey', 'The booking engine itself: rooms, dates, fees, policies, checkout', 70, null,
-    'Not observed. We don’t step through the booking engine yet, and we never make a booking to test one.', '');
+  if (web) {
+    const bk = web.booking;
+    check('booking', 'engine', 'A booking link is on your home page', 10,
+      bk.main ? 1 : webSolid ? 0 : null,
+      bk.main ? `Booking links lead to ${bk.engine || hostOf(bk.main)}.` : webSolid ? 'No booking link was found in the home page.' : 'Your home page is built by script, so we couldn’t read its links.',
+      'Our crawl of your home page', { when: web.fetchedAt });
+    check('booking', 'buttons', 'Booking buttons open on a usable date', 15,
+      bk.buttons > 0 ? (bk.staleCount > 0 ? 0.3 : 1) : null,
+      bk.buttons > 0
+        ? (bk.staleCount > 0 ? `${bk.staleCount} of ${bk.buttons} booking links ${bk.staleCount === 1 ? 'opens' : 'open'} the booking engine on a date that has already passed${bk.stale[0]?.pastDate ? ` (${niceDay(bk.stale[0].pastDate)})` : ''}.` : `${bk.buttons} booking links found, none set to a past date.`)
+        : 'No booking links to check.',
+      'Our crawl of your home page', { when: web.fetchedAt });
+    const fs = bk.firstStep;
+    check('booking', 'first-step', 'The booking engine answers', 15,
+      !fs || fs.blocked ? null : fs.ok ? 1 : 0,
+      !fs ? 'Not checked: no link to an outside booking engine was found.'
+        : fs.blocked ? `${fs.finalHost || hostOf(fs.url)} turned away our automated visit, which is normal for some engines. Not scored.`
+          : fs.ok ? `${fs.finalHost} loaded in ${(fs.ms / 1000).toFixed(1)} seconds.`
+            : `The booking link answered with an error${fs.status ? ` (${fs.status})` : ''}.`,
+      'Our visit to the first page of your booking engine', { when: web.fetchedAt });
+    check('booking', 'mobile-ready', 'The page is set up for phone screens', 5,
+      web.viewport ? 1 : 0,
+      web.viewport ? 'The page declares a mobile layout.' : 'The page doesn’t declare a mobile layout, so phones may show the desktop page shrunk down.',
+      'Our crawl of your home page', { when: web.fetchedAt });
+    check('booking', 'journey', 'Inside the booking engine: rooms, dates, fees, policies, checkout', 50, null,
+      'Not observed. We open the first page of the booking engine and stop. We never enter guest details or make a booking.', '');
+  } else {
+    check('booking', 'engine', 'A booking engine is reachable from your site', 10,
+      links ? (links.main ? 1 : 0) : null,
+      links ? (links.main ? `Booking links lead to ${links.engine || hostOf(links.main)}.` : 'No booking link was found on the home page.') : 'Your site wasn’t crawled this scan.',
+      'Crawl of your home page', { when: links?.checked_at });
+    check('booking', 'buttons', 'Booking buttons work', 15,
+      links && links.buttons != null ? (links.buttons > 0 ? (links.stale_buttons > 0 ? 0.3 : 1) : 0) : null,
+      links && links.buttons != null
+        ? (links.buttons > 0
+          ? (links.stale_buttons > 0 ? `${links.stale_buttons} of ${links.buttons} booking buttons open the booking engine on a date that has already passed${staleDate ? ` (${niceDay(staleDate)})` : ''}.` : `${links.buttons} booking buttons found, none out of date.`)
+          : 'No booking buttons found on the home page.')
+        : 'Your site wasn’t crawled this scan.',
+      'Crawl of your home page', { when: links?.checked_at });
+    check('booking', 'journey', 'The booking engine itself: rooms, dates, fees, policies, checkout', 70, null,
+      'Not observed. We don’t step through the booking engine yet, and we never make a booking to test one.', '');
+  }
 
   // --- Rates and offer (20) ---
   const rates = (bp?.ota_rates ?? []).filter((r) => r && r.rate > 0 && r.source);
@@ -244,8 +281,15 @@ export function assess(audit) {
     serp && serp.has_knowledge_panel != null ? (serp.has_knowledge_panel ? 1 : 0) : null,
     serp && serp.has_knowledge_panel != null ? (serp.has_knowledge_panel ? 'A knowledge panel appears on a search for your name.' : 'No knowledge panel appeared.') : 'Not searched this scan.',
     'Google search', { when: serp?.checked_at });
-  const gc = geo?.result?.checks ?? null;
-  const geoWhen = geo?.fetched_at;
+  // Our own crawl is the better reading of the page when we have one.
+  const gc = web ? {
+    schema_lodging: web.schema.lodging ? true : webSolid ? false : null,
+    schema_faq: web.schema.faq ? true : webSolid ? false : null,
+    h1_present: web.h1.length > 0 ? true : webSolid ? false : null,
+    meta_description: !!web.description,
+    og_tags: !!(web.og.title || web.og.image),
+  } : geo?.result?.checks ?? null;
+  const geoWhen = web ? web.fetchedAt : geo?.fetched_at;
   const geoCheck = (id, label, max, key, yes, no) => check('discovery', id, label, max,
     gc && gc[key] != null ? (gc[key] ? 1 : 0) : null,
     gc && gc[key] != null ? (gc[key] ? yes : no) : 'Your home page wasn’t read this scan.',
@@ -255,7 +299,15 @@ export function assess(audit) {
   geoCheck('h1', 'One clear main heading', 5, 'h1_present', 'The home page has a main heading.', 'The home page has no main (H1) heading.');
   geoCheck('meta-desc', 'A search description', 5, 'meta_description', 'A meta description is set.', 'No meta description on the home page.');
   geoCheck('og', 'Link previews for sharing', 5, 'og_tags', 'Sharing tags are set.', 'No sharing (Open Graph) tags on the home page.');
-  check('discovery', 'non-brand', 'Searches that don’t include your name', 30, null, 'Not observed. We only searched for the hotel by name.', '');
+  if (web) {
+    const blocked = web.noindex || web.robots.blocksAll;
+    check('discovery', 'crawlable', 'Search engines are allowed in and given a map', 5,
+      blocked ? 0 : web.sitemap.found ? 1 : 0.5,
+      blocked ? (web.noindex ? 'The home page tells search engines not to index it.' : 'robots.txt tells every search engine to stay out of the whole site.')
+        : web.sitemap.found ? `Nothing blocks search engines, and a sitemap lists ${web.sitemap.urls} ${web.sitemap.urls === 1 ? 'entry' : 'entries'}.` : 'Nothing blocks search engines, but no sitemap was found.',
+      'robots.txt and sitemap on your site', { when: web.fetchedAt });
+  }
+  check('discovery', 'non-brand', 'Searches that don’t include your name', web ? 25 : 30, null, 'Not observed. We only searched for the hotel by name.', '');
 
   // --- Profiles and listings (10) ---
   check('profiles', 'gbp-live', 'Google profile is live and marked open', 10,
@@ -308,12 +360,13 @@ export function assess(audit) {
   // --- Brand clarity (3) ---
   // The API's own title check is accent-sensitive ("Waikīkī" ≠ "Waikiki"), so we redo it from the search result.
   const ownResult = (serp?.top_results ?? []).find((r) => r.owner === 'you');
-  const titleHasName = ownResult?.title ? norm(ownResult.title).includes(norm(audit.hotelName).replace(/^the /, '')) : (gc?.name_in_title === true ? true : null);
+  const pageTitle = web?.title || ownResult?.title || '';
+  const titleHasName = pageTitle ? norm(pageTitle).includes(norm(audit.hotelName).replace(/^the /, '')) : (gc?.name_in_title === true ? true : null);
   check('brand', 'name-in-title', 'Your page title carries the hotel’s name', 30,
     titleHasName == null ? null : titleHasName ? 1 : 0,
     titleHasName == null ? 'Your page title wasn’t read this scan.'
-      : ownResult?.title ? `Your title reads “${ownResult.title}”.` : 'The hotel’s name is in the page title.',
-    'Google search result for your site', { when: serp?.checked_at });
+      : pageTitle ? `Your title reads “${pageTitle}”.` : 'The hotel’s name is in the page title.',
+    web ? 'Our crawl of your home page' : 'Google search result for your site', { when: web ? web.fetchedAt : serp?.checked_at });
   check('brand', 'listing-desc', 'Your Google hotel listing has a description', 20,
     offer && offer.description_length != null ? (offer.description_length >= 150 ? 1 : offer.description_length > 0 ? 0.5 : 0) : null,
     offer && offer.description_length != null ? (offer.description_length > 0 ? `A ${offer.description_length}-character description is shown.` : 'No description is shown.') : 'Not read this scan.',
@@ -325,30 +378,53 @@ export function assess(audit) {
   check('links', 'links', 'Credible sites that link to yours', 100, null, 'Not collected yet.', '');
 
   // --- Social presence (2) ---
-  const fb = socialData?.facebook, ig = socialData?.instagram;
+  // Profiles the hotel links to from its own site are certain to be the hotel's. Prefer them.
+  const linked = web?.social ?? {};
+  const fb = linked.facebook ? { success: true, page_name: linked.facebook.handle, page_url: linked.facebook.url, followers: null, fromSite: true } : socialData?.facebook;
+  const ig = linked.instagram ? { success: true, username: linked.instagram.handle, full_name: '', followers: null, fromSite: true } : socialData?.instagram;
   const fbOk = fb?.success && (fb.page_url || fb.followers != null);
-  const fbMatch = fbOk ? looksLikeHotel(`${fb.page_name ?? ''} ${fb.page_url ?? ''}`, audit.hotelName) : null;
+  const fbMatch = fb?.fromSite ? true : fbOk ? looksLikeHotel(`${fb.page_name ?? ''} ${fb.page_url ?? ''}`, audit.hotelName) : null;
   check('social', 'facebook', 'A Facebook page for this hotel', 40,
-    socialData ? (fbOk ? (fbMatch === false ? null : 1) : 0) : null,
-    socialData
-      ? (fbOk ? (fbMatch === false ? `We matched “${fb.page_name}”, which may be a different business, so this isn’t scored.` : `Found: ${fb.page_name || fb.page_url}${fb.followers != null ? `, ${n0(fb.followers)} followers` : ''}.`) : 'No Facebook page was found.')
+    socialData || fbOk ? (fbOk ? (fbMatch === false ? null : 1) : 0) : null,
+    socialData || fbOk
+      ? (fbOk ? (fbMatch === false ? `We matched “${fb.page_name}”, which may be a different business, so this isn’t scored.` : fb.fromSite ? `Your site links to facebook.com/${fb.page_name}.` : `Found: ${fb.page_name || fb.page_url}${fb.followers != null ? `, ${n0(fb.followers)} followers` : ''}.`) : 'No Facebook page was found.')
       : 'Not searched this scan.',
     'Facebook', { when: fb?.fetched_at });
   const igOk = ig?.success && ig.username;
-  const igMatch = igOk ? looksLikeHotel(`${ig.full_name ?? ''} ${ig.username ?? ''}`, audit.hotelName) : null;
+  const igMatch = ig?.fromSite ? true : igOk ? looksLikeHotel(`${ig.full_name ?? ''} ${ig.username ?? ''}`, audit.hotelName) : null;
   if (igOk && igMatch === false) flags.push(`The Instagram account our search matched is @${ig.username} (“${ig.full_name}”), which looks like a different property. We left Instagram out of the grade.`);
   if (fbOk && fbMatch === false) flags.push(`The Facebook page our search matched is “${fb.page_name}”, which may not be this hotel. We left it out of the grade.`);
   check('social', 'instagram', 'An Instagram account for this hotel', 40,
-    socialData ? (igOk ? (igMatch === false ? null : 1) : 0) : null,
-    socialData
-      ? (igOk ? (igMatch === false ? `We matched @${ig.username} (“${ig.full_name}”), which looks like a different property, so this isn’t scored.` : `Found: @${ig.username}${ig.followers != null ? `, ${n0(ig.followers)} followers` : ''}.`) : 'No Instagram account was found.')
+    socialData || igOk ? (igOk ? (igMatch === false ? null : 1) : 0) : null,
+    socialData || igOk
+      ? (igOk ? (igMatch === false ? `We matched @${ig.username} (“${ig.full_name}”), which looks like a different property, so this isn’t scored.` : ig.fromSite ? `Your site links to @${ig.username}.` : `Found: @${ig.username}${ig.followers != null ? `, ${n0(ig.followers)} followers` : ''}.`) : 'No Instagram account was found.')
       : 'Not searched this scan.',
     'Instagram', { when: ig?.fetched_at });
   check('social', 'useful', 'Profiles are current and answer guest questions', 20, null, 'Not observed. Follower counts and posting frequency aren’t scored.', '');
 
   // --- Guest communication (2) ---
-  check('contact', 'contact', 'Contact paths and email signup on your site', 100, null,
-    'Not collected yet. Your email programme itself (pre-arrival, post-stay, win-back) is private and can’t be scored from outside.', '');
+  if (web) {
+    const c = web.contact;
+    const phone = c.phones.length > 0 || c.phoneInText;
+    check('contact', 'phone', 'A phone number on your home page', 30,
+      phone ? 1 : webSolid ? 0 : null,
+      phone ? (c.phones.length ? 'A phone number is shown and can be tapped to call.' : 'A phone number is shown, but it isn’t a tap-to-call link.') : webSolid ? 'No phone number was found on the home page.' : 'We couldn’t read the page’s text.',
+      'Our crawl of your home page', { when: web.fetchedAt });
+    const reach = c.emails.length > 0 || !!c.page || web.chat;
+    check('contact', 'reach', 'A way to write to the hotel', 20,
+      reach ? 1 : webSolid ? 0 : null,
+      reach ? [c.page && 'A contact page is linked', c.emails.length && 'an email address is shown', web.chat && 'a chat tool is installed'].filter(Boolean).join(', ').replace(/^an /, 'An ').replace(/^a chat/, 'A chat') + '.' : webSolid ? 'No contact page, email address or chat was found on the home page.' : 'We couldn’t read the page’s links.',
+      'Our crawl of your home page', { when: web.fetchedAt });
+    check('contact', 'signup', 'A way to join your email list', 30,
+      web.signup.found ? 1 : webSolid ? 0 : null,
+      web.signup.found ? `An email signup is on the home page${web.signup.provider ? `, run through ${web.signup.provider}` : ''}.` : webSolid ? 'No email signup was found on the home page. That’s a choice, not a fault, if you don’t send email.' : 'We couldn’t read the page’s forms.',
+      'Our crawl of your home page', { when: web.fetchedAt });
+    check('contact', 'programme', 'Your email programme: pre-arrival, post-stay, win-back, results', 20, null,
+      'Private. It can’t be seen from outside and isn’t scored.', '');
+  } else {
+    check('contact', 'contact', 'Contact paths and email signup on your site', 100, null,
+      'Not collected this scan. Your email programme itself (pre-arrival, post-stay, win-back) is private and can’t be scored from outside.', '');
+  }
 
   // --- AI visibility, sampled (1) ---
   const records = aiData?.records ?? [];
@@ -395,7 +471,7 @@ export function assess(audit) {
     place: [audit.city, audit.state].filter(Boolean).join(', '),
     website: hostOf(site),
     mapsUrl: gbp?.google_maps_url ?? '',
-    bookingEngine: links?.engine ?? '',
+    bookingEngine: web?.booking.engine || links?.engine || '',
     /** Our comp-set model's guess at the hotel's class. Not an official star rating. */
     hotelClass: comp?.tier_label ?? '',
     flags,
@@ -450,18 +526,34 @@ export function assess(audit) {
       proof: 'Search your hotel on Google for any open date and see “Official site” among the prices.',
     });
   }
-  if (links?.stale_buttons > 0) {
+  const staleN = web ? web.booking.staleCount : (links?.stale_buttons ?? 0);
+  const buttonsN = web ? web.booking.buttons : (links?.buttons ?? 0);
+  const staleEx = web ? web.booking.stale[0] : links?.stale?.[0];
+  const staleDay = staleEx?.pastDate || staleEx?.checkin || '';
+  if (staleN > 0) {
     push({
       id: 'stale-buttons', type: 'fix', fn: 'booking', points: stake('booking.buttons'),
-      title: `Fix ${links.stale_buttons === 1 ? 'the booking button that opens' : `${links.stale_buttons} booking buttons that open`} on a past date`,
-      evidence: `${links.stale_buttons} of ${links.buttons} booking buttons on your home page open the booking engine with a check-in date that has already passed${staleDate ? `, such as ${niceDay(staleDate)}` : ''}.${links.stale?.[0]?.text ? ` One is labelled “${links.stale[0].text}”.` : ''}`,
+      title: `Fix ${staleN === 1 ? 'the booking link that opens' : `${staleN} booking links that open`} on a past date`,
+      evidence: `${staleN} of ${buttonsN} booking links on your home page ${staleN === 1 ? 'opens' : 'open'} the booking engine with a check-in date that has already passed${staleDay ? `, such as ${niceDay(staleDay)}` : ''}.${staleEx?.text ? ` One is labelled “${staleEx.text}”.` : ''}`,
       why: 'A guest who taps “book” and lands on an error or an empty calendar for a past date often gives up.',
       outcome: 'Every booking button opens the booking engine on today’s date or with no date set.',
       owner: 'Website provider', effort: 'Low', confidence: 'Confirmed',
       proof: 'Tap each booking button on a phone and reach a date picker every time.',
     });
   }
-  if (links && !links.main) {
+  const fsBroken = web?.booking.firstStep && !web.booking.firstStep.ok && !web.booking.firstStep.blocked;
+  if (fsBroken) {
+    push({
+      id: 'engine-down', type: 'fix', fn: 'booking', points: stake('booking.first-step'),
+      title: 'Fix the booking link that returns an error',
+      evidence: `Your main booking link answered with an error${web.booking.firstStep.status ? ` (${web.booking.firstStep.status})` : ''} when we opened it.`,
+      why: 'If the booking engine doesn’t load, nobody can book direct.',
+      outcome: 'The booking link opens a date picker.',
+      owner: 'Website provider, with your booking-engine provider', effort: 'Low', confidence: 'Likely',
+      proof: 'Tap the main “book” button on a phone and reach a date picker.',
+    });
+  }
+  if (web ? (webSolid && !web.booking.main) : (links && !links.main)) {
     push({
       id: 'no-engine', type: 'investigate', fn: 'booking', points: stake('booking.engine') * 0.7,
       title: 'Check that your home page links to your booking engine',
@@ -556,7 +648,7 @@ export function assess(audit) {
     push({
       id: 'title', type: 'fix', fn: 'brand', points: stake('brand.name-in-title'),
       title: 'Put the hotel’s name in your home page title',
-      evidence: ownResult?.title ? `Your title reads “${ownResult.title}”.` : 'The hotel’s name isn’t in the page title.',
+      evidence: pageTitle ? `Your title reads “${pageTitle}”.` : 'The hotel’s name isn’t in the page title.',
       why: 'The title is the blue link guests see in search results.',
       outcome: `A title that begins with “${audit.hotelName}”.`,
       owner: 'Website provider', effort: 'Low', confidence: 'Confirmed',
@@ -572,7 +664,7 @@ export function assess(audit) {
 
   // ---------- one improvement example ----------
   let example = null;
-  if (gc && gc.schema_lodging === false && site) {
+  if (gc && gc.schema_lodging === false && site) { // `site` here is the hotel's web address
     const url = (() => { try { const u = new URL(site); return `${u.origin}/`; } catch { return ''; } })();
     const block = {
       '@context': 'https://schema.org',
@@ -637,6 +729,9 @@ export function assess(audit) {
   return {
     version: METHOD_VERSION,
     scannedAt: when,
+    /** True when our own website collector's reading was used. */
+    siteRead: !!web,
+    siteNote: crawl && !crawl.ok ? `We couldn’t read your website ourselves this time (${crawl.error || 'no answer'}), so the website checks use the older reading.` : web && !webSolid ? 'Your home page is built in the browser by script, so some website checks couldn’t be read and were left out.' : '',
     score: graded ? score : null,
     rawScore: score,
     letter: graded ? letterFor(score) : '-',
@@ -649,6 +744,12 @@ export function assess(audit) {
       observed: functions.reduce((n, f) => n + f.checks.filter((c) => c.earned != null).length, 0),
     },
   };
+}
+
+/** The hotel's website address as the scan found it, or ''. */
+export function websiteOf(audit) {
+  const gbp = evidence(audit, /^google business profile/i);
+  return gbp?.website_url || audit?._meta?.booking_links?.website_url || '';
 }
 
 function lower(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
