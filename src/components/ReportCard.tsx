@@ -126,6 +126,7 @@ function Findings({ peek, market, target, ready }: { peek: OwnScan | null; marke
   const griped = [...topics].filter((t) => share(t) < 0.6).sort((x, y) => share(x) - share(y)).slice(0, 3);
   const stars: any[] = h?.stars ?? [];
   const starTotal = stars.reduce((t, r) => t + r.count, 0);
+  const newest: any[] = (live.reviews?.reviews ?? []).filter((x: any) => x.text && x.rating != null);
   const card = 'panel p-5 reveal';
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
@@ -198,6 +199,24 @@ function Findings({ peek, market, target, ready }: { peek: OwnScan | null; marke
               </ul>
             )}
           </div>
+        </div>
+      )}
+
+      {/* The newest reviews themselves */}
+      {newest.length >= 2 && (
+        <div className={`${card} sm:col-span-2`}>
+          <div className="meta mb-3">reading your newest Google reviews and checking for replies</div>
+          <ul className="list-none m-0 p-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {newest.slice(0, 3).map((x: any, i: number) => (
+              <li key={i} className="border border-edge p-3 text-[12.5px] leading-snug min-w-0">
+                <div className="flex justify-between gap-2 mb-1.5">
+                  <span className={`num ${x.rating >= 4 ? 'grade--a' : x.rating > 3 ? 'grade--c' : 'grade--f'}`}>{x.rating}/5</span>
+                  <span className="text-ink-40">{x.reply ? 'replied' : 'no reply'}</span>
+                </div>
+                <p className="text-ink-60 m-0">“{x.text.length > 120 ? `${x.text.slice(0, 120).replace(/\s+\S*$/, '')}…` : x.text}”</p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
