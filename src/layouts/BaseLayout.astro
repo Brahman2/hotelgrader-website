@@ -90,7 +90,7 @@ const GA_ID = import.meta.env.PROD ? 'G-3G3TFQZW00' : '';
           name: 'hotelgrader',
           url: 'https://hotelgrader.com',
           logo: 'https://hotelgrader.com/assets/favicon.svg',
-          description: 'A free report card for any hotel’s marketing, graded from public data across seven sections.',
+          description: 'A free report card for any hotel’s marketing, graded from public data and weighted by what matters to bookings.',
           contactPoint: { '@type': 'ContactPoint', email: 'contact@hotelgrader.com', contactType: 'customer support' },
         },
         {
@@ -132,7 +132,7 @@ const GA_ID = import.meta.env.PROD ? 'G-3G3TFQZW00' : '';
     </script>
     <script is:inline>
       // Tester switch for the team. Opening any page with ?test=on unlocks both
-      // gates (email and LinkedIn) in this browser and records no lead;
+      // email gate in this browser and records no lead;
       // ?test=off locks them again. There is no secret code: the gates are a
       // lead-capture step, not security, so this protects nothing sensitive.
       (function () {

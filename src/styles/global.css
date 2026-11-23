@@ -270,6 +270,8 @@ html[data-theme='dark'] {
 }
 
 @layer utilities {
+  /* The part of a bar a public scan couldn't observe. */
+  .hatch { background: repeating-linear-gradient(135deg, var(--edge-strong) 0 1.5px, transparent 1.5px 6px); outline: 1px solid var(--edge); outline-offset: -1px; }
   .tabular { font-variant-numeric: tabular-nums; }
   /* Figures (scores, ratings, coordinates) in mono. */
   .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }

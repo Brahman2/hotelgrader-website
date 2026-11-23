@@ -1,103 +1,162 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroForm from '../components/HeroForm.tsx';
-import { pillars } from '../content/pillars';
+import { FUNCTIONS, METHOD_VERSION, MIN_COVERAGE } from '../../shared/assess.mjs';
 
-// Same cutoffs as letterFor() in src/lib/hg.ts, so this page matches the report card.
+// The weights, names and the "not yet" lists on this page are read from
+// shared/assess.mjs, the same file that scores the report. They can't drift apart.
+
+// Same cutoffs as CUTOFFS in shared/assess.mjs.
 const bands = [
-  { letter: 'A', tone: 'grade--a', range: '90-100', plus: 'A+ from 95', desc: 'Top tier' },
-  { letter: 'B', tone: 'grade--b', range: '80-89',  plus: 'B+ from 85', desc: 'Above market' },
-  { letter: 'C', tone: 'grade--c', range: '70-79',  plus: 'C+ from 75', desc: 'At market' },
-  { letter: 'D', tone: 'grade--d', range: '60-69',  plus: 'D+ from 65', desc: 'Below market' },
-  { letter: 'F', tone: 'grade--f', range: '0-59',   plus: '',           desc: 'Significantly below' },
+  { letter: 'A', tone: 'grade--a', range: '90-100', plus: 'A+ from 95' },
+  { letter: 'B', tone: 'grade--b', range: '80-89',  plus: 'B+ from 85' },
+  { letter: 'C', tone: 'grade--c', range: '70-79',  plus: 'C+ from 75' },
+  { letter: 'D', tone: 'grade--d', range: '60-69',  plus: 'D+ from 65' },
+  { letter: 'F', tone: 'grade--f', range: '0-59',   plus: '' },
 ];
 
-const signals: Record<string, string> = {
-  '01': 'Prompts run against ChatGPT, Gemini, Perplexity, and Copilot · mention rate · answer-panel coverage · citation quality',
-  '02': 'Core Web Vitals · mobile experience · structured data · indexation · your brand’s search page',
-  '03': 'Review velocity · rating parity across platforms · response rate and lag · guest sentiment',
-  '04': 'Posting cadence · engagement rate vs comp set · content mix · profile completeness',
-  '05': 'Brand-search defense · OTA ad pressure on your name · share of voice · ad-library presence',
-  '06': 'Booking-flow friction · rate presentation · OTA mix · metasearch visibility',
-  '07': 'Rank vs comp set · 90-day momentum · overlap in AI and search results · gap analysis',
-};
+const answers = [
+  { name: 'Execution grade', q: 'How well does the hotel run the marketing, listing and booking work we can observe?' },
+  { name: 'Guest choice comparison', q: 'For a stated trip, how does the hotel sit against the alternatives a guest would weigh?' },
+  { name: 'Priorities', q: 'Which few changes or checks are worth the operator’s time now?' },
+];
 
-const sourceGroups = [
-  { name: 'AI engines',   items: 'ChatGPT · Gemini · Perplexity · Copilot' },
-  { name: 'Search',       items: 'Google · Bing · answer panels · brand SERPs' },
-  { name: 'Reviews',      items: 'Google · TripAdvisor · Booking.com · Expedia' },
-  { name: 'Social',       items: 'Instagram · Facebook · TikTok' },
-  { name: 'Advertising',  items: 'Google Ads transparency · Meta Ad Library' },
-  { name: 'Performance',  items: 'Lighthouse · Chrome UX Report · booking-flow crawl' },
+const rules = [
+  { head: 'Importance first', body: 'The 100 points are shared out across twelve parts of the job before any check is written. Checks split their part’s points. Adding small checks never makes a part count for more.' },
+  { head: 'Only what was observed', body: 'A check with no evidence is left out. It earns nothing and costs nothing. It lowers how much of the assessment the grade rests on, and the report shows that share next to the grade.' },
+  { head: 'One owner per issue', body: 'A problem is scored once, in the part it belongs to. A missing page title counts under brand, not again under search.' },
+  { head: 'Hotel rules apply', body: 'Advice that doesn’t apply to hotels is never given. Google doesn’t let hotels edit opening hours, so we don’t check them.' },
+  { head: 'Samples are called samples', body: 'One night of prices and one question to an AI assistant are observations. They carry little or no weight and are labelled as what they are.' },
+  { head: 'Not enough, no grade', body: `If the evidence covers less than ${Math.round(MIN_COVERAGE * 100)}% of the assessment by importance, the report shows what it found and prints no letter.` },
+];
+
+const sources = [
+  { name: 'Google', items: 'Business Profile · hotel price listings · search results for your name' },
+  { name: 'Reviews', items: 'Google · Tripadvisor · the most recent reviews on each' },
+  { name: 'Your website', items: 'Home page crawl · booking links · Lighthouse lab speed test' },
+  { name: 'Social', items: 'Facebook · Instagram' },
+  { name: 'Advertising, not graded', items: 'Google Ads Transparency Center · Meta Ad Library' },
+  { name: 'AI assistants', items: 'ChatGPT · Gemini, one question at present' },
 ];
 ---
 
-<BaseLayout title="Methodology · hotelgrader" description="How the hotelgrader grade is built: seven weighted sections, 43 metrics, 38 public sources. Published, comparable, reproducible.">
+<BaseLayout title="Methodology · hotelgrader" description="How the hotelgrader grade is built: twelve parts of a hotel’s commercial work, weighted by importance, scored only from what a public scan observed.">
   <article class="max-w-[860px] mx-auto px-8 py-14 sm:py-16">
 
-    <span class="label block mb-4">Methodology v1, updated July 2026</span>
+    <span class="label block mb-4">Methodology v{METHOD_VERSION}, November 2026</span>
     <h1 class="headline text-[38px] sm:text-[52px]">How the grade is built.</h1>
-    <p class="text-[17px] sm:text-[18px] text-ink-60 leading-relaxed mt-5 max-w-[560px]">
-      Every hotel gets the same 43 metrics, from the same 38 public sources, weighted
-      the same way. Nothing to connect, nothing to buy, nothing to argue with.
+    <p class="text-[17px] sm:text-[18px] text-ink-60 leading-relaxed mt-5 max-w-[600px]">
+      One grade, weighted by what matters to bookings, scored only from what we could
+      see, with the gaps shown instead of guessed.
     </p>
 
-    {/* Grade scale */}
+    <section class="mt-14">
+      <h2 class="headline text-[24px] sm:text-[28px] mb-6">Three answers, kept apart</h2>
+      <div class="border-t border-edge">
+        {answers.map((a, i) => (
+          <div class="grid grid-cols-[44px_1fr] gap-4 sm:gap-6 py-5 border-b border-edge">
+            <span class="meta tabular pt-1">{String(i + 1).padStart(2, '0')}</span>
+            <div>
+              <h3 class="text-[17px] font-semibold tracking-tight">{a.name}</h3>
+              <p class="text-[14px] text-ink-60 mt-1 leading-relaxed">{a.q}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p class="text-[13px] text-ink-60 mt-3 leading-relaxed max-w-[640px]">
+        A hotel can run its marketing well and still lose a guest on location, room or price.
+        The grade answers the first question only. It isn’t a verdict on the hotel.
+      </p>
+    </section>
+
     <section class="mt-14">
       <h2 class="headline text-[24px] sm:text-[28px] mb-6">The scale</h2>
       <div class="panel overflow-hidden">
         {bands.map((b, i) => (
           <div class={`grid grid-cols-[56px_1fr_auto] items-center gap-5 px-6 py-4 ${i > 0 ? 'border-t border-edge' : ''}`}>
             <span class={`grade ${b.tone} tabular text-[34px] leading-none`}>{b.letter}</span>
-            <span>
-              <span class="text-[14px] text-ink block">{b.desc}</span>
-              {b.plus && <span class="meta tabular">{b.plus}</span>}
-            </span>
+            <span class="meta tabular">{b.plus}</span>
             <span class="meta tabular">{b.range} / 100</span>
           </div>
         ))}
       </div>
-      <p class="text-[13px] text-ink-60 mt-3 leading-relaxed max-w-[620px]">
-        A plus marks the top half of a band. There are no minus grades. The overall
-        score currently counts five of the seven sections: AI visibility and advertising
-        are scored for reference and shown on the report card, but left out of the overall grade.
+      <p class="text-[13px] text-ink-60 mt-3 leading-relaxed max-w-[640px]">
+        A plus marks the top half of a band. There are no minus grades. The score is the
+        points earned divided by the points we could observe, so an unseen part of the
+        assessment neither helps nor hurts.
       </p>
     </section>
 
-    {/* Seven sections with weights */}
     <section class="mt-14">
       <div class="flex items-baseline justify-between mb-6">
-        <h2 class="headline text-[24px] sm:text-[28px]">The seven sections</h2>
-        <span class="meta tabular">Weights sum to 100</span>
+        <h2 class="headline text-[24px] sm:text-[28px]">Twelve parts, 100 points</h2>
+        <span class="meta tabular">Weights sum to {FUNCTIONS.reduce((n, f) => n + f.weight, 0)}</span>
       </div>
       <div class="border-t border-edge">
-        {pillars.map((p) => (
-          <div id={`s-${p.num}`} class="grid grid-cols-[44px_1fr_auto] gap-4 sm:gap-6 py-6 border-b border-edge scroll-mt-24">
-            <span class="meta tabular pt-1">{p.num}</span>
+        {FUNCTIONS.map((f, i) => (
+          <div id={`f-${f.key}`} class="grid grid-cols-[44px_1fr_auto] gap-4 sm:gap-6 py-6 border-b border-edge scroll-mt-24">
+            <span class="meta tabular pt-1">{String(i + 1).padStart(2, '0')}</span>
             <div>
-              <h3 class="text-[17px] font-semibold tracking-tight">{p.name}</h3>
-              <p class="text-[14px] text-ink-60 mt-1.5 leading-relaxed max-w-[520px]">{p.oneLiner}</p>
-              <p class="meta tabular mt-3 leading-relaxed">{signals[p.num]}</p>
+              <h3 class="text-[17px] font-semibold tracking-tight">{f.name}</h3>
+              {f.covers && <p class="text-[14px] text-ink-60 mt-1.5 leading-relaxed max-w-[540px]">{f.covers}</p>}
+              <p class="meta mt-2.5 leading-relaxed max-w-[540px]"><span class="text-ink">Not observed yet:</span> {f.notYet}</p>
             </div>
             <div class="text-right">
-              <span class="text-[30px] leading-none text-accent tabular">{p.weight}%</span>
-              <div class="meta tabular mt-1">OF GRADE</div>
+              <span class="text-[30px] leading-none text-accent tabular">{f.weight}</span>
+              <div class="meta tabular mt-1">POINTS</div>
             </div>
+          </div>
+        ))}
+      </div>
+      <p class="text-[13px] text-ink-60 mt-3 leading-relaxed max-w-[640px]">
+        These weights are our working estimate of commercial importance, not measured revenue
+        coefficients. They will be revised as we validate them with operators, and every
+        change gets a new version number so a change in method can’t pass for a change at the hotel.
+      </p>
+    </section>
+
+    <section class="mt-14">
+      <h2 class="headline text-[24px] sm:text-[28px] mb-6">The rules</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 border border-edge rounded overflow-hidden">
+        {rules.map((r, i) => (
+          <div class={`px-6 py-5 ${i % 2 === 1 ? 'sm:border-l border-edge' : ''} ${i >= 1 ? 'border-t border-edge' : ''} ${i === 1 ? 'sm:border-t-0' : ''}`}>
+            <span class="label block mb-1.5">{r.head}</span>
+            <p class="text-[13.5px] text-ink-60 leading-relaxed">{r.body}</p>
           </div>
         ))}
       </div>
     </section>
 
-    {/* Sources */}
+    <section class="mt-14 grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div>
+        <h2 class="headline text-[22px] sm:text-[24px] mb-3">What isn’t graded</h2>
+        <p class="text-[14px] text-ink-60 leading-relaxed">
+          Advertising and email. Public ad libraries show whether ads exist, not whether
+          they pay back. An email programme can’t be seen from outside at all. The report
+          shows what we observed and says plainly that the rest is unassessed. Occupancy,
+          ADR, RevPAR and direct-booking share are also outside any public scan.
+        </p>
+      </div>
+      <div>
+        <h2 class="headline text-[22px] sm:text-[24px] mb-3">The comparison set</h2>
+        <p class="text-[14px] text-ink-60 leading-relaxed">
+          Up to five hotels near yours that our model places in a similar class. Today
+          they’re compared on Google rating and review count only, and the report says so.
+          Nearby isn’t the same as comparable: if the set is wrong, the report has a form to
+          tell us, free.
+        </p>
+      </div>
+    </section>
+
     <section class="mt-14">
-      <h2 class="headline text-[24px] sm:text-[28px] mb-2">38 sources, all public</h2>
+      <h2 class="headline text-[24px] sm:text-[28px] mb-2">Sources, all public</h2>
       <p class="text-[14px] text-ink-60 leading-relaxed max-w-[620px] mb-6">
-        We read what travelers can read. No PMS connection, no login, no data you have
-        to hand over. If a source is down during your scan, the report says so.
+        We read what travelers can read. No PMS connection, no login, no booking made,
+        no guest details entered anywhere. Every check in the report names its source and date.
       </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 border border-edge rounded overflow-hidden">
-        {sourceGroups.map((g, i) => (
-          <div class={`px-6 py-5 ${i % 2 === 1 ? 'sm:border-l border-edge' : ''} ${i >= 2 ? 'border-t border-edge' : ''}`}>
+        {sources.map((g, i) => (
+          <div class={`px-6 py-5 ${i % 2 === 1 ? 'sm:border-l border-edge' : ''} ${i >= 1 ? 'border-t border-edge' : ''} ${i === 1 ? 'sm:border-t-0' : ''}`}>
             <span class="label block mb-1.5">{g.name}</span>
             <p class="text-[13px] text-ink-60 tabular">{g.items}</p>
           </div>
@@ -105,33 +164,27 @@ const sourceGroups = [
       </div>
     </section>
 
-    {/* Comp set + cadence */}
-    <section class="mt-14 grid grid-cols-1 md:grid-cols-2 gap-10">
-      <div>
-        <h2 class="headline text-[22px] sm:text-[24px] mb-3">Your comp set</h2>
-        <p class="text-[14px] text-ink-60 leading-relaxed">
-          Up to 74 comparable hotels, matched on market, segment, and size. You are
-          ranked against properties a traveler would actually weigh against yours,
-          not a national average.
-        </p>
-      </div>
-      <div>
-        <h2 class="headline text-[22px] sm:text-[24px] mb-3">Cadence</h2>
-        <p class="text-[14px] text-ink-60 leading-relaxed">
-          A scan takes one to two minutes. Grades refresh monthly, and every report
-          carries its scan date and source count, so two people can compare notes.
-        </p>
-      </div>
+    <section class="mt-14 border border-edge rounded px-7 py-6 bg-paper">
+      <span class="label block mb-3">Independence and corrections</span>
+      <p class="text-[15px] text-ink leading-relaxed max-w-[640px]">
+        Grades can’t be bought or sponsored. Factual corrections are free: every report
+        has a form, and a person reads what comes in. We don’t sell your data, and we take
+        no referral fees from OTAs.
+      </p>
     </section>
 
-    {/* Independence */}
-    <section class="mt-14 border border-edge rounded px-7 py-6 bg-paper">
-      <span class="label block mb-3">Independence</span>
-      <p class="text-[15px] text-ink leading-relaxed max-w-[640px]">
-        Grades cannot be bought, sponsored, or appealed away. We sell the dashboard
-        that helps you fix what the grade found, never the grade itself. We don’t
-        sell your data, and we take no referral fees from OTAs.
-      </p>
+    <section class="mt-14">
+      <h2 class="headline text-[22px] sm:text-[24px] mb-3">Versions</h2>
+      <div class="border-t border-edge text-[14px]">
+        <div class="grid grid-cols-[70px_1fr] gap-4 py-4 border-b border-edge">
+          <span class="meta tabular pt-0.5">v2.0</span>
+          <p class="text-ink-60 leading-relaxed">November 2026. The grade is now weighted by commercial importance across twelve parts and scored only from observed evidence, with coverage shown beside it. Advertising and AI visibility no longer sit outside the grade as separate sections: advertising is reported but not graded, and sampled AI visibility counts for one point. A grade from v2 isn’t comparable with one from v1.</p>
+        </div>
+        <div class="grid grid-cols-[70px_1fr] gap-4 py-4 border-b border-edge">
+          <span class="meta tabular pt-0.5">v1</span>
+          <p class="text-ink-60 leading-relaxed">July 2026. Seven sections, five of them counted in the grade.</p>
+        </div>
+      </div>
     </section>
 
   </article>

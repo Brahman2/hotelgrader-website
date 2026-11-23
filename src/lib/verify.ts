@@ -99,3 +99,17 @@ export async function shareLink(user: User, t: { hotel: string; city: string; st
     return res.ok ? ((await res.json()).link as string) || '' : '';
   } catch { return ''; }
 }
+
+/** Send a factual correction about a report to the team. False when it couldn't be sent. */
+export async function sendCorrection(t: { hotel: string; city: string; state: string }, message: string): Promise<boolean> {
+  if (import.meta.env.DEV) return true;
+  try {
+    const user = loadUser();
+    const res = await fetch('/api/correction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...t, message, name: user?.name ?? '', email: user?.email ?? '' }),
+    });
+    return res.ok;
+  } catch { return false; }
+}

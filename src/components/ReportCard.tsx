@@ -1,29 +1,24 @@
 import { useEffect, useState } from 'react';
-import { pillars } from '../content/pillars';
-import { contradicted, isMeasured, keyFindingFor, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
+import { runAudit, type Audit } from '../lib/hg';
+import { assess } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
 import Gate from './Gate';
-import FullReport, { pickHighlight, shareText } from './FullReport';
-import { Radar } from './Charts';
+import Report, { shareText } from './Report';
 import { geocode, geocodeCity, offset, type LatLon } from '../lib/geo';
 import HeroForm from './HeroForm';
 import Scanner, { type Blip } from './Scanner';
 
 // The free report card. Reads ?hotel=&city=&state= from the URL, runs a live
-// scan against the hotelgrader API, and renders one page: the grade, the local
-// market, the seven section scores, what to fix first, and what is working.
+// scan against the hotelgrader API, and renders the report (Report.tsx): the
+// grade and what it rests on, what to do first, and the evidence.
 //
 // The card is gated: the scan starts right away, but the grade only shows once
 // the visitor gives a first name and email and confirms a code we send there.
 // One verified email unlocks every card in that browser, including the full
-// report below the card. Sharing on LinkedIn is optional, one button.
+// report. Sharing on LinkedIn is optional, one button, and never states the grade.
 
 
-const SHORT: Record<string, string> = {
-  searchAndAI: 'AI & search', digitalPresence: 'Website', reputation: 'Reputation', socialMedia: 'Social',
-  advertising: 'Advertising', booking: 'Booking', competitive: 'Competitive',
-};
 const MAILED_KEY = 'hg-mailed';
 const LEADS_KEY = 'hg-leads';
 
@@ -100,153 +95,7 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
   return { center, located, approximate, blips, rivals };
 }
 
-/** The API sometimes writes a section's internal key into its summary sentence. */
-function plainFinding(text: string): string {
-  return pillars.reduce((t, p) => t.split(p.key).join(p.name), text);
-}
-
-function Grade({ letter, size }: { letter: string; size: number }) {
-  return (
-    <span className={`grade ${gradeTone(letter)} tabular`} style={{ fontSize: size }}>
-      {letter.charAt(0)}
-      <span className="grade-mod">{letter.slice(1)}</span>
-    </span>
-  );
-}
-
-/** Measured metrics only. Rows the API could not back with data are skipped. */
-function scored(audit: Audit): (Metric & { section: string })[] {
-  const hide = contradicted(audit);
-  return pillars.flatMap((p) =>
-    (audit.categories[p.key]?.metrics ?? [])
-      .filter((m) => isMeasured(m) && !hide.has(m.name))
-      .map((m) => ({ ...m, section: p.name })),
-  );
-}
-
 type Market = ReturnType<typeof useMarket>;
-
-/** The hotel against its nearest competitors: radar on the left, table on the right. */
-function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
-  const comp = audit._meta?.competitors;
-  if (!market.rivals.length) return null;
-  const plotted = new Set(market.blips.map((b) => b.n));
-  return (
-    <section className="px-5 sm:px-8 py-7 border-t border-edge">
-      <h2 className="label label--ink mb-5">Your market</h2>
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,320px)_1fr] gap-8 items-center">
-        <Scanner center={market.center} blips={market.blips} scanning={false} hotel={audit.hotelName} approximate={market.approximate} />
-        <div>
-          {comp?.rating_rank != null && comp.total_in_set != null && (
-            <p className="headline text-[20px] sm:text-[24px] mb-4">
-              #{comp.rating_rank} of {comp.total_in_set} <span className="text-ink-60 font-normal">on Google rating in your comp set</span>
-            </p>
-          )}
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr className="meta text-left">
-                <th className="font-normal py-1.5 w-8"></th>
-                <th className="font-normal py-1.5">hotel</th>
-                <th className="font-normal py-1.5 text-right">Google rating</th>
-                <th className="font-normal py-1.5 text-right">reviews</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-edge">
-                <td className="py-2"><span className="scanner-key scanner-key--home" /></td>
-                <td className="py-2 font-semibold">{audit.hotelName}</td>
-                <td className="py-2 text-right font-semibold num">{comp?.own_rating?.toFixed(1) ?? 'n/a'}</td>
-                <td className="py-2 text-right num">{comp?.own_reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
-              </tr>
-              {market.rivals.map((r) => (
-                <tr key={r.n} className="border-t border-edge">
-                  <td className="py-2">
-                    <span className="scanner-key">{r.n}</span>
-                  </td>
-                  <td className="py-2">{r.name}{!plotted.has(r.n) && market.located && <span className="text-ink-40"> (not on map)</span>}</td>
-                  <td className="py-2 text-right num">{r.rating?.toFixed(1) ?? 'n/a'}</td>
-                  <td className="py-2 text-right text-ink-60 num">{r.reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="meta mt-3">
-            {comp?.total_in_set != null && `These are the ${market.rivals.length} hotels most like yours out of ${comp.total_in_set} comparable hotels nearby, which is why their ratings and review counts sit close together. `}
-            {comp?.compset_avg_rating != null && `Average rating across the set: ${comp.compset_avg_rating}. `}
-            Ratings and review counts are Google’s, read at scan time.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ReportCardView({ audit, market }: { audit: Audit; market: Market }) {
-  const letter = letterFor(audit.overallScore);
-  const total = pillars.reduce((n, p) => n + (audit.categories[p.key]?.metrics?.length ?? 0), 0);
-  const counted = audit._meta?.overall_scoring?.included;
-  // The API stamps scans in UTC without a zone marker; add it so the date is right locally.
-  const stamp = audit._meta?.generatedAt;
-  const date = stamp
-    ? new Date(/(?:Z|[+-]\d\d:?\d\d)$/i.test(stamp) ? stamp : `${stamp}Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : '';
-  const metrics = scored(audit);
-  const place = [audit.city, audit.state].filter(Boolean).join(', ');
-
-  return (
-    <article className="panel overflow-hidden">
-      <header className="px-5 sm:px-8 py-3 border-b border-edge flex flex-wrap justify-between gap-2 meta">
-        <span className="text-accent">report card</span>
-        {date && <span>scanned {date}</span>}
-      </header>
-
-      <section className="px-5 sm:px-8 py-8 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
-        <div role="img" aria-label={`Grade ${letter}, ${audit.overallScore} out of 100`}>
-          <Grade letter={letter} size={132} />
-          <div className="text-ink-60 mt-3 num">{audit.overallScore} / 100</div>
-        </div>
-        <div>
-          <h1 className="headline text-[26px] sm:text-[32px]">{audit.hotelName}</h1>
-          {place && <p className="text-ink-60 mt-1">{place}</p>}
-          {keyFindingFor(audit) && <p className="mt-4">{plainFinding(keyFindingFor(audit))}</p>}
-        </div>
-      </section>
-
-      <MarketSection audit={audit} market={market} />
-
-      <section className="px-5 sm:px-8 py-7 border-t border-edge">
-        <h2 className="label label--ink mb-4">The seven sections</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <Radar items={pillars.map((p) => ({ label: SHORT[p.key] ?? p.name, score: audit.categories[p.key]?.score ?? null }))} />
-          <div>
-            {pillars.map((p, i) => {
-              const s = audit.categories[p.key]?.score ?? null;
-              const l = letterFor(s);
-              return (
-                <div key={p.key} className={`flex items-baseline gap-3 py-2 ${i > 0 ? 'border-t border-edge' : ''}`}>
-                  <span className="flex-1 min-w-0">{p.name}{counted && !counted.includes(p.key) ? <span className="text-ink-40"> *</span> : ''}</span>
-                  <span className="text-ink-60 num">{s ?? '-'}</span>
-                  <span className="w-[34px] text-right"><Grade letter={l} size={22} /></span>
-                </div>
-              );
-            })}
-            {counted && pillars.some((p) => !counted.includes(p.key)) && (
-              <p className="meta mt-3">* Scored, but not counted in the overall grade yet. See <a href="/methodology">how the grade is built</a>.</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <footer className="px-5 sm:px-8 py-3 border-t border-edge flex flex-wrap justify-between gap-2 meta">
-        <span>
-          {total > 0 && `${metrics.length} of ${total} metrics backed by data this scan. `}
-          Public data only.
-        </span>
-        <a href="/methodology">how the grade is built</a>
-      </footer>
-    </article>
-  );
-}
 
 // What the scan is doing, by seconds elapsed. The API reports few progress
 // steps, so these plain-language lines keep the wait readable.
@@ -256,7 +105,7 @@ const STAGES: [number, string][] = [
   [30, 'Checking rate parity across the OTAs'],
   [55, 'Asking AI assistants about the hotel'],
   [85, 'Comparing with nearby hotels'],
-  [115, 'Scoring the seven sections'],
+  [115, 'Weighing the evidence'],
 ];
 
 /** Shown while the scan runs, and after it if the email isn't verified yet. */
@@ -329,7 +178,7 @@ export default function ReportCard() {
     runAudit(target.hotel, target.city, target.state, ctrl.signal)
       .then((a) => {
         setAudit(a);
-        track('grade_complete', { ...hotelParams(target), score: Math.round(a.overallScore), seconds: Math.round((Date.now() - started) / 1000) });
+        track('grade_complete', { ...hotelParams(target), score: assess(a).rawScore ?? undefined, coverage: Math.round(assess(a).coverage * 100), seconds: Math.round((Date.now() - started) / 1000) });
       })
       .catch((e) => {
         if (e?.name === 'AbortError') return;
@@ -426,12 +275,11 @@ export default function ReportCard() {
           <a href="/" className="btn btn--primary">grade your hotel</a>
         </div>
       )}
-      <ReportCardView audit={audit} market={market} />
-      <FullReport audit={audit} />
+      <Report audit={audit} market={market} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
           track('share', { method: 'linkedin', content_type: 'report', item_id: target.hotel });
-          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, pickHighlight(audit)))}`, '_blank', 'noopener');
+          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, assess(audit)))}`, '_blank', 'noopener');
         }}>share on LinkedIn</button>
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy share link'}</button>
         <button type="button" className="btn" onClick={() => { track('print_report', { hotel: target.hotel }); window.print(); }}>print</button>
