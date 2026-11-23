@@ -63,9 +63,11 @@ const details = (d) => ({
   checkIn: d.check_in_time ?? '', checkOut: d.check_out_time ?? '',
   photos: Array.isArray(d.images) ? d.images.length : null,
   amenities: Array.isArray(d.amenities) ? d.amenities.slice(0, 60) : [],
-  stars: Array.isArray(d.ratings) ? d.ratings.slice(0, 5) : [],
-  themes: Array.isArray(d.reviews_breakdown) ? d.reviews_breakdown.slice(0, 12) : [],
-  otherSites: Array.isArray(d.other_reviews) ? d.other_reviews.slice(0, 6) : [],
+  stars: (Array.isArray(d.ratings) ? d.ratings : []).slice(0, 5).map((r) => ({ stars: r.stars, count: r.count })).filter((r) => r.stars >= 1 && r.count >= 0),
+  // Google's own grouping of what reviewers mention, counted across every review it holds.
+  topics: (Array.isArray(d.reviews_breakdown) ? d.reviews_breakdown : []).slice(0, 14).map((t) => ({ name: String(t.name ?? '').slice(0, 40), mentions: t.total_mentioned ?? 0, positive: t.positive ?? 0, negative: t.negative ?? 0 })).filter((t) => t.name && t.mentions > 0),
+  // Ratings Google shows from other review sites. The sample review text it attaches is not kept.
+  otherSites: (Array.isArray(d.other_reviews) ? d.other_reviews : []).slice(0, 6).map((o) => ({ source: String(o.source ?? '').slice(0, 40), rating: o.source_rating?.score != null ? Math.round(o.source_rating.score * 10) / 10 : null, max: o.source_rating?.max_score ?? null, reviews: o.reviews ?? null })).filter((o) => o.source),
   locationRating: d.location_rating ?? null,
   ecoCertified: d.eco_certified ?? null,
   typical: d.typical_price_range ? { low: d.typical_price_range.extracted_lowest ?? null, high: d.typical_price_range.extracted_highest ?? null } : null,

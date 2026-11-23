@@ -318,6 +318,8 @@ export function assess(audit, crawl = null, live = null) {
   const gRating = comp?.own_rating ?? gbp?.rating ?? platforms?.per_platform?.google?.rating ?? null;
   const gCount = comp?.own_reviews ?? gbp?.review_count ?? platforms?.per_platform?.google?.review_count ?? null;
   const ta = platforms?.per_platform?.tripadvisor ?? null;
+  // Tripadvisor's rating as Google shows it on the hotel's listing, when the grading API didn't read one.
+  const taG = (px?.hotel?.otherSites ?? []).find((o) => /tripadvisor/i.test(o.source) && o.rating != null && (o.max ?? 5) === 5);
   check('reputation', 'google-rating', 'Google rating', 30,
     gRating != null ? scale(gRating, RATING_SCALE) : null,
     gRating != null ? `${Number(gRating).toFixed(1)} stars${gCount ? ` from ${n0(gCount)} reviews` : ''}.` : 'Not read this scan.',
@@ -335,9 +337,10 @@ export function assess(audit, crawl = null, live = null) {
       : 'No comp set this scan.',
     'Google');
   check('reputation', 'tripadvisor', 'Tripadvisor rating', 10,
-    ta?.rating != null ? scale(ta.rating, RATING_SCALE) : null,
-    ta?.rating != null ? `${Number(ta.rating).toFixed(1)} from ${n0(ta.review_count ?? 0)} reviews.` : 'No Tripadvisor rating was read this scan.',
-    'Tripadvisor');
+    ta?.rating != null ? scale(ta.rating, RATING_SCALE) : taG ? scale(taG.rating, RATING_SCALE) : null,
+    ta?.rating != null ? `${Number(ta.rating).toFixed(1)} from ${n0(ta.review_count ?? 0)} reviews.`
+      : taG ? `${taG.rating.toFixed(1)}${taG.reviews ? ` from ${n0(taG.reviews)} reviews` : ''}, as shown on your Google hotel listing.` : 'No Tripadvisor rating was read this scan.',
+    ta?.rating != null ? 'Tripadvisor' : taG ? 'Google hotel listing' : 'Tripadvisor');
   const rs = sent?.response_stats;
   check('reputation', 'responses', 'Management replies to reviews', 15,
     rs && rs.total_reviews >= 10 ? scale(rs.response_rate, [[0, 0], [25, 0.3], [50, 0.6], [80, 1]]) : null,
@@ -813,6 +816,17 @@ export function assess(audit, crawl = null, live = null) {
     negative: (sent.negative_themes ?? []).slice(0, 5).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.example_phrase, severity: t.severity })),
   } : null;
 
+  // Google's own review topics and star spread for the listing. Shown, not scored: the themes check already covers what guests say.
+  const gTopics = (px?.hotel?.topics ?? []).filter((t) => t.mentions >= 10);
+  const gStars = px?.hotel?.stars ?? [];
+  const starTotal = gStars.reduce((t, r) => t + r.count, 0);
+  const voice = gTopics.length >= 3 || starTotal >= 20 ? {
+    topics: gTopics.map((t) => ({ ...t, negShare: t.negative / Math.max(1, t.positive + t.negative) })).sort((a, b) => b.negShare - a.negShare).slice(0, 10),
+    stars: starTotal >= 20 ? [5, 4, 3, 2, 1].map((n) => { const c = gStars.find((r) => r.stars === n)?.count ?? 0; return { stars: n, count: c, share: c / starTotal }; }) : [],
+    total: starTotal,
+    low: starTotal ? gStars.filter((r) => r.stars <= 2).reduce((t, r) => t + r.count, 0) / starTotal : null,
+  } : null;
+
   const prices = rates.length >= 3 ? {
     night, direct, lowest, gap,
     cheaper: direct ? others.filter((r) => r.rate < direct.rate).length : 0,
@@ -846,7 +860,7 @@ export function assess(audit, crawl = null, live = null) {
     letter: graded ? letterFor(score) : '-',
     graded,
     coverage,
-    functions, priorities, strengths, identity, choice, example, ads, themes, prices, headline,
+    functions, priorities, strengths, identity, choice, example, ads, themes, voice, prices, headline,
     ai: { samples, queries },
     counts: {
       checks: functions.reduce((n, f) => n + f.checks.filter((c) => c.status !== 'na').length, 0),

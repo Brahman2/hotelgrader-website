@@ -323,6 +323,54 @@ function Themes({ a }: { a: Assessment }) {
   );
 }
 
+function Voice({ a }: { a: Assessment }) {
+  const v = a.voice;
+  if (!v) return null;
+  const worst = v.topics.filter((t) => t.negShare >= 0.25).slice(0, 2);
+  return (
+    <Section id="topics" title="Where the praise and the complaints land"
+      kicker={`Google groups every review it holds for your listing${v.total ? ` (${v.total.toLocaleString('en-US')})` : ''} by topic. Green is praise, red is complaint. Not scored: it shows where to look.`}>
+      {worst.length > 0 && (
+        <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
+          {worst.map((t) => t.name.toLowerCase()).join(' and ')} {worst.length === 1 ? 'draws' : 'draw'} the largest share of complaints: <span className="grade--f">{Math.round(worst[0].negShare * 100)}%</span> of the opinions on {worst[0].name.toLowerCase()} are negative.
+        </p>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] gap-10 items-start">
+        <ul className="list-none m-0 p-0 space-y-2">
+          {v.topics.map((t) => {
+            const sum = Math.max(1, t.positive + t.negative);
+            return (
+              <li key={t.name} className="grid grid-cols-[minmax(0,30%)_1fr_auto] items-center gap-3 text-[13px]">
+                <span className="truncate text-ink-60">{t.name}</span>
+                <span className="flex h-[10px] bg-edge" aria-hidden="true">
+                  <span style={{ width: `${(t.positive / sum) * 100}%`, background: 'var(--grade-a)' }} />
+                  <span style={{ width: `${(t.negative / sum) * 100}%`, background: 'var(--grade-f)' }} />
+                </span>
+                <span className="num w-[92px] text-right text-ink-60"><span className="text-ink">{Math.round(t.negShare * 100)}%</span> neg · {t.mentions}</span>
+              </li>
+            );
+          })}
+        </ul>
+        {v.stars.length > 0 && (
+          <div>
+            <div className="meta mb-2">Star ratings on Google</div>
+            <ul className="list-none m-0 p-0 space-y-1.5">
+              {v.stars.map((r) => (
+                <li key={r.stars} className="grid grid-cols-[18px_1fr_44px] items-center gap-2 text-[13px]">
+                  <span className="num text-ink-60">{r.stars}</span>
+                  <span className="h-[10px] bg-edge" aria-hidden="true"><span className="block h-full" style={{ width: `${r.share * 100}%`, background: r.stars >= 4 ? 'var(--grade-a)' : r.stars === 3 ? 'var(--ink-40)' : 'var(--grade-f)' }} /></span>
+                  <span className="num text-right text-ink-60">{Math.round(r.share * 100)}%</span>
+                </li>
+              ))}
+            </ul>
+            {v.low != null && <p className="meta mt-3">{Math.round(v.low * 100)}% of ratings are one or two stars.</p>}
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
   if (!ads || ads.rivals.length < 2) return null;
@@ -572,6 +620,7 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
       {/* 4. The detail */}
       <Prices a={a} />
       <Themes a={a} />
+      <Voice a={a} />
       <Ads a={a} />
       <AiSample a={a} />
       <Detail a={a} />
