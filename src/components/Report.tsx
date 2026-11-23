@@ -144,7 +144,7 @@ function Choice({ a, audit, market }: { a: Assessment; audit: Audit; market: Mar
             <thead>
               <tr className="meta text-left">
                 <th className="font-normal py-1.5 w-8"></th>
-                <th className="font-normal py-1.5">hotel</th>
+                <th className="font-normal py-1.5">your hotel</th>
                 <th className="font-normal py-1.5 text-right">rating</th>
                 <th className="font-normal py-1.5 text-right hidden sm:table-cell">reviews</th>
                 <th className="font-normal py-1.5 text-right">rate</th>
@@ -502,7 +502,7 @@ function Recent({ a }: { a: Assessment }) {
 
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
-  if (!ads || (ads.rivals.length < 2 && !ads.brand)) return null;
+  if (!ads || (!ads.brand && !ads.you.detail && ads.you.google == null && ads.you.meta == null)) return null;
   const cell = (v: boolean | null) =>
     v == null ? <span className="text-ink-40">couldn’t tell</span>
       : v ? <span className="inline-flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />seen</span>
@@ -512,7 +512,7 @@ function Ads({ a }: { a: Assessment }) {
       kicker="Observed, not graded. Public ad libraries show whether ads exist. They say nothing about budget, targeting or return, and a search that shows no ad doesn’t prove there isn’t one.">
       <table className="w-full border-collapse text-[13px]">
         <thead>
-          <tr className="meta text-left"><th className="font-normal py-1.5">hotel</th><th className="font-normal py-1.5 w-[28%]">Google ads</th><th className="font-normal py-1.5 w-[28%]">Meta ads</th></tr>
+          <tr className="meta text-left"><th className="font-normal py-1.5">your hotel</th><th className="font-normal py-1.5 w-[28%]">Google ads</th><th className="font-normal py-1.5 w-[28%]">Meta ads</th></tr>
         </thead>
         <tbody>
           {[ads.you, ...ads.rivals].map((r, i) => (
@@ -546,7 +546,7 @@ function Ads({ a }: { a: Assessment }) {
         </p>
       )}
       <p className="meta mt-3 max-w-[84ch]">
-        Google’s Ads Transparency Center, searched by each hotel’s website, and Meta’s Ad Library, searched by each hotel’s name or Facebook page.
+        Google’s Ads Transparency Center, searched by your website, and Meta’s Ad Library, searched by your hotel’s name. We don’t look up other hotels’ ads.
         {ads.you.googleBy.length > 0 && ` The Google ads for your site run under ${ads.you.googleBy.join(', ')}.`}
         {' '}Ads placed under a management group or agency name can be missed.
       </p>

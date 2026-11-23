@@ -853,12 +853,10 @@ export function assess(audit, crawl = null, live = null) {
   // ---------- observations that aren't scored ----------
   const gAds = evidence(audit, /^google ads presence/i);
   const mAds = evidence(audit, /^meta ads presence/i);
-  // Ad checks were run for the grading API's comparison set. Once the set is ours, keep only the hotels that are in both.
-  const adRivals = (meta.compset_ads?.competitors ?? []).filter((r) => !comp?.ours || (comp.top_competitors ?? []).some((c) => sameName(c.name, r.name) || likeName(c.name, r.name)));
   // Our own read of the two ad libraries, when we have it.
   const la = live?.ads?.ok ? live.ads : null;
   const myMeta = la?.meta ? la.meta.ads.filter((x) => sameName(x.page, audit.hotelName) || likeName(x.page, audit.hotelName) || (lh?.name && likeName(x.page, lh.name))) : [];
-  const ads = (gAds || mAds || adRivals.length || la || bs) ? {
+  const ads = (gAds || mAds || la || bs) ? {
     you: {
       name: audit.hotelName,
       google: la?.google ? la.google.recent > 0 : gAds?.registry?.checked ? !!(gAds.runs_ads_registry ?? gAds.registry.runs_ads_registry) : null,
@@ -871,7 +869,8 @@ export function assess(audit, crawl = null, live = null) {
         metaOthers: la.meta ? [...new Set(la.meta.ads.filter((x) => !myMeta.includes(x)).map((x) => x.page))].slice(0, 4) : [],
       } : null,
     },
-    rivals: adRivals.map((r) => ({ name: r.name, google: r.google_ads ?? null, meta: r.meta_ads ?? null })),
+    // Ads are reported for the hotel itself only. Competitors' ads aren't read or shown.
+    rivals: [],
     /** Who was advertising on a search for the hotel's own name, from our brand search. Null when not read. */
     brand: bs ? { query: bs.query, own: bs.ownAd, others: [...new Set(bs.ads.filter((x) => x.owner !== 'you').map((x) => x.domain))].slice(0, 6) } : null,
   } : null;
