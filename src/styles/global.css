@@ -301,3 +301,11 @@ html[data-theme='dark'] .dark-pad { padding-left: 2.5rem; }
 .scan-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: none; animation: scan-dot 1.4s ease-in-out infinite; }
 @keyframes scan-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
 @media (prefers-reduced-motion: reduce) { .scan-dot { animation: none; } }
+
+/* Checklist marks in the report: a tick, a cross, a caution or a question mark. */
+.check-mark { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; margin-top: 1px; }
+.check-mark--pass { background: var(--edge); color: var(--ink-60); }
+.check-mark--fail { background: var(--grade-f); color: var(--panel-bg, #0b0d0c); }
+.check-mark--partial { background: var(--grade-c); color: var(--panel-bg, #0b0d0c); }
+.check-mark--unknown { border: 1px dashed var(--edge-strong); color: var(--ink-40); }
+@media print { .no-print-sticky { position: static !important; max-height: none !important; overflow: visible !important; } }

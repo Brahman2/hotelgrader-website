@@ -7,10 +7,11 @@ import { MarketScatter, Ring, toneFor, type MarketPoint } from './Charts';
 import Scanner, { type Blip } from './Scanner';
 import type { LatLon } from '../lib/geo';
 
-// The report, in the order an owner reads it: the grade and what it rests on,
-// what to do first, how the hotel sits against the alternatives, then the
-// evidence behind every check. All of it comes from assess() in
-// shared/assess.mjs, which scores only what the scan observed.
+// The report. A sidebar keeps the grade and every part's score in view; the
+// main column opens with what needs work and how the hotel ranks, then what to
+// do first, then every check we ran, part by part, with that part's charts.
+// All of it comes from assess() in shared/assess.mjs, which scores only what
+// the scan observed.
 
 const SITE = 'https://hotelgrader.com';
 
@@ -83,32 +84,6 @@ function ImportanceBar({ fns }: { fns: FunctionResult[] }) {
       <p className="meta mt-2.5">
         Each block is one part of the grade, sized by how much it matters. Colour is how it scored. The hatched part is what a public scan couldn’t see, and it neither helps nor hurts the grade.
       </p>
-    </div>
-  );
-}
-
-function FunctionRows({ fns }: { fns: FunctionResult[] }) {
-  const cols = 'grid grid-cols-[40px_1fr_70px] sm:grid-cols-[1fr_60px_150px_70px] gap-x-3';
-  return (
-    <div className="mt-6">
-      <div className={`${cols} meta pb-1.5`}>
-        <span className="hidden sm:block">part of the grade</span><span className="sm:text-right">points</span><span>seen</span><span className="text-right">score</span>
-      </div>
-      {fns.map((f) => (
-        <a key={f.key} href={`#fn-${f.key}`} className={`${cols} items-center py-2 border-t border-edge text-ink hover:no-underline hover:bg-[var(--accent-soft)]`}>
-          <span className="col-span-3 sm:col-span-1 min-w-0 truncate font-medium sm:font-normal">{f.name}</span>
-          <span className="num text-ink-60 sm:text-right">{f.weight}</span>
-          <span className="flex items-center gap-2">
-            <span className="hatch h-[8px] flex-1 relative"><span className="absolute inset-y-0 left-0 bg-[var(--ink-40)]" style={{ width: pct(f.coverage) }} /></span>
-            <span className="num text-ink-60 text-[12px] w-[34px] text-right">{pct(f.coverage)}</span>
-          </span>
-          <span className="text-right whitespace-nowrap">
-            {f.score == null
-              ? <span className="text-ink-40 text-[12px]">not seen</span>
-              : <><span className="num text-ink-60 mr-2">{f.score}</span><span className="inline-block w-[24px] text-left"><Grade letter={letterFor(f.score)} size={18} /></span></>}
-          </span>
-        </a>
-      ))}
     </div>
   );
 }
@@ -442,54 +417,144 @@ function AiSample({ a }: { a: Assessment }) {
   );
 }
 
-const DOT: Record<Check['status'], { cls: string; word: string; hollow?: boolean }> = {
-  pass: { cls: 'grade--a', word: 'good' },
-  partial: { cls: 'grade--c', word: 'could be better' },
-  fail: { cls: 'grade--f', word: 'needs work' },
-  unknown: { cls: 'text-ink-40', word: 'not observed', hollow: true },
-  na: { cls: 'text-ink-40', word: 'doesn’t apply', hollow: true },
+const MARK: Record<Check['status'], { cls: string; word: string; glyph: 'tick' | 'cross' | 'bang' | 'query' }> = {
+  pass: { cls: 'check-mark--pass', word: 'good', glyph: 'tick' },
+  partial: { cls: 'check-mark--partial', word: 'could be better', glyph: 'bang' },
+  fail: { cls: 'check-mark--fail', word: 'needs work', glyph: 'cross' },
+  unknown: { cls: 'check-mark--unknown', word: 'couldn’t see', glyph: 'query' },
+  na: { cls: 'check-mark--unknown', word: 'doesn’t apply', glyph: 'query' },
 };
 
-function CheckRow({ c }: { c: Check }) {
-  const d = DOT[c.status];
+function Mark({ status }: { status: Check['status'] }) {
+  const m = MARK[status];
   return (
-    <li className="grid grid-cols-[14px_1fr] gap-x-3 py-3 border-t border-edge">
-      <svg width="12" height="12" viewBox="0 0 12 12" className={`mt-[5px] ${d.cls}`} aria-hidden="true">
-        <circle cx="6" cy="6" r="4.5" fill={d.hollow ? 'none' : 'currentColor'} stroke="currentColor" strokeWidth="1.5" strokeDasharray={d.hollow ? '2 2' : undefined} />
+    <span className={`check-mark ${m.cls}`} aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {m.glyph === 'tick' && <path d="M2.5 6.4l2.3 2.3 4.7-5.2" />}
+        {m.glyph === 'cross' && <path d="M3 3l6 6M9 3l-6 6" />}
+        {m.glyph === 'bang' && <path d="M6 2.6v4.2M6 9.3v.1" />}
+        {m.glyph === 'query' && <path d="M4.2 4.4a1.9 1.9 0 113 1.5c-.7.5-1.2.8-1.2 1.6M6 9.4v.1" />}
       </svg>
+    </span>
+  );
+}
+
+/** One thing we checked: a tick or a cross, what it is, and what we saw. */
+function CheckRow({ c }: { c: Check }) {
+  const m = MARK[c.status];
+  const quiet = c.status === 'pass' || c.status === 'unknown' || c.status === 'na';
+  return (
+    <li className="grid grid-cols-[24px_1fr] gap-x-3 py-3">
+      <Mark status={c.status} />
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <span className="text-[14px] font-medium">{c.label}</span>
-          <span className={`text-[12px] ${d.cls}`}>{d.word}</span>
+          <span className={`text-[15px] ${c.status === 'unknown' || c.status === 'na' ? 'text-ink-60' : 'font-medium'}`}>{c.label}</span>
+          {!quiet && <span className={`text-[12px] ${c.status === 'fail' ? 'grade--f' : 'grade--c'}`}>{m.word}</span>}
         </div>
-        <p className="text-ink-60 text-[13.5px] mt-1">{c.observed}</p>
-        {c.source && c.earned != null && <p className="meta mt-1">{c.source}{day(c.when) ? `, ${day(c.when)}` : ''}</p>}
+        <p className={`text-[13.5px] mt-0.5 ${quiet ? 'text-ink-40' : 'text-ink-60'}`}>{c.observed}</p>
+        {!quiet && c.source && <p className="meta mt-1">{c.source}{day(c.when) ? `, ${day(c.when)}` : ''}</p>}
       </div>
     </li>
   );
 }
 
-function Detail({ a }: { a: Assessment }) {
+/** What each part of the grade is for, in the owner's words. */
+const GOAL: Record<string, string> = {
+  booking: 'Get guests from your listing to a booking',
+  rates: 'Make your own rate the one worth booking',
+  reputation: 'Earn the rating that wins the click',
+  discovery: 'Be found when guests search for you',
+  profiles: 'Keep every listing complete and correct',
+  media: 'Show the hotel well',
+  speed: 'Load fast on a phone',
+  brand: 'Say clearly what kind of hotel you are',
+  links: 'Be linked from the places that matter',
+  social: 'Be present where guests look you up',
+  contact: 'Make it easy to reach you',
+  ai: 'Be named when guests ask AI',
+};
+
+const verdict = (score: number | null) => (score == null ? 'Not seen' : score >= 90 ? 'Strong' : score >= 80 ? 'Good' : score >= 70 ? 'Fair' : score >= 60 ? 'Weak' : 'Poor');
+const needsWork = (c: Check) => c.status === 'fail' || c.status === 'partial';
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+
+/** One part of the grade: its aim, its score, every check, then its charts. */
+function Part({ f, n, children }: { f: FunctionResult; n: number; children?: ReactNode }) {
+  const work = f.checks.filter(needsWork).length;
   return (
-    <Section id="detail" title="The evidence behind each part"
-      kicker="Every check, what we saw, where and when. Open a part to read it.">
-      {a.functions.map((f, i) => (
-        <details key={f.key} id={`fn-${f.key}`} className={`scroll-mt-20 ${i > 0 ? 'border-t border-edge' : ''}`}>
-          <summary className="flex items-center gap-3 py-3.5 cursor-pointer list-none">
-            <Ring score={f.score} size={42} label={`${f.name}: ${f.score ?? 'not observed'}`} />
-            <span className="flex-1 min-w-0">
-              <span className="font-semibold text-[16px] block truncate">{f.name}</span>
-              <span className="meta">{f.weight} of 100 points · {f.score == null ? 'not observed this scan' : `${pct(f.coverage)} observed`}</span>
-            </span>
-            <span className="meta hidden sm:block">{f.checks.filter((c) => c.status === 'fail' || c.status === 'partial').length || 'no'} to work on</span>
-          </summary>
-          <div className="pb-5">
-            {f.covers && <p className="text-ink-60 text-[13.5px] mb-1">{f.covers}</p>}
-            <ul className="list-none m-0 p-0">{f.checks.map((c) => <CheckRow key={c.id} c={c} />)}</ul>
+    <section id={`fn-${f.key}`} className="scroll-mt-24">
+      <div className="flex items-end justify-between gap-4 px-1 mb-3">
+        <div className="min-w-0">
+          <div className="text-ink-40 text-[15px]">{n}. {f.name} <span className="meta ml-1">{f.weight} of 100 points</span></div>
+          <h3 className="headline text-[20px] sm:text-[23px] mt-0.5">{GOAL[f.key] ?? f.name}</h3>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <span className={`text-[13px] ${toneFor(f.score)}`}>{f.score == null ? 'not seen' : work ? `${work} to work on` : verdict(f.score).toLowerCase()}</span>
+          <Ring score={f.score} size={40} label={`${f.name}: ${f.score ?? 'not observed'}`} />
+        </div>
+      </div>
+      <div className="panel overflow-hidden">
+        <div className="px-5 sm:px-8 py-5">
+          {f.covers && <p className="text-ink-60 text-[13.5px] mb-2 max-w-[72ch]">{f.covers}</p>}
+          <ul className="list-none m-0 p-0 divide-y divide-[var(--edge)]">{f.checks.map((c) => <CheckRow key={c.id} c={c} />)}</ul>
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/** The grade and every part's score, kept in view beside the report. */
+function Side({ a }: { a: Assessment }) {
+  const rows = a.functions.map((f) => (
+    <a key={f.key} href={`#fn-${f.key}`} className="grid grid-cols-[30px_1fr_auto] items-center gap-x-3 py-[7px] text-ink hover:no-underline group">
+      <Ring score={f.score} size={30} label={`${f.name}: ${f.score ?? 'not observed'}`} />
+      <span className="min-w-0">
+        <span className="block truncate text-[13.5px] font-medium group-hover:text-accent">{f.name}</span>
+        <span className={`block text-[12px] leading-tight ${f.score == null ? 'text-ink-40' : toneFor(f.score)}`}>{verdict(f.score)}</span>
+      </span>
+      <span className="meta tabular">{f.weight} pts</span>
+    </a>
+  ));
+  return (
+    <aside className="panel px-6 py-7 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto no-print-sticky">
+      <div className="flex lg:flex-col items-center gap-5 lg:gap-0 lg:text-center">
+        {a.graded ? (
+          <div className="relative shrink-0" role="img" aria-label={`Execution grade ${a.letter}, ${a.score} out of 100`}>
+            <svg width="168" height="168" viewBox="0 0 44 44" className={`w-[112px] h-[112px] lg:w-[168px] lg:h-[168px] ${toneFor(a.score)}`} aria-hidden="true">
+              <circle cx="22" cy="22" r="19" fill="none" stroke="var(--edge-strong)" strokeWidth="2.6" />
+              <circle cx="22" cy="22" r="19" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"
+                strokeDasharray={`${((a.score ?? 0) / 100) * 2 * Math.PI * 19} ${2 * Math.PI * 19}`} transform="rotate(-90 22 22)" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="num text-[34px] lg:text-[50px] leading-none font-semibold">{a.score}</span>
+              <span className="meta mt-1">of 100</span>
+            </div>
           </div>
-        </details>
-      ))}
-    </Section>
+        ) : (
+          <p className="headline text-[20px]">Not enough evidence for a grade yet.</p>
+        )}
+        <div className="lg:mt-5">
+          <div className="meta">execution grade</div>
+          {a.graded && (
+            <div className="flex items-baseline gap-3 lg:justify-center mt-1">
+              <Grade letter={a.letter} size={44} />
+              <span className="headline text-[24px]">{verdict(a.score)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="mt-5">
+        <div className="hatch h-[6px] relative"><div className="absolute inset-y-0 left-0 bg-[var(--accent)]" style={{ width: pct(a.coverage) }} /></div>
+        <p className="meta mt-1.5">Rests on <span className="text-ink num">{pct(a.coverage)}</span> of the assessment. The rest couldn’t be seen from outside and isn’t counted.</p>
+      </div>
+      <nav className="mt-5 pt-3 border-t border-edge hidden lg:block" aria-label="Parts of the grade">{rows}</nav>
+      <details className="mt-4 pt-3 border-t border-edge lg:hidden">
+        <summary className="cursor-pointer text-[14px] font-medium py-1">The twelve parts of the grade</summary>
+        <nav className="mt-1" aria-label="Parts of the grade">{rows}</nav>
+      </details>
+      <a href="#priorities" className="btn btn--primary w-full justify-center mt-5 no-print">what to do first</a>
+    </aside>
   );
 }
 
@@ -540,118 +605,167 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
   const a = useMemo(() => assess(audit, crawl, live), [audit, crawl, live]);
   const fnName = (key: string) => a.functions.find((f) => f.key === key)?.name ?? '';
   const unseen = a.functions.filter((f) => f.coverage < 1 && f.notYet);
+  const all = a.functions.flatMap((f) => f.checks);
+  const checked = all.filter((c) => c.earned != null).length;
+  const work = all.filter(needsWork).length;
+  const hidden = all.filter((c) => c.earned == null && c.max > 0).length;
+  // The hotels we compared, best guest rating first, with this hotel's place among them.
+  const ranked = a.choice ? [...a.choice.rows].filter((r) => r.rating != null).sort((x, y) => (y.rating! - x.rating!) || ((y.reviews ?? 0) - (x.reviews ?? 0))) : [];
+  const place = ranked.findIndex((r) => r.you) + 1;
+  // The charts that belong with a part sit inside that part.
+  const extras: Record<string, ReactNode> = {
+    rates: <Prices a={a} />,
+    reputation: <><Choice a={a} audit={audit} market={market} /><Themes a={a} /><Voice a={a} /></>,
+    ai: <AiSample a={a} />,
+  };
 
   return (
-    <article className="panel overflow-hidden">
-      <header className="px-5 sm:px-8 py-3 border-b border-edge flex flex-wrap justify-between gap-2 meta">
-        <span className="text-accent">report card</span>
-        <span>{day(a.scannedAt) && `scanned ${day(a.scannedAt)} · `}method v{a.version}</span>
-      </header>
+    <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
+      <Side a={a} />
 
-      {/* 1. The result, what it means, and what it rests on */}
-      <section className="px-5 sm:px-8 py-8 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
-        <div className="sm:w-[190px]">
-          {a.graded ? (
-            <div role="img" aria-label={`Execution grade ${a.letter}, ${a.score} out of 100`}>
-              <Grade letter={a.letter} size={124} />
-              <div className="text-ink-60 mt-3 num">{a.score} / 100</div>
+      <div className="min-w-0 space-y-6">
+        {/* 1. What needs work, and where the hotel stands */}
+        <div className={`grid grid-cols-1 ${place > 0 ? 'xl:grid-cols-2' : ''} gap-6`}>
+          <section className="panel px-6 sm:px-8 py-7">
+            <div className="meta flex flex-wrap justify-between gap-2 mb-4">
+              <span className="text-accent">report card</span>
+              <span>{day(a.scannedAt) && `scanned ${day(a.scannedAt)} · `}method v{a.version}</span>
             </div>
-          ) : (
-            <p className="headline text-[22px]">Not enough evidence for a grade yet.</p>
+            <p className="headline text-[24px] sm:text-[28px] leading-tight">
+              {work > 0 ? <>{work} of the {checked} things we checked need work</> : <>All {checked} things we could check look good</>}
+            </p>
+            <h1 className="text-[19px] font-semibold mt-5">{audit.hotelName}</h1>
+            <p className="text-ink-60 text-[14px]">
+              {[a.identity.place, a.identity.website, a.identity.bookingEngine && `books through ${a.identity.bookingEngine}`].filter(Boolean).join(' · ')}
+            </p>
+            {a.priorities.length > 0 && (
+              <ul className="list-none m-0 p-0 mt-5 space-y-2.5">
+                {a.priorities.slice(0, 4).map((p) => (
+                  <li key={p.id} className="grid grid-cols-[20px_1fr] gap-x-2.5 text-[15px]">
+                    <svg width="16" height="16" viewBox="0 0 16 16" className={`mt-[3px] ${p.type === 'fix' ? 'grade--f' : 'grade--c'}`} aria-hidden="true"><path d="M8 1.6l7 12.3H1L8 1.6z" fill="currentColor" /><path d="M8 6.2v3.6M8 11.6v.1" stroke="var(--panel-bg, #111)" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                    <a href="#priorities" className="text-ink hover:text-accent">{p.title}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {a.priorities.length > 4 && <a href="#priorities" className="text-[13.5px] inline-block mt-3">and {a.priorities.length - 4} more</a>}
+          </section>
+
+          {place > 0 && (
+            <section className="panel px-6 sm:px-8 py-7">
+              <div className="meta mb-4">guest rating on Google{a.identity.hotelClass && a.identity.classSource === 'google' ? ` · ${a.identity.hotelClass} hotels near you` : ' · hotels near you'}</div>
+              <p className="headline text-[24px] sm:text-[28px] leading-tight">
+                You’re ranked {ordinal(place)} of {ranked.length} {place === 1 ? 'among' : 'against'} the hotels around you
+              </p>
+              <ol className="list-none m-0 p-0 mt-5">
+                {ranked.map((r, i) => (
+                  <li key={r.name} className={`grid grid-cols-[1fr_auto_auto] items-center gap-x-4 px-3 py-2 rounded ${r.you ? 'bg-[var(--accent-soft)]' : ''}`}>
+                    <span className={`min-w-0 truncate text-[15px] ${r.you ? 'font-semibold' : ''}`}>{r.name}</span>
+                    <span className="num text-[14px] text-ink-60">{r.rating!.toFixed(1)} ★{r.rate != null && <span className="text-ink-40 hidden sm:inline"> · {usd(r.rate)}</span>}</span>
+                    <span className={`num text-[14px] w-[34px] text-right ${r.you ? 'font-semibold' : 'text-ink-60'}`}>{ordinal(i + 1)}</span>
+                  </li>
+                ))}
+              </ol>
+              <a href="#choice" className="text-[13.5px] inline-block mt-3">how these hotels were chosen, and their prices</a>
+            </section>
           )}
-          <div className="meta mt-1">execution grade</div>
-          <div className="mt-4">
-            <div className="hatch h-[8px] relative"><div className="absolute inset-y-0 left-0 bg-[var(--accent)]" style={{ width: pct(a.coverage) }} /></div>
-            <p className="meta mt-1.5">Based on <span className="text-ink num">{pct(a.coverage)}</span> of the assessment, weighted by importance.</p>
-          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="headline text-[26px] sm:text-[32px]">{audit.hotelName}</h1>
-          <p className="text-ink-60 mt-1 text-[14px]">
-            {[a.identity.place, a.identity.website, a.identity.bookingEngine && `books through ${a.identity.bookingEngine}`].filter(Boolean).join(' · ')}
-          </p>
-          <p className="mt-4 text-[16px] max-w-[62ch]">{a.headline}</p>
-          <p className="text-ink-60 text-[13.5px] mt-3 max-w-[70ch]">
+
+        <section className="px-1">
+          <p className="text-[16px] max-w-[70ch]">{a.headline}</p>
+          <p className="text-ink-60 text-[13.5px] mt-2 max-w-[78ch]">
             The grade says how well the hotel runs the marketing, listing and booking work a public scan can observe. It isn’t a verdict on the hotel, or on which hotel a guest would pick.
             {a.identity.hotelClass && (a.identity.classSource === 'google'
               ? <> Google lists it as a <span className="text-ink">{a.identity.hotelClass}</span> hotel, and we used that class to choose comparisons.</>
               : <> We placed the hotel in the <span className="text-ink">{a.identity.hotelClass.toLowerCase()}</span> class to choose comparisons. That’s our model’s estimate, not a star rating.</>)}
           </p>
-          {a.siteNote && <p className="meta mt-3 max-w-[70ch]">{a.siteNote}</p>}
+          {a.siteNote && <p className="meta mt-2 max-w-[78ch]">{a.siteNote}</p>}
           {a.identity.flags.length > 0 && (
-            <div className="mt-4 border border-dashed border-edge-strong rounded px-4 py-3">
+            <div className="mt-4 border border-dashed border-edge-strong rounded px-4 py-3 max-w-[78ch]">
               <div className="meta mb-1">Check these: we may have matched the wrong record</div>
               <ul className="m-0 pl-4 text-[13.5px] text-ink-60 space-y-1">{a.identity.flags.map((f) => <li key={f}>{f}</li>)}</ul>
               <a href="#correct" className="text-[13px] inline-block mt-2">send a correction</a>
             </div>
           )}
+        </section>
+
+        {/* 2. What to do first */}
+        <article className="panel overflow-hidden">
+          <section id="priorities" className="px-5 sm:px-8 py-7 scroll-mt-24">
+            <div className="mb-5">
+              <h2 className="label label--ink">{a.priorities.length ? 'What to do first' : 'Nothing urgent found'}</h2>
+              <p className="text-ink-60 text-[13.5px] mt-1 max-w-[72ch]">
+                {a.priorities.length
+                  ? 'Ordered by how many points of the grade are at stake and how sure we are. An uncertain problem in a part that matters a lot comes before a confirmed small one.'
+                  : 'None of the checks we could run turned up a problem worth your time.'}
+              </p>
+            </div>
+            {a.priorities.length > 0 && (
+              <ol className="list-none m-0 p-0 divide-y divide-[var(--edge)]">
+                {a.priorities.map((p, i) => <PriorityCard key={p.id} p={p} n={i + 1} fnName={fnName(p.fn)} />)}
+              </ol>
+            )}
+            {a.strengths.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-edge">
+                <div className="meta mb-2.5">Working well, leave it alone</div>
+                <ul className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
+                  {a.strengths.map((s) => (
+                    <li key={s.label} className="text-[13.5px]"><span className="grade--a mr-2" aria-hidden="true">●</span><span className="font-medium">{s.label}.</span> <span className="text-ink-60">{s.observed}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        </article>
+
+        {/* 3. Everything we checked, part by part */}
+        <div className="px-1 pt-6">
+          <h2 className="headline text-[26px] sm:text-[32px] leading-tight">{checked} things checked, {work} need work</h2>
+          <p className="headline text-[20px] sm:text-[24px] text-ink-40 leading-tight mt-1">See what we looked for, what we found and what to change</p>
+          <p className="text-ink-60 text-[13.5px] mt-3 max-w-[72ch]">
+            The twelve parts are in order of how much they matter to bookings.{hidden > 0 && <> A further {hidden} things couldn’t be seen from outside. They’re marked with a question mark and left out of the grade.</>}
+          </p>
         </div>
-      </section>
+        <div className="space-y-10">
+          {a.functions.map((f, i) => <Part key={f.key} f={f} n={i + 1}>{extras[f.key]}</Part>)}
+        </div>
 
-      <Section id="grade" title="What the grade is made of"
-        kicker="100 points, shared out by how much each part of the job matters to bookings. A part only counts for what we could see.">
-        <ImportanceBar fns={a.functions} />
-        <FunctionRows fns={a.functions} />
-      </Section>
-
-      {/* 2. What to do first */}
-      <Section id="priorities" title={a.priorities.length ? 'What to do first' : 'Nothing urgent found'}
-        kicker={a.priorities.length
-          ? 'Ordered by how many points of the grade are at stake and how sure we are. An uncertain problem in a part that matters a lot comes before a confirmed small one.'
-          : 'None of the checks we could run turned up a problem worth your time. See the parts we couldn’t observe below.'}>
-        {a.priorities.length > 0 && (
-          <ol className="list-none m-0 p-0 divide-y divide-[var(--edge)]">
-            {a.priorities.map((p, i) => <PriorityCard key={p.id} p={p} n={i + 1} fnName={fnName(p.fn)} />)}
-          </ol>
+        {/* 4. Reported, not graded */}
+        {(a.ads || a.example) && (
+          <article className="panel overflow-hidden [&>section:first-child]:border-t-0">
+            <Ads a={a} />
+            <Example a={a} />
+          </article>
         )}
-        {a.strengths.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-edge">
-            <div className="meta mb-2.5">Working well, leave it alone</div>
-            <ul className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
-              {a.strengths.map((s) => (
-                <li key={s.label} className="text-[13.5px]"><span className="grade--a mr-2" aria-hidden="true">●</span><span className="font-medium">{s.label}.</span> <span className="text-ink-60">{s.observed}</span></li>
+
+        {/* 5. Limits, method, corrections */}
+        <article className="panel overflow-hidden [&>section:first-child]:border-t-0">
+          <Section id="method" title="What this scan couldn’t see"
+            kicker="These parts were left out of the grade instead of being guessed. They’re the reason the grade rests on part of the assessment.">
+            <ImportanceBar fns={a.functions} />
+            <ul className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-x-8 mt-6">
+              {unseen.map((f) => (
+                <li key={f.key} className="py-2.5 border-t border-edge text-[13.5px]">
+                  <span className="font-medium">{f.name}</span> <span className="num text-ink-40">{pct(1 - f.coverage)} unseen</span>
+                  <p className="text-ink-60 mt-0.5">{f.notYet}</p>
+                </li>
               ))}
             </ul>
-          </div>
-        )}
-      </Section>
-
-      {/* 3. Against the alternatives */}
-      <Choice a={a} audit={audit} market={market} />
-
-      {/* 4. The detail */}
-      <Prices a={a} />
-      <Themes a={a} />
-      <Voice a={a} />
-      <Ads a={a} />
-      <AiSample a={a} />
-      <Detail a={a} />
-      <Example a={a} />
-
-      {/* 5. Limits, method, corrections */}
-      <Section id="method" title="What this scan couldn’t see"
-        kicker="These parts were left out of the grade instead of being guessed. They’re the reason the grade rests on part of the assessment.">
-        <ul className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-x-8">
-          {unseen.map((f) => (
-            <li key={f.key} className="py-2.5 border-t border-edge text-[13.5px]">
-              <span className="font-medium">{f.name}</span> <span className="num text-ink-40">{pct(1 - f.coverage)} unseen</span>
-              <p className="text-ink-60 mt-0.5">{f.notYet}</p>
-            </li>
-          ))}
-        </ul>
-        <p className="text-ink-60 text-[13.5px] mt-5 max-w-[80ch]">
-          Also outside any public scan: your occupancy, ADR and RevPAR, your direct-booking share, what your ads return, and how your email programme performs. Those are worth more than several parts of this grade, and they need a look from the inside.
-        </p>
-        <div id="correct" className="mt-7 pt-6 border-t border-edge grid grid-cols-1 md:grid-cols-2 gap-8 scroll-mt-20">
-          <Correction audit={audit} />
-          <div className="text-[13.5px] text-ink-60">
-            <p>
-              Scored with method v{a.version}: {a.counts.observed} of {a.counts.checks} checks had evidence this scan. Public data only. No booking was made and no guest details were entered anywhere.
+            <p className="text-ink-60 text-[13.5px] mt-5 max-w-[80ch]">
+              Also outside any public scan: your occupancy, ADR and RevPAR, your direct-booking share, what your ads return, and how your email programme performs. Those are worth more than several parts of this grade, and they need a look from the inside.
             </p>
-            <p className="mt-2"><a href="/methodology">How the grade is built</a>, with every weight and rule.</p>
-          </div>
-        </div>
-      </Section>
-    </article>
+            <div id="correct" className="mt-7 pt-6 border-t border-edge grid grid-cols-1 md:grid-cols-2 gap-8 scroll-mt-24">
+              <Correction audit={audit} />
+              <div className="text-[13.5px] text-ink-60">
+                <p>
+                  Scored with method v{a.version}: {a.counts.observed} of {a.counts.checks} checks had evidence this scan. Public data only. No booking was made and no guest details were entered anywhere.
+                </p>
+                <p className="mt-2"><a href="/methodology">How the grade is built</a>, with every weight and rule.</p>
+              </div>
+            </div>
+          </Section>
+        </article>
+      </div>
+    </div>
   );
 }

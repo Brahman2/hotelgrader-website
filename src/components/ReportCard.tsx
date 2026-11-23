@@ -118,7 +118,7 @@ function ScanScreen({ target, elapsed, ready, locked, market, onUnlock }: {
 }) {
   const current = ready ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-10 items-start">
+    <div className="max-w-content mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-10 items-start">
       <div className="panel p-6 sm:p-7">
         <p className="label label--accent" role="status" aria-live="polite">
           <span className="dark-only">$ </span>{ready ? 'scan complete' : `scanning · ${elapsed}s`}
