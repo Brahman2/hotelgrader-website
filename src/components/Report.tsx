@@ -368,7 +368,7 @@ function Visibility({ a }: { a: Assessment }) {
     ? (r.otas > 0 ? `${r.otas} of ${r.results} results are booking sites` : 'no booking sites on the page')
     : <>
         {r.holders.slice(0, 3).map((h) => `${h.count} ${h.count === 1 ? h.who.replace(/s$/, '') : h.who}`).join(' · ') || 'couldn’t read'}
-        {r.boxTop.length > 0 && r.box !== 1 && <span className="block text-ink-40 truncate">listed first: {r.boxTop.filter((_, k) => k < 2).join(', ')}</span>}
+        {r.boxShown && r.boxTop.length > 0 && r.box !== 1 && <span className="block text-ink-40 truncate">listed first: {r.boxTop.filter((_, k) => k < 2).join(', ')}</span>}
       </>;
   return (
     <Section id="searches" title="Where you appear when travellers search"
