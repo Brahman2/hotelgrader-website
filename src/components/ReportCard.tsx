@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchPrices, fetchSite, runAudit, type Audit } from '../lib/hg';
+import { fetchLive, fetchSite, runAudit, type Audit } from '../lib/hg';
 import { assess } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -150,8 +150,8 @@ export default function ReportCard() {
   const [audit, setAudit] = useState<Audit | null>(null);
   // Our own crawl of the hotel's website. undefined = still reading, null = couldn't read.
   const [crawl, setCrawl] = useState<unknown | null | undefined>(undefined);
-  // Results of our other collectors (prices so far). Null until read.
-  const [live, setLive] = useState<{ prices: unknown | null } | null>(null);
+  // Results of our other collectors (prices, brand search). Null until read.
+  const [live, setLive] = useState<unknown | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -185,12 +185,11 @@ export default function ReportCard() {
     runAudit(target.hotel, target.city, target.state, ctrl.signal)
       .then(async (a) => {
         // Read the hotel's own site before showing the grade, so the grade doesn't shift on screen.
-        const [site, prices] = await Promise.all([
+        const [site, extra] = await Promise.all([
           fetchSite(target.hotel, target.city, target.state, ctrl.signal),
-          fetchPrices(target.hotel, target.city, target.state, ctrl.signal),
+          fetchLive(target.hotel, target.city, target.state, ctrl.signal),
         ]);
         if (ctrl.signal.aborted) return;
-        const extra = { prices };
         setCrawl(site);
         setLive(extra);
         setAudit(a);

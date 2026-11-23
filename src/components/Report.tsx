@@ -344,6 +344,15 @@ function Ads({ a }: { a: Assessment }) {
           ))}
         </tbody>
       </table>
+      {ads.brand && (
+        <p className="text-[14px] text-ink-60 mt-4 max-w-[70ch]">
+          <span className="text-ink">On a search for “{ads.brand.query}”:</span>{' '}
+          {ads.brand.others.length > 0
+            ? <>{ads.brand.others.length} other {ads.brand.others.length === 1 ? 'site was' : 'sites were'} advertising on your name ({ads.brand.others.join(', ')}){ads.brand.own ? ', alongside your own ad.' : ', and you weren’t.'}</>
+            : ads.brand.own ? 'yours was the only ad.' : 'nobody was advertising on your name when we looked.'}
+          {' '}One search at one moment, so ads can come and go.
+        </p>
+      )}
       <p className="meta mt-3 max-w-[84ch]">
         Google’s Ads Transparency Center, searched by each hotel’s website, and Meta’s Ad Library, searched by each hotel’s Facebook page.
         {ads.you.googleBy.length > 0 && ` The Google ads for your site run under ${ads.you.googleBy.join(', ')}.`}

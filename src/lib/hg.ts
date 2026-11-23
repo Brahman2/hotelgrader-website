@@ -176,19 +176,19 @@ export async function fetchSite(hotel: string, city: string, state: string, sign
   } catch { return null; }
 }
 
-/** Our own price reading (two nights, plus the hotels nearby). Null when it couldn't be read. One retry, since a slow search finishes from cache the second time. */
-export async function fetchPrices(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
+/** Our own readings that cost a search each: prices on two nights, the hotels nearby, the brand search. One retry, since a slow search finishes from cache the second time. */
+export async function fetchLive(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<{ prices: unknown | null; search: unknown | null } | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetch('/api/price-scan', {
+      const res = await fetch('/api/live-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hotel, city, state }),
         signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(14000)]) : AbortSignal.timeout(14000),
       });
       if (!res.ok) return null;
-      const prices = (await res.json())?.prices ?? null;
-      if (!prices || prices.done !== false) return prices;
+      const live = (await res.json())?.live ?? null;
+      if (!live || live.prices?.done !== false || attempt === 1) return live;
     } catch { if (signal?.aborted) return null; }
   }
   return null;

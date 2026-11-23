@@ -88,6 +88,7 @@ export interface Assessment {
   ads: {
     you: { name: string; google: boolean | null; googleBy: string[]; meta: boolean | null };
     rivals: { name: string; google: boolean | null; meta: boolean | null }[];
+    brand: { query: string; own: boolean; others: string[] } | null;
   } | null;
   themes: {
     reviews: number | null;

@@ -9,7 +9,7 @@ import { reportEmail } from '../lib/email.mjs';
 import { fetchAudit, reportLink, summarize } from '../lib/report.mjs';
 import { logToSheet } from '../lib/sheet.mjs';
 import { siteFor } from '../lib/site.mjs';
-import { pricesFor } from '../lib/prices.mjs';
+import { liveFor } from '../lib/live.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Use POST.' });
@@ -31,9 +31,9 @@ export default async (req) => {
 
   // The page read the hotel's site moments ago and cached it; use the same reading so the grades match.
   const crawl = await Promise.race([siteFor(audit).catch(() => null), new Promise((r) => setTimeout(() => r(null), 5000))]);
-  // Cached price reading only: the email never spends a search of its own.
-  const prices = await pricesFor(audit, { fresh: false }).catch(() => null);
-  const summary = summarize(audit, crawl, { prices });
+  // Cached readings only: the email never spends a search of its own.
+  const live = await liveFor(audit, { fresh: false }).catch(() => null);
+  const summary = summarize(audit, crawl, live);
   const link = reportLink(secret, hotel, city, state);
   const name = clean(body.name).slice(0, 60);
   const mail = reportEmail({ theme: clean(body.theme), name: name || 'there', summary, link });

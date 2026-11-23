@@ -77,7 +77,14 @@ const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 const sameName = (a, b) => !!a && !!b && norm(a) === norm(b);
 /** Looser match for hotel names from two sources: ignores "hotel", "the", "resort" and trademark marks. */
 const core = (s) => norm(s).replace(/\b(the|hotel|hotels|resort|resorts|by|and|a|an)\b/g, ' ').replace(/\s+/g, ' ').trim();
-const likeName = (a, b) => { const x = core(a), y = core(b); return !!x && !!y && (x === y || (x.length >= 6 && y.includes(x)) || (y.length >= 6 && x.includes(y))); };
+const likeName = (a, b) => {
+  const x = core(a).split(' ').filter(Boolean), y = core(b).split(' ').filter(Boolean);
+  if (!x.length || !y.length) return false;
+  if (x.join(' ') === y.join(' ')) return true;
+  // One name wholly inside the other, and at least two distinguishing words long ("waikiki" alone matches half the island).
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return short.length >= 2 && short.every((w) => long.includes(w));
+};
 const usd = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 const n0 = (n) => Number(n).toLocaleString('en-US');
 const niceDay = (d) => { const t = new Date(`${d}T12:00:00Z`); return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); };
@@ -140,7 +147,13 @@ export function assess(audit, crawl = null, live = null) {
   const comp = meta.competitors ?? null;
   const platforms = evidence(audit, /directory listings|review volume|platform distribution/i);
   const sent = evidence(audit, /^(sentiment score|response rate)/i);
-  const serp = evidence(audit, /^(search visibility|brand protection|local seo)/i);
+  // Our own brand search when we have it, in the shape the checks below already read.
+  const bs = live?.search?.ok ? live.search : null;
+  const serp = bs ? {
+    query: bs.query, checked_at: bs.checkedAt, found: bs.found, brand_rank: bs.brandRank, has_knowledge_panel: bs.hasKnowledgePanel,
+    top_results: bs.results.map((r) => ({ domain: r.domain, owner: r.owner, position: r.position, title: r.title })),
+  } : evidence(audit, /^(search visibility|brand protection|local seo)/i);
+  const serpSrc = bs ? 'Google search, read by our scanner' : 'Google search';
   const geo = evidence(audit, /geo optimization/i);
   const speed = evidence(audit, /^(website performance|mobile speed)/i);
   const aiData = evidence(audit, /^(ai mention rate|recommendation position)/i);
@@ -303,11 +316,11 @@ export function assess(audit, crawl = null, live = null) {
   check('discovery', 'brand-rank', 'Your own site ranks first for your name', 25,
     serp ? (rank === 1 ? 1 : rank >= 2 && rank <= 3 ? 0.6 : rank > 3 ? 0.2 : 0) : null,
     serp ? (rank ? `Your site is result #${rank} for “${serp.query}”.` : `Your site wasn’t in the top results for “${serp.query}”.`) : 'Not searched this scan.',
-    'Google search', { when: serp?.checked_at });
+    serpSrc, { when: serp?.checked_at });
   check('discovery', 'panel', 'Google shows a knowledge panel for the hotel', 10,
     serp && serp.has_knowledge_panel != null ? (serp.has_knowledge_panel ? 1 : 0) : null,
     serp && serp.has_knowledge_panel != null ? (serp.has_knowledge_panel ? 'A knowledge panel appears on a search for your name.' : 'No knowledge panel appeared.') : 'Not searched this scan.',
-    'Google search', { when: serp?.checked_at });
+    serpSrc, { when: serp?.checked_at });
   // Our own crawl is the better reading of the page when we have one.
   const gc = web ? {
     schema_lodging: web.schema.lodging ? true : webSolid ? false : null,
@@ -518,11 +531,15 @@ export function assess(audit, crawl = null, live = null) {
   ];
   const priced = table.filter((r) => !r.you && r.rate != null);
   const pricedLower = ownLow != null ? priced.filter((r) => r.rate < ownLow).length : 0;
-  const priceLine = priced.length >= 2 && ownLow != null
-    ? ` On price for that night, ${pricedLower === 0 ? `none of the ${priced.length} we could price showed a lower rate than your ${usd(ownLow)}` : `${pricedLower} of the ${priced.length} we could price showed a lower rate than your ${usd(ownLow)}`}.`
-    : '';
   const areaRates = area.map((h) => h.rate).sort((a, b) => a - b);
   const areaMedian = areaRates.length >= 5 ? areaRates[Math.floor(areaRates.length / 2)] : null;
+  const areaLower = ownLow != null ? areaRates.filter((r) => r < ownLow).length : 0;
+  const priceLine = ownLow == null ? ''
+    : priced.length >= 2
+      ? ` On price for that night, ${pricedLower === 0 ? `none of the ${priced.length} we could price showed a lower rate than your ${usd(ownLow)}` : `${pricedLower} of the ${priced.length} we could price showed a lower rate than your ${usd(ownLow)}`}.`
+      : areaMedian != null
+        ? ` On price, the lowest rate shown for you on ${niceDay(night)} was ${usd(ownLow)}; ${areaLower} of ${areaRates.length} hotels Google lists near you showed less. Those aren’t matched for class or room, so read it as context.`
+        : '';
   const better = rivals.filter((r) => r.rating != null && gRating != null && r.rating > gRating).length;
   const tied = rivals.filter((r) => r.rating != null && gRating != null && r.rating === gRating).length;
   const choice = rivals.length >= 2 ? {
@@ -530,7 +547,7 @@ export function assess(audit, crawl = null, live = null) {
     rows: table,
     peers: rivals.length,
     setSize: comp?.total_in_set ?? null,
-    compared: priced.length >= 2 ? ['Google rating', 'Google review count', 'Lowest rate shown on Google for the same night'] : ['Google rating', 'Google review count'],
+    compared: priced.length >= 2 ? ['Google rating', 'Google review count', 'Lowest rate shown on Google for the same night'] : areaMedian != null ? ['Google rating', 'Google review count', 'Lowest rate shown that night across nearby hotels'] : ['Google rating', 'Google review count'],
     notCompared: [...(priced.length >= 2 ? ['Whether those rates are for a similar room'] : ['Price for the same night at each competitor']), 'Room fit for the party', 'Location for the trip', 'Cancellation and payment terms'],
     area: areaMedian != null ? { median: areaMedian, count: areaRates.length, low: areaRates[0], high: areaRates[areaRates.length - 1], own: ownLow } : null,
     verdict: gRating == null ? 'We couldn’t read your rating, so there is nothing to compare yet.'
@@ -741,6 +758,8 @@ export function assess(audit, crawl = null, live = null) {
       meta: mAds?.status === 'ok' ? !!mAds.running_ads : null,
     },
     rivals: adRivals.map((r) => ({ name: r.name, google: r.google_ads ?? null, meta: r.meta_ads ?? null })),
+    /** Who was advertising on a search for the hotel's own name, from our brand search. Null when not read. */
+    brand: bs ? { query: bs.query, own: bs.ownAd, others: [...new Set(bs.ads.filter((x) => x.owner !== 'you').map((x) => x.domain))].slice(0, 6) } : null,
   } : null;
 
   const themes = sent ? {
