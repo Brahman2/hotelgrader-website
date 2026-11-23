@@ -81,82 +81,90 @@ export function reportEmail({ theme, name, summary: s, link }) {
   const th = `font-weight:normal;font-size:12px;color:${t.muted};text-align:left;padding:0 0 6px;`;
   const td = `padding:7px 0;border-top:1px solid ${t.edge};font-size:13.5px;`;
 
-  const tally = s.tally ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;"><tr>
-${[[s.tally.fix, 'to fix', t.grade.F], [s.tally.improve, 'to improve', t.grade.C], [s.tally.good, 'working well', t.grade.A]].map(([n, l, c]) => `<td width="33%" style="font-family:${t.num};"><div style="font-size:34px;line-height:1;font-weight:600;color:${c};">${n}</div><div style="font-size:12px;color:${t.muted};margin-top:5px;font-family:${t.font};">${l}</div></td>`).join('')}
-</tr></table>` : '';
+  const cover = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;"><tr>
+<td width="${Math.max(2, s.coverage)}%" style="background:${t.accent};height:8px;font-size:0;line-height:0;">&nbsp;</td>
+<td style="background:${t.edge};height:8px;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+<p style="margin:6px 0 0;font-size:12.5px;color:${t.muted};">Based on ${s.coverage}% of the assessment, weighted by importance. The rest couldn't be seen from outside and isn't guessed.</p>`;
 
   const sections = s.sections.map((x) => `<tr>
-<td style="padding:6px 10px 6px 0;font-size:13.5px;color:${t.ink};white-space:nowrap;">${e(x.name)}</td>
+<td style="padding:6px 10px 6px 0;font-size:13.5px;color:${t.ink};">${e(x.name)} <span style="color:${t.faint};font-size:12px;">${x.weight} pts, ${x.seen}% seen</span></td>
 <td width="42%" style="padding:6px 0;">${bar(t, x.score, x.letter)}</td>
 <td align="right" style="padding:6px 0 6px 12px;font-family:${t.num};font-size:13.5px;font-weight:600;color:${tone(t, x.letter)};white-space:nowrap;">${x.score ?? '-'}</td></tr>`).join('');
 
-  const fixes = s.fixes.map((f) => `<tr>
-<td width="46" valign="top" style="padding:8px 12px 8px 0;"><div style="width:44px;height:44px;line-height:44px;text-align:center;border:2px solid ${tone(t, f.letter)};border-radius:50%;font-family:${t.num};font-size:15px;font-weight:600;color:${t.ink};">${f.score}</div></td>
-<td valign="top" style="padding:8px 0;"><div style="font-weight:600;">${e(f.name)}</div>${f.step ? `<div style="color:${t.muted};font-size:13.5px;margin-top:2px;">${e(f.step)}</div>` : ''}</td></tr>`).join('');
+  const fixes = s.fixes.map((f, i) => `<tr>
+<td width="34" valign="top" style="padding:9px 10px 9px 0;font-family:${t.num};font-size:20px;line-height:1.1;color:${t.faint};">${i + 1}</td>
+<td valign="top" style="padding:9px 0;"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${f.kind === 'Fix' ? t.grade.F : t.grade.C};">${e(f.kind)}</div><div style="font-weight:600;margin-top:2px;">${e(f.name)}</div><div style="color:${t.muted};font-size:13.5px;margin-top:3px;">${e(f.step)}</div><div style="color:${t.faint};font-size:12.5px;margin-top:3px;">Who: ${e(f.owner)}</div></td></tr>`).join('');
 
   let prices = '';
   if (s.prices) {
     const p = s.prices;
     const line = p.direct == null ? ''
       : p.cheaper > 0
-        ? `<p style="margin:0 0 12px;"><span style="font-weight:600;">${p.cheaper} of ${p.total} OTAs undercut your direct rate.</span> <span style="color:${t.muted};">Your site lists the night at ${usd(p.direct)}. The lowest OTA rate is ${usd(p.lowest.rate)} on ${e(p.lowest.source)}. Every booking that moves there pays a commission and pulls down your net ADR.</span></p>`
-        : `<p style="margin:0 0 12px;"><span style="font-weight:600;">Your direct rate is the lowest,</span> <span style="color:${t.muted};">at ${usd(p.direct)}.</span></p>`;
+        ? `<p style="margin:0 0 12px;"><span style="font-weight:600;">${p.cheaper} of ${p.total} sites showed a lower rate than your own.</span> <span style="color:${t.muted};">Your site lists the night at ${usd(p.direct)}. The lowest other rate is ${usd(p.lowest.rate)} on ${e(p.lowest.source)}. Rooms and fees aren't matched, so treat this as something to check.</span></p>`
+        : `<p style="margin:0 0 12px;"><span style="font-weight:600;">Your own rate was the lowest shown,</span> <span style="color:${t.muted};">at ${usd(p.direct)}.</span></p>`;
     const rows = p.rows.map((r) => `<tr>
 <td style="padding:4px 10px 4px 0;font-size:13px;white-space:nowrap;${r.mine ? 'font-weight:600;' : `color:${t.muted};`}">${r.mine ? 'Your site' : e(r.source)}</td>
 <td width="48%" style="padding:4px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="${Math.max(4, Math.round((r.rate / p.max) * 100))}%" style="background:${r.mine ? t.accent : t.faint};height:9px;font-size:0;line-height:0;">&nbsp;</td><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table></td>
 <td align="right" style="padding:4px 0 4px 12px;font-family:${t.num};font-size:13px;white-space:nowrap;${r.mine ? 'font-weight:600;' : ''}">${usd(r.rate)}</td></tr>`).join('');
-    prices = label('Rate parity: one night across the OTAs') + line + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
-<p style="margin:10px 0 0;font-size:12px;color:${t.faint};">${p.checkIn ? `Check-in ${e(p.checkIn)}. ` : ''}As shown on Google's hotel search at scan time. Room types and taxes can differ.</p>`;
+    prices = label('One night across the booking sites') + line + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+<p style="margin:10px 0 0;font-size:12px;color:${t.faint};">${p.checkIn ? `Check-in ${e(p.checkIn)}. ` : ''}The lowest rate each site showed on Google's hotel search.${p.second && p.second.night ? ` On a second night, ${e(new Date(`${p.second.night}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }))}, ${p.second.direct ? `your site showed ${usd(p.second.direct.rate)}${p.second.cheaper > 0 && p.second.lowest ? ` and the lowest other rate was ${usd(p.second.lowest.rate)}` : ' and no site was lower'}` : 'your site was not listed'}.` : " One date can't show a lasting pattern."}</p>`;
   }
 
-  const adCell = (v) => v == null ? `<span style="color:${t.faint};">couldn't tell</span>` : v ? `<span style="color:${t.accent};">&#9679;</span> running` : `<span style="color:${t.faint};">none found</span>`;
-  const ads = s.ads ? label('Who in your comp set is advertising') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  const adCell = (v) => v == null ? `<span style="color:${t.faint};">couldn't tell</span>` : v ? `<span style="color:${t.accent};">&#9679;</span> seen` : `<span style="color:${t.faint};">none found</span>`;
+  const ads = s.ads ? label('Advertising we could see (not graded)') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><th style="${th}">hotel</th><th style="${th}" width="27%">Google ads</th><th style="${th}" width="27%">Meta ads</th></tr>
 ${s.ads.map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td style="${td}">${adCell(r.google)}</td><td style="${td}">${adCell(r.meta)}</td></tr>`).join('')}
 </table>` : '';
 
-  const market = s.market && s.market.rivals.length ? label('Your comp set') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  const market = s.market && s.market.rivals.length ? label('The hotels you were compared with') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><th style="${th}">hotel</th><th style="${th}text-align:right;">Google rating</th><th style="${th}text-align:right;">reviews</th></tr>
 ${[{ ...s.market.own, you: true }, ...s.market.rivals].map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td align="right" style="${td}font-family:${t.num};${r.you ? 'font-weight:600;' : ''}">${r.rating != null ? Number(r.rating).toFixed(1) : '-'}</td><td align="right" style="${td}font-family:${t.num};color:${t.muted};">${num(r.reviews)}</td></tr>`).join('')}
 </table>` : '';
 
-  const html = shell(t, `${s.hotel}: ${s.letter}, ${s.score} out of 100`, `
+  const seen = (ok) => (ok == null ? `color:${t.faint};` : ok ? `color:${t.accent};` : '');
+  const searches = s.searches ? label('Where you appear when travellers search (not graded)') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="${th}">search</th><th style="${th}" width="27%">Google hotel search</th><th style="${th}" width="24%">regular results</th></tr>
+${s.searches.map((r) => `<tr><td style="${td}padding-right:10px;">${e(r.query)}</td><td style="${td}${seen(r.good.hotel)}">${e(r.hotel)}</td><td style="${td}${seen(r.good.web)}">${e(r.web)}</td></tr>`).join('')}
+</table>` : '';
+
+  const html = shell(t, s.graded ? `${s.hotel}: ${s.letter}, ${s.score} out of 100` : `${s.hotel}: your hotelgrader report`, `
 <p style="margin:0 0 4px;color:${t.accent};font-size:13px;">report card</p>
 <h1 style="margin:0;font-family:${t.font};font-size:24px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:${t.ink};">${e(s.hotel)}</h1>
 ${s.place ? `<p style="margin:2px 0 0;color:${t.muted};">${e(s.place)}</p>` : ''}
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 6px;"><tr>
+${s.graded ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 6px;"><tr>
 <td valign="bottom" style="font-family:${t.font};font-size:96px;line-height:0.9;font-weight:700;letter-spacing:-4px;color:${lead};">${e(s.letter.charAt(0))}<span style="font-size:52px;vertical-align:36px;letter-spacing:0;">${e(s.letter.slice(1))}</span></td>
-<td valign="bottom" style="padding:0 0 10px 18px;font-family:${t.num};font-size:18px;color:${t.muted};">${s.score} / 100</td></tr></table>
+<td valign="bottom" style="padding:0 0 10px 18px;font-family:${t.num};font-size:18px;color:${t.muted};">${s.score} / 100<br><span style="font-family:${t.font};font-size:12px;">execution grade</span></td></tr></table>` : `<p style="margin:18px 0 0;font-weight:600;">Not enough evidence for a grade yet.</p>`}
+${cover}
 ${s.keyFinding ? `<p style="margin:14px 0 0;">${e(s.keyFinding)}</p>` : ''}
 ${s.rank ? `<p style="margin:10px 0 0;color:${t.muted};"><span style="color:${t.ink};font-weight:600;">#${s.rank.place} of ${s.rank.total}</span> on Google rating in your comp set.</p>` : ''}
-${tally}
 <div style="margin-top:24px;">${button(t, link, 'Open the full report')}</div>
-${s.fixes.length ? label('Start here') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fixes}</table>` : ''}
-${label('The seven sections')}
+${s.fixes.length ? label('What to do first') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fixes}</table>` : ''}
+${label('What the grade is made of')}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sections}</table>
 ${prices}
 ${ads}
 ${market}
+${searches}
 <div style="margin-top:28px;padding-top:22px;border-top:1px solid ${t.edge};">${button(t, link, 'Open the full report')}</div>
-<p style="margin:14px 0 0;color:${t.faint};font-size:13px;">Hi ${e(name)}, the full report has every finding with its steps. This link opens it without asking for a code again. Questions? Just reply to this email.</p>`);
+<p style="margin:14px 0 0;color:${t.faint};font-size:13px;">Hi ${e(name)}, the full report has the evidence behind every check, and a form to correct anything we got wrong. This link opens it without asking for a code again. Questions? Just reply to this email.</p>`);
 
   const text = [
     `${s.hotel}${s.place ? ` (${s.place})` : ''}`,
-    `Grade: ${s.letter}, ${s.score} out of 100`,
+    s.graded ? `Execution grade: ${s.letter}, ${s.score} out of 100, based on ${s.coverage}% of the assessment` : 'Not enough evidence for a grade yet.',
     s.keyFinding || '',
     s.rank ? `#${s.rank.place} of ${s.rank.total} on Google rating in your comp set.` : '',
-    s.tally ? `${s.tally.fix} to fix, ${s.tally.improve} to improve, ${s.tally.good} working well.` : '',
     '',
-    s.fixes.length ? 'Start here:' : '',
-    ...s.fixes.map((f) => `  ${f.name} (${f.score})${f.step ? `: ${f.step}` : ''}`),
+    s.fixes.length ? 'What to do first:' : '',
+    ...s.fixes.map((f, i) => `  ${i + 1}. [${f.kind}] ${f.name}. ${f.step}`),
     '',
-    'The seven sections:',
-    ...s.sections.map((x) => `  ${x.name}: ${x.score ?? 'not scored'}`),
+    'What the grade is made of:',
+    ...s.sections.map((x) => `  ${x.name} (${x.weight} pts): ${x.score}`),
     '',
-    ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} OTAs undercut your direct rate${s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}.`, ''] : []),
-    ...(s.ads ? ['Who is advertising near you:', ...s.ads.map((r) => `  ${r.name}: Google ${r.google == null ? "couldn't tell" : r.google ? 'running' : 'none found'}, Meta ${r.meta == null ? "couldn't tell" : r.meta ? 'running' : 'none found'}`), ''] : []),
+    ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} other sites showed a lower rate${s.prices.cheaper && s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}. Rooms and fees aren't matched.`, ''] : []),
+    ...(s.ads ? ['Advertising we could see (not graded):', ...s.ads.map((r) => `  ${r.name}: Google ${r.google == null ? "couldn't tell" : r.google ? 'seen' : 'none found'}, Meta ${r.meta == null ? "couldn't tell" : r.meta ? 'seen' : 'none found'}`), ''] : []),
+    ...(s.searches ? ['Where you appear when travellers search (not graded):', ...s.searches.map((r) => `  ${r.query}: Google hotel search ${r.hotel}, regular results ${r.web}`), ''] : []),
     `Open the full report: ${link}`,
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
 
-  return { subject: `${s.hotel}: ${s.letter} (${s.score}/100) on hotelgrader`, html, text };
+  return { subject: s.graded ? `${s.hotel}: ${s.letter} (${s.score}/100) on hotelgrader` : `${s.hotel}: your hotelgrader report`, html, text };
 }

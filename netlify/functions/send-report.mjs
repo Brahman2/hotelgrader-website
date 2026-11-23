@@ -8,6 +8,7 @@ import { EMAIL_RE, clean, json, matches, sendMail, sign } from '../lib/verify.mj
 import { reportEmail } from '../lib/email.mjs';
 import { fetchAudit, reportLink, summarize } from '../lib/report.mjs';
 import { logToSheet } from '../lib/sheet.mjs';
+import { scanFor } from '../lib/scan.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Use POST.' });
@@ -24,10 +25,15 @@ export default async (req) => {
   if (!EMAIL_RE.test(email) || !hotel) return json(400, { error: 'Bad request.' });
   if (!matches(clean(body.proof), sign(secret, 'verified', email))) return json(401, { error: 'Verify your email first.' });
 
-  const audit = await fetchAudit(hotel, city, state).catch(() => null);
+  // Cached readings only: the email never spends a search of its own. It scores the same evidence the page did.
+  const [old, scan] = await Promise.all([
+    fetchAudit(hotel, city, state).catch(() => null),
+    scanFor({ hotel, city, state }, { fresh: false }).catch(() => null),
+  ]);
+  // The grading API's scan when it finished; otherwise our own scan alone.
+  const audit = old ?? scan?.base ?? null;
   if (!audit) return json(409, { error: 'That report isn’t ready yet.' });
-
-  const summary = summarize(audit);
+  const summary = summarize(audit, scan?.crawl ?? null, scan?.live ?? null);
   const link = reportLink(secret, hotel, city, state);
   const name = clean(body.name).slice(0, 60);
   const mail = reportEmail({ theme: clean(body.theme), name: name || 'there', summary, link });

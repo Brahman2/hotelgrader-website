@@ -19,66 +19,6 @@ export function Ring({ score, size = 56, label }: { score: number | null; size?:
   );
 }
 
-/** Seven section scores on a radar. Further from the centre is better. */
-export function Radar({ items }: { items: { label: string; score: number | null }[] }) {
-  const R = 78, n = items.length;
-  const at = (i: number, v: number) => {
-    const a = (Math.PI * 2 * i) / n - Math.PI / 2;
-    return [Math.cos(a) * R * (v / 100), Math.sin(a) * R * (v / 100)] as const;
-  };
-  const shape = items.map((it, i) => at(i, it.score ?? 0).map((p) => p.toFixed(1)).join(',')).join(' ');
-  return (
-    <svg viewBox="-150 -112 300 224" className="w-full h-auto" role="img"
-      aria-label={`Section scores: ${items.map((i) => `${i.label} ${i.score ?? 'not scored'}`).join(', ')}`}>
-      {[25, 50, 75, 100].map((v) => (
-        <polygon key={v} fill="none" stroke="var(--edge-strong)" strokeWidth={v === 100 ? 1 : 0.6}
-          points={items.map((_, i) => at(i, v).map((p) => p.toFixed(1)).join(',')).join(' ')} />
-      ))}
-      {items.map((_, i) => { const [x, y] = at(i, 100); return <line key={i} x2={x} y2={y} stroke="var(--edge-strong)" strokeWidth="0.6" />; })}
-      <polygon points={shape} fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.6" strokeLinejoin="round" />
-      {items.map((it, i) => {
-        const [x, y] = at(i, it.score ?? 0);
-        const [lx, ly] = at(i, 122);
-        return (
-          <g key={it.label}>
-            <circle cx={x} cy={y} r="4" className={toneFor(it.score)} fill="currentColor" stroke="var(--field)" strokeWidth="1.5" />
-            <text x={lx} y={ly - 2} textAnchor={Math.abs(lx) < 12 ? 'middle' : lx > 0 ? 'start' : 'end'} fontSize="9.5" fill="var(--ink-60)" fontFamily="var(--font)">{it.label}</text>
-            <text x={lx} y={ly + 10} textAnchor={Math.abs(lx) < 12 ? 'middle' : lx > 0 ? 'start' : 'end'} fontSize="11" fontWeight="600"
-              className={toneFor(it.score)} fill="currentColor" fontFamily="var(--font-num)">{it.score ?? '-'}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-/** Every finding as a dot on a 0-100 line, so the spread is visible at a glance. */
-export function DotStrip({ scores, height = 34, axis = true }: { scores: { name: string; score: number }[]; height?: number; axis?: boolean }) {
-  // Stack dots that share a score so none hide behind another.
-  const seen = new Map<number, number>();
-  const dots = [...scores].sort((a, b) => a.score - b.score).map((s) => {
-    const k = Math.round(s.score / 2); const lvl = seen.get(k) ?? 0; seen.set(k, lvl + 1);
-    return { ...s, lvl };
-  });
-  const top = Math.max(0, ...dots.map((d) => d.lvl));
-  const h = Math.max(height, 16 + top * 9);
-  return (
-    <svg viewBox={`0 0 200 ${h + (axis ? 12 : 0)}`} className="w-full h-auto overflow-visible" role="img"
-      aria-label={`${scores.length} findings, scores from ${Math.min(...scores.map((s) => s.score))} to ${Math.max(...scores.map((s) => s.score))}`}>
-      <line x1="4" x2="196" y1={h - 5} y2={h - 5} stroke="var(--edge-strong)" strokeWidth="1" />
-      {[60, 70, 80, 90].map((t) => <line key={t} x1={4 + t * 1.92} x2={4 + t * 1.92} y1={h - 9} y2={h - 1} stroke="var(--edge-strong)" strokeWidth="0.6" />)}
-      {dots.map((d, i) => (
-        <circle key={i} cx={4 + d.score * 1.92} cy={h - 5 - d.lvl * 9} r="3.6" className={toneFor(d.score)} fill="currentColor" stroke="var(--field)" strokeWidth="1">
-          <title>{`${d.name}: ${d.score}`}</title>
-        </circle>
-      ))}
-      {axis && [0, 60, 70, 80, 90, 100].map((t) => (
-        <text key={t} x={4 + t * 1.92} y={h + 9} textAnchor="middle" fontSize="6.5" fill="var(--ink-40)" fontFamily="var(--font-num)">{t}</text>
-      ))}
-    </svg>
-  );
-}
-
 export interface MarketPoint { label: string; name: string; rating: number; reviews: number; you?: boolean }
 
 /** Guest rating against review count, for the hotel and its named competitors. */

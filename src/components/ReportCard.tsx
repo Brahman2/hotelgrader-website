@@ -1,34 +1,29 @@
-import { useEffect, useState } from 'react';
-import { pillars } from '../content/pillars';
-import { contradicted, isMeasured, keyFindingFor, letterFor, gradeTone, runAudit, type Audit, type Metric } from '../lib/hg';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchScan, fetchSpeed, fetchThemes, runAudit, type Audit, type OwnScan } from '../lib/hg';
+import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
 import Gate from './Gate';
-import FullReport, { pickHighlight, shareText } from './FullReport';
-import { Radar } from './Charts';
+import Report, { shareText } from './Report';
 import { geocode, geocodeCity, offset, type LatLon } from '../lib/geo';
 import HeroForm from './HeroForm';
 import Scanner, { type Blip } from './Scanner';
 
 // The free report card. Reads ?hotel=&city=&state= from the URL, runs a live
-// scan against the hotelgrader API, and renders one page: the grade, the local
-// market, the seven section scores, what to fix first, and what is working.
+// scan against the hotelgrader API, and renders the report (Report.tsx): the
+// grade and what it rests on, what to do first, and the evidence.
 //
 // The card is gated: the scan starts right away, but the grade only shows once
 // the visitor gives a first name and email and confirms a code we send there.
 // One verified email unlocks every card in that browser, including the full
-// report below the card. Sharing on LinkedIn is optional, one button.
+// report. Sharing on LinkedIn is optional, one button, and never states the grade.
 
 
-const SHORT: Record<string, string> = {
-  searchAndAI: 'AI & search', digitalPresence: 'Website', reputation: 'Reputation', socialMedia: 'Social',
-  advertising: 'Advertising', booking: 'Booking', competitive: 'Competitive',
-};
 const MAILED_KEY = 'hg-mailed';
 const LEADS_KEY = 'hg-leads';
 
 type Target = { hotel: string; city: string; state: string };
-type Rival = { n: number; name: string; rating?: number; reviews?: number };
+type Rival = { n: number; name: string; rating?: number; reviews?: number; lat?: number | null; lng?: number | null };
 
 function readStore(key: string): string {
   try { return localStorage.getItem(key) || ''; } catch { return ''; }
@@ -56,7 +51,7 @@ function recordLead(user: User, t: Target) {
  * Locates the hotel as soon as the page opens, then each named competitor once
  * the scan returns them. Blips appear one by one as they are found.
  */
-function useMarket(target: Target | null | undefined, audit: Audit | null) {
+function useMarket(target: Target | null | undefined, audit: Audit | null, live: unknown | null = null) {
   const [center, setCenter] = useState<LatLon | null>(null);
   const [located, setLocated] = useState(false);
   const [approximate, setApproximate] = useState(false);
@@ -78,7 +73,9 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
     return () => ctrl.abort();
   }, [target]);
 
-  const rivals: Rival[] = (audit?._meta?.competitors?.top_competitors ?? []).map((c, i) => ({ ...c, n: i + 1 }));
+  // Our own comparison set when we have one (it carries coordinates); otherwise the grading API's.
+  const ours = audit ? compSet(audit, live) : null;
+  const rivals: Rival[] = (ours?.top_competitors ?? audit?._meta?.competitors?.top_competitors ?? []).map((c, i) => ({ ...c, n: i + 1 }));
   const rivalKey = rivals.map((r) => r.name).join('|');
 
   useEffect(() => {
@@ -86,7 +83,8 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
     if (!target || !center || approximate || !rivalKey) return;
     const ctrl = new AbortController();
     rivals.forEach((r) => {
-      geocode(r.name, target.city, target.state, ctrl.signal).then((p) => {
+      const known = r.lat != null && r.lng != null ? Promise.resolve({ lat: r.lat, lon: r.lng }) : null;
+      (known ?? geocode(r.name, target.city, target.state, ctrl.signal)).then((p) => {
         if (!p || ctrl.signal.aborted) return;
         const { x, y } = offset(center, p);
         if (Math.hypot(x, y) > 80000) return; // a wrong match in another city
@@ -100,175 +98,162 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
   return { center, located, approximate, blips, rivals };
 }
 
-/** The API sometimes writes a section's internal key into its summary sentence. */
-function plainFinding(text: string): string {
-  return pillars.reduce((t, p) => t.split(p.key).join(p.name), text);
-}
-
-function Grade({ letter, size }: { letter: string; size: number }) {
-  return (
-    <span className={`grade ${gradeTone(letter)} tabular`} style={{ fontSize: size }}>
-      {letter.charAt(0)}
-      <span className="grade-mod">{letter.slice(1)}</span>
-    </span>
-  );
-}
-
-/** Measured metrics only. Rows the API could not back with data are skipped. */
-function scored(audit: Audit): (Metric & { section: string })[] {
-  const hide = contradicted(audit);
-  return pillars.flatMap((p) =>
-    (audit.categories[p.key]?.metrics ?? [])
-      .filter((m) => isMeasured(m) && !hide.has(m.name))
-      .map((m) => ({ ...m, section: p.name })),
-  );
-}
-
 type Market = ReturnType<typeof useMarket>;
 
-/** The hotel against its nearest competitors: radar on the left, table on the right. */
-function MarketSection({ audit, market }: { audit: Audit; market: Market }) {
-  const comp = audit._meta?.competitors;
-  if (!market.rivals.length) return null;
-  const plotted = new Set(market.blips.map((b) => b.n));
+// What the scan is doing, by seconds elapsed. Our own readings land in the
+// first fifteen seconds; the slower review, ad and speed checks follow.
+const STAGES: [number, string][] = [
+  [0, 'Finding the hotel on Google'],
+  [5, 'Reading prices on two nights'],
+  [10, 'Opening the website and booking path'],
+  [16, 'Searching your name and asking AI'],
+  [30, 'Reading review text and replies'],
+  [60, 'Checking the ad libraries and social'],
+  [95, 'Testing page speed'],
+  [115, 'Weighing the evidence'],
+];
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/** What our own scan has found so far, shown as it lands so the wait isn't a blank screen. */
+function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null; market: Market; target: Target; ready: boolean; shot?: string }) {
+  const live = (peek?.live ?? {}) as any;
+  const h = live.prices?.ok ? live.prices.hotel : null;
+  const night = live.prices?.ok ? (live.prices.nights ?? []).find((n: any) => n.ok && n.rates?.length) : null;
+  const site = (peek?.crawl as any)?.ok ? (peek!.crawl as any) : null;
+  const topics: any[] = (h?.topics ?? []).filter((t: any) => t.mentions >= 10);
+  const share = (t: any) => t.positive / Math.max(1, t.positive + t.negative);
+  const praised = [...topics].sort((x, y) => share(y) - share(x)).slice(0, 3);
+  const griped = [...topics].filter((t) => share(t) < 0.6).sort((x, y) => share(x) - share(y)).slice(0, 3);
+  const stars: any[] = h?.stars ?? [];
+  const starTotal = stars.reduce((t, r) => t + r.count, 0);
+  const newest: any[] = (live.reviews?.reviews ?? []).filter((x: any) => x.text && x.rating != null);
+  const card = 'panel p-5 reveal';
   return (
-    <section className="px-5 sm:px-8 py-7 border-t border-edge">
-      <h2 className="label label--ink mb-5">Your market</h2>
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,320px)_1fr] gap-8 items-center">
-        <Scanner center={market.center} blips={market.blips} scanning={false} hotel={audit.hotelName} approximate={market.approximate} />
-        <div>
-          {comp?.rating_rank != null && comp.total_in_set != null && (
-            <p className="headline text-[20px] sm:text-[24px] mb-4">
-              #{comp.rating_rank} of {comp.total_in_set} <span className="text-ink-60 font-normal">on Google rating in your comp set</span>
-            </p>
-          )}
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr className="meta text-left">
-                <th className="font-normal py-1.5 w-8"></th>
-                <th className="font-normal py-1.5">hotel</th>
-                <th className="font-normal py-1.5 text-right">Google rating</th>
-                <th className="font-normal py-1.5 text-right">reviews</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-edge">
-                <td className="py-2"><span className="scanner-key scanner-key--home" /></td>
-                <td className="py-2 font-semibold">{audit.hotelName}</td>
-                <td className="py-2 text-right font-semibold num">{comp?.own_rating?.toFixed(1) ?? 'n/a'}</td>
-                <td className="py-2 text-right num">{comp?.own_reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
-              </tr>
-              {market.rivals.map((r) => (
-                <tr key={r.n} className="border-t border-edge">
-                  <td className="py-2">
-                    <span className="scanner-key">{r.n}</span>
-                  </td>
-                  <td className="py-2">{r.name}{!plotted.has(r.n) && market.located && <span className="text-ink-40"> (not on map)</span>}</td>
-                  <td className="py-2 text-right num">{r.rating?.toFixed(1) ?? 'n/a'}</td>
-                  <td className="py-2 text-right text-ink-60 num">{r.reviews?.toLocaleString('en-US') ?? 'n/a'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="meta mt-3">
-            {comp?.total_in_set != null && `These are the ${market.rivals.length} hotels most like yours out of ${comp.total_in_set} comparable hotels nearby, which is why their ratings and review counts sit close together. `}
-            {comp?.compset_avg_rating != null && `Average rating across the set: ${comp.compset_avg_rating}. `}
-            Ratings and review counts are Google’s, read at scan time.
-          </p>
-        </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+      {/* The listing: photos, address, rating */}
+      <div className={`${card} sm:col-span-2`}>
+        <div className="meta mb-3">{h ? 'found on Google' : 'finding the hotel on Google'}</div>
+        {h ? (
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-center">
+            {h.images?.length > 0 && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {h.images.slice(0, 6).map((src: string) => (
+                  <img key={src} src={src} alt="" referrerPolicy="no-referrer" className="w-full aspect-square object-cover rounded-sm bg-edge" />
+                ))}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="font-semibold text-[17px]">{h.name}</div>
+              {h.address && <div className="text-ink-60 text-[13.5px] mt-0.5">{h.address}</div>}
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-3">
+                {h.rating != null && <span className="num text-[26px] leading-none">{Number(h.rating).toFixed(1)}<span className="text-accent text-[18px]"> ★</span></span>}
+                {h.reviews != null && <span className="text-ink-60 text-[13.5px]">{Number(h.reviews).toLocaleString('en-US')} Google reviews</span>}
+              </div>
+              {h.hotelClass != null && <div className="meta mt-2">Google lists it as a {h.hotelClass}-star hotel</div>}
+            </div>
+          </div>
+        ) : <div className="skeleton h-[92px]" />}
       </div>
-    </section>
-  );
-}
 
-function ReportCardView({ audit, market }: { audit: Audit; market: Market }) {
-  const letter = letterFor(audit.overallScore);
-  const total = pillars.reduce((n, p) => n + (audit.categories[p.key]?.metrics?.length ?? 0), 0);
-  const counted = audit._meta?.overall_scoring?.included;
-  // The API stamps scans in UTC without a zone marker; add it so the date is right locally.
-  const stamp = audit._meta?.generatedAt;
-  const date = stamp
-    ? new Date(/(?:Z|[+-]\d\d:?\d\d)$/i.test(stamp) ? stamp : `${stamp}Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : '';
-  const metrics = scored(audit);
-  const place = [audit.city, audit.state].filter(Boolean).join(', ');
-
-  return (
-    <article className="panel overflow-hidden">
-      <header className="px-5 sm:px-8 py-3 border-b border-edge flex flex-wrap justify-between gap-2 meta">
-        <span className="text-accent">report card</span>
-        {date && <span>scanned {date}</span>}
-      </header>
-
-      <section className="px-5 sm:px-8 py-8 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
-        <div role="img" aria-label={`Grade ${letter}, ${audit.overallScore} out of 100`}>
-          <Grade letter={letter} size={132} />
-          <div className="text-ink-60 mt-3 num">{audit.overallScore} / 100</div>
+      {/* What guests say */}
+      {h && (starTotal >= 20 || topics.length >= 3) && (
+        <div className={card}>
+          <div className="meta mb-3">reading {starTotal ? starTotal.toLocaleString('en-US') : 'the'} guest reviews</div>
+          {starTotal >= 20 && (
+            <ul className="list-none m-0 p-0 space-y-1 mb-4">
+              {[5, 4, 3, 2, 1].map((n) => {
+                const c = stars.find((r) => r.stars === n)?.count ?? 0;
+                return (
+                  <li key={n} className="grid grid-cols-[14px_1fr] items-center gap-2 text-[12px]">
+                    <span className="num text-ink-60">{n}</span>
+                    <span className="h-[7px] bg-edge"><span className="block h-full" style={{ width: `${(c / starTotal) * 100}%`, background: n >= 4 ? 'var(--grade-a)' : n === 3 ? 'var(--ink-40)' : 'var(--grade-f)' }} /></span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {praised.length > 0 && <p className="text-[13.5px]"><span className="text-ink-60">Guests praise </span>{praised.map((t) => t.name.toLowerCase()).join(', ')}.</p>}
+          {griped.length > 0 && <p className="text-[13.5px] mt-1"><span className="text-ink-60">Complaints gather around </span>{griped.map((t) => t.name.toLowerCase()).join(', ')}.</p>}
         </div>
-        <div>
-          <h1 className="headline text-[26px] sm:text-[32px]">{audit.hotelName}</h1>
-          {place && <p className="text-ink-60 mt-1">{place}</p>}
-          {keyFindingFor(audit) && <p className="mt-4">{plainFinding(keyFindingFor(audit))}</p>}
-        </div>
-      </section>
+      )}
 
-      <MarketSection audit={audit} market={market} />
-
-      <section className="px-5 sm:px-8 py-7 border-t border-edge">
-        <h2 className="label label--ink mb-4">The seven sections</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <Radar items={pillars.map((p) => ({ label: SHORT[p.key] ?? p.name, score: audit.categories[p.key]?.score ?? null }))} />
-          <div>
-            {pillars.map((p, i) => {
-              const s = audit.categories[p.key]?.score ?? null;
-              const l = letterFor(s);
-              return (
-                <div key={p.key} className={`flex items-baseline gap-3 py-2 ${i > 0 ? 'border-t border-edge' : ''}`}>
-                  <span className="flex-1 min-w-0">{p.name}{counted && !counted.includes(p.key) ? <span className="text-ink-40"> *</span> : ''}</span>
-                  <span className="text-ink-60 num">{s ?? '-'}</span>
-                  <span className="w-[34px] text-right"><Grade letter={l} size={22} /></span>
-                </div>
-              );
-            })}
-            {counted && pillars.some((p) => !counted.includes(p.key)) && (
-              <p className="meta mt-3">* Scored, but not counted in the overall grade yet. See <a href="/methodology">how the grade is built</a>.</p>
+      {/* The hotel's own site, as a phone sees it */}
+      {(site || h?.link) && (
+        <div className={card}>
+          <div className="meta mb-3">{site ? 'your website on a phone' : 'opening your website'}</div>
+          <div className="flex gap-4 items-start">
+            <div className="phone" aria-hidden="true">
+              {/* The page speed test's own picture of the page when we have it: it always renders, a framed site sometimes doesn't. */}
+              {(shot || live.speed?.screenshot)
+                ? <img src={shot || live.speed.screenshot} alt="" className="block w-full h-full object-cover object-top" />
+                : site?.frameable
+                ? <iframe src={site.finalUrl} title="" tabIndex={-1} loading="lazy" referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin" />
+                : site
+                  ? <div className="phone-card">{site.og?.image && <img src={site.og.image} alt="" referrerPolicy="no-referrer" />}<strong>{site.title}</strong><span>{site.description}</span></div>
+                  : <div className="skeleton h-full" />}
+            </div>
+            {site && (
+              <ul className="list-none m-0 p-0 text-[13px] space-y-2 min-w-0">
+                <li className="truncate font-medium">{site.host}</li>
+                <li className="text-ink-60">loaded in {(site.ms / 1000).toFixed(1)}s</li>
+                {site.booking?.engine && <li className="text-ink-60">books through {site.booking.engine}</li>}
+                {site.booking?.buttons > 0 && <li className="text-ink-60">{site.booking.buttons} booking {site.booking.buttons === 1 ? 'link' : 'links'} found</li>}
+                {site.schema?.lodging && <li className="text-ink-60">hotel data for search engines found</li>}
+              </ul>
             )}
           </div>
         </div>
-      </section>
+      )}
 
-      <footer className="px-5 sm:px-8 py-3 border-t border-edge flex flex-wrap justify-between gap-2 meta">
-        <span>
-          {total > 0 && `${metrics.length} of ${total} metrics backed by data this scan. `}
-          Public data only.
-        </span>
-        <a href="/methodology">how the grade is built</a>
-      </footer>
-    </article>
+      {/* The newest reviews themselves */}
+      {newest.length >= 2 && (
+        <div className={`${card} sm:col-span-2`}>
+          <div className="meta mb-3">reading your newest Google reviews and checking for replies</div>
+          <ul className="list-none m-0 p-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {newest.slice(0, 3).map((x: any, i: number) => (
+              <li key={i} className="border border-edge p-3 text-[12.5px] leading-snug min-w-0">
+                <div className="flex justify-between gap-2 mb-1.5">
+                  <span className={`num ${x.rating >= 4 ? 'grade--a' : x.rating > 3 ? 'grade--c' : 'grade--f'}`}>{x.rating}/5</span>
+                  <span className="text-ink-40">{x.reply ? 'replied' : 'no reply'}</span>
+                </div>
+                <p className="text-ink-60 m-0">“{x.text.length > 120 ? `${x.text.slice(0, 120).replace(/\s+\S*$/, '')}…` : x.text}”</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Prices, as a count only: the detail is in the report */}
+      {night && (
+        <div className={card}>
+          <div className="meta mb-2">comparing prices</div>
+          <div className="num text-[30px] leading-none">{night.rates.length}</div>
+          <p className="text-ink-60 text-[13.5px] mt-1.5">booking sites show a rate for {new Date(`${night.checkIn}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}. Your own site is {night.rates.some((r: any) => r.official) ? 'one of them' : 'not among them'}.</p>
+        </div>
+      )}
+
+      {/* The hotels around it */}
+      <div className={`${card} ${night && !(site || h?.link) ? '' : ''}`}>
+        <div className="meta mb-3">{market.rivals.length > 0 ? `${market.rivals.length} hotels to compare you with` : 'mapping the hotels around you'}</div>
+        <Scanner center={market.center} blips={market.blips} scanning={!ready || !market.located} hotel={target.hotel} approximate={market.approximate} />
+      </div>
+    </div>
   );
 }
-
-// What the scan is doing, by seconds elapsed. The API reports few progress
-// steps, so these plain-language lines keep the wait readable.
-const STAGES: [number, string][] = [
-  [0, 'Finding the hotel on Google'],
-  [12, 'Reading reviews and ratings'],
-  [30, 'Checking rate parity across the OTAs'],
-  [55, 'Asking AI assistants about the hotel'],
-  [85, 'Comparing with nearby hotels'],
-  [115, 'Scoring the seven sections'],
-];
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Shown while the scan runs, and after it if the email isn't verified yet. */
-function ScanScreen({ target, elapsed, ready, locked, market, onUnlock }: {
-  target: Target; elapsed: number; ready: boolean; locked: boolean; market: Market; onUnlock: (user: User) => void;
+function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, shot, onUnlock }: {
+  shot?: string;
+  target: Target; elapsed: number; ready: boolean; settled: boolean; locked: boolean; market: Market; peek: OwnScan | null; onUnlock: (user: User) => void;
 }) {
-  const current = ready ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
+  // The steps keep moving until the whole scan has settled, even once the first reading can be shown.
+  const current = settled ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-10 items-start">
-      <div className="panel p-6 sm:p-7">
+    <div className="max-w-[1120px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-8 items-start">
+      <div className="panel p-6 sm:p-7 md:sticky md:top-20">
         <p className="label label--accent" role="status" aria-live="polite">
-          <span className="dark-only">$ </span>{ready ? 'scan complete' : `scanning · ${elapsed}s`}
+          <span className="dark-only">$ </span>{settled ? 'scan complete' : ready ? `first reading ready · still scanning · ${elapsed}s` : `scanning · ${elapsed}s`}
         </p>
         <h1 className="headline text-[22px] sm:text-[26px] mt-2">{target.hotel}</h1>
         <ol className="steps list-none m-0 p-0 mt-6">
@@ -281,14 +266,9 @@ function ScanScreen({ target, elapsed, ready, locked, market, onUnlock }: {
         </ol>
         {locked
           ? <Gate target={target} ready={ready} onUnlock={onUnlock} />
-          : <p className="meta mt-6">A live scan takes one to two minutes. Keep this tab open.</p>}
+          : <p className="meta mt-6">The first reading takes about fifteen seconds. Keep this tab open.</p>}
       </div>
-      <div className="max-w-[460px] w-full mx-auto md:pt-2">
-        <Scanner center={market.center} blips={market.blips} scanning={!ready || !market.located} hotel={target.hotel} approximate={market.approximate} />
-        {market.rivals.length > 0 && (
-          <p className="meta mt-4">{market.rivals.length} competing hotels found nearby.</p>
-        )}
-      </div>
+      <Findings peek={peek} market={market} target={target} ready={ready} shot={shot} />
     </div>
   );
 }
@@ -298,12 +278,26 @@ export default function ReportCard() {
   const [user, setUser] = useState<User | null>(null);
   const [viaLink, setViaLink] = useState(false); // opened from an emailed report link
   const [audit, setAudit] = useState<Audit | null>(null);
+  // Our own crawl of the hotel's website. undefined = still reading, null = couldn't read.
+  const [crawl, setCrawl] = useState<unknown | null | undefined>(undefined);
+  // Results of our other collectors (prices, brand search). Null until read.
+  const [live, setLive] = useState<unknown | null>(null);
+  // True while the report on screen rests on our own scan and the grading API is still working.
+  const [prelim, setPrelim] = useState(false);
+  // True when the grading API never finished and the report rests on our own scan alone.
+  const [ownOnly, setOwnOnly] = useState(false);
+  // The latest stage of our own scan, for the scan screen.
+  const [peek, setPeek] = useState<OwnScan | null>(null);
+  // Our page speed run, which arrives on its own after the scan has found the website.
+  const [speed, setSpeed] = useState<unknown | null>(null);
+  const [themes, setThemes] = useState<unknown | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [copied, setCopied] = useState(false);
   const [share, setShare] = useState(''); // link that opens this report without the gate
-  const market = useMarket(target, audit);
+  // Before the report exists, the scan screen maps the comparison set from the scan's first stage.
+  const market = useMarket(target, audit ?? peek?.base ?? null, live ?? peek?.live ?? null);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -316,23 +310,91 @@ export default function ReportCard() {
     setTarget(hotel ? { hotel, city: q.get('city') || '', state: q.get('state') || '' } : null);
   }, []);
 
+  // Ask for the page speed run once the scan knows the website, unless the scan already carried one.
+  const siteKnown = !!((peek?.crawl as any)?.ok || (peek?.live as any)?.prices?.hotel?.link);
+  const speedCached = (peek?.live as any)?.speed ?? null;
+  useEffect(() => {
+    if (!target || !siteKnown) return;
+    if (speedCached?.mobile && speedCached?.desktop) { setSpeed(speedCached); return; }
+    if (speedCached) setSpeed(speedCached);
+    const ctrl = new AbortController();
+    const ask = () => fetchSpeed(target.hotel, target.city, target.state, ctrl.signal);
+    // One of the two runs sometimes times out. Show what came back, then ask once more for the other.
+    ask().then(async (sp: any) => {
+      if (ctrl.signal.aborted || !sp) return;
+      setSpeed(sp);
+      if (!sp.mobile || !sp.desktop) { const again = await ask(); if (!ctrl.signal.aborted && again) setSpeed(again); }
+    });
+    return () => ctrl.abort();
+  }, [target, siteKnown, speedCached]);
+  // The same for review themes: asked for once the scan has read the reviews.
+  const reviewsRead = !!(peek?.live as any)?.reviews?.ok;
+  const themesCached = (peek?.live as any)?.themes ?? null;
+  useEffect(() => {
+    if (!target || !reviewsRead) return;
+    if (themesCached) { setThemes(themesCached); return; }
+    const ctrl = new AbortController();
+    fetchThemes(target.hotel, target.city, target.state, ctrl.signal).then((t) => { if (!ctrl.signal.aborted && t) setThemes(t); });
+    return () => ctrl.abort();
+  }, [target, reviewsRead, themesCached]);
+  const liveAll = useMemo(() => (live && (speed || themes) ? { ...(live as object), ...(speed ? { speed } : {}), ...(themes ? { themes } : {}) } : live), [live, speed, themes]);
+
   useEffect(() => {
     if (!target) return;
     const ctrl = new AbortController();
     setError('');
+    setSpeed(null);
+    setThemes(null);
     setAudit(null);
+    setCrawl(undefined);
+    setLive(null);
+    setPrelim(false);
+    setOwnOnly(false);
+    setPeek(null);
     setElapsed(0);
     const started = Date.now();
     const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
     document.title = `${target.hotel} · report card · hotelgrader`;
     track('grade_start', hotelParams(target));
-    runAudit(target.hotel, target.city, target.state, ctrl.signal)
-      .then((a) => {
-        setAudit(a);
-        track('grade_complete', { ...hotelParams(target), score: Math.round(a.overallScore), seconds: Math.round((Date.now() - started) / 1000) });
+    const where = [target.hotel, target.city, target.state] as const;
+    const graded = (s: OwnScan | null) => !!s?.base && assess(s.base, s.crawl, s.live).graded;
+    let final = false;
+    const finish = (a: Audit, s: OwnScan | null, ownOnly: boolean) => {
+      final = true;
+      setCrawl(s?.crawl ?? null);
+      setLive(s?.live ?? null);
+      setAudit(a);
+      setPrelim(false);
+      setOwnOnly(ownOnly);
+      const done = assess(a, s?.crawl ?? null, s?.live ?? null);
+      track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, own_only: ownOnly, seconds: Math.round((Date.now() - started) / 1000) });
+    };
+
+    // Our own scan takes seconds; the grading API takes about two minutes. Show ours as soon as it can
+    // carry a grade, marked as still filling in, then settle when the rest arrives.
+    const own = fetchScan(...where, ctrl.signal, (s) => { if (!ctrl.signal.aborted) setPeek(s); });
+    own.then((s) => {
+      if (ctrl.signal.aborted || final || !s?.base || !graded(s)) return;
+      setCrawl(s.crawl);
+      setLive(s.live);
+      setAudit(s.base);
+      setPrelim(true);
+      track('grade_preview', { ...hotelParams(target), seconds: Math.round((Date.now() - started) / 1000) });
+    });
+    runAudit(...where, ctrl.signal)
+      .then(async (a) => {
+        let s = await own;
+        // Without a search budget our scan needs the grading API's scan to learn the hotel's website. Ask once more now that it exists.
+        if (!s?.crawl || !s?.live?.prices) s = (await fetchScan(...where, ctrl.signal)) ?? s;
+        if (ctrl.signal.aborted) return;
+        finish(a, s, false);
       })
-      .catch((e) => {
+      .catch(async (e) => {
         if (e?.name === 'AbortError') return;
+        // The grading API failed or timed out. Our own scan still stands if it can carry a grade.
+        const s = await own;
+        if (ctrl.signal.aborted) return;
+        if (s?.base && graded(s)) { finish(s.base, s, true); return; }
         setError(e?.message || 'The scan failed.');
         track('grade_error', hotelParams(target));
       })
@@ -348,19 +410,20 @@ export default function ReportCard() {
 
   // Email the report card once per hotel to visitors who verified their address.
   useEffect(() => {
-    if (!target || !audit || !user || ['tester', 'unverified'].includes(user.proof)) return;
+    // Wait for the settled report, so the emailed grade matches the page.
+    if (!target || !audit || prelim || !user || ['tester', 'unverified'].includes(user.proof)) return;
     const id = [target.hotel, target.city, target.state].join('|').toLowerCase();
     const mailed = readStore(MAILED_KEY).split('\n').filter(Boolean);
     if (mailed.includes(id)) return;
     writeStore(MAILED_KEY, [...mailed, id].slice(-50).join('\n'));
     void sendReport(user, target);
-  }, [target, audit, user]);
+  }, [target, audit, prelim, user]);
 
   // Fetched ahead of the click, so copying stays a single tap.
   useEffect(() => {
-    if (!target || !audit || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
+    if (!target || !audit || prelim || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
     void shareLink(user, target).then(setShare);
-  }, [target, audit, user, viaLink]);
+  }, [target, audit, prelim, user, viaLink]);
 
   if (target === undefined) return <div className="min-h-[420px]" />;
 
@@ -390,11 +453,14 @@ export default function ReportCard() {
   if (!audit || (!user && !viaLink)) {
     return (
       <ScanScreen
+        shot={(speed as any)?.screenshot || ''}
         target={target}
         elapsed={elapsed}
         ready={!!audit}
+        settled={!!audit && !prelim}
         locked={!user && !viaLink}
         market={market}
+        peek={peek}
         onUnlock={(u) => {
           saveUser(u);
           setUser(u);
@@ -426,12 +492,32 @@ export default function ReportCard() {
           <a href="/" className="btn btn--primary">grade your hotel</a>
         </div>
       )}
-      <ReportCardView audit={audit} market={market} />
-      <FullReport audit={audit} />
+      {prelim && (
+        <div className="panel px-5 sm:px-8 py-4 mb-6 no-print" role="status">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="scan-dot" aria-hidden="true" />
+            <p className="flex-1 min-w-[240px] text-[14px]">
+              <span className="font-semibold">First reading. The grade can still move.</span>{' '}
+              <span className="text-ink-60">Prices, search, your website and the hotels around you are in. Review text and replies, the ad libraries, social and page speed are still being read, usually within two minutes.</span>
+            </p>
+            <span className="meta tabular">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
+          </div>
+        </div>
+      )}
+      {ownOnly && (
+        <div className="panel px-5 sm:px-8 py-4 mb-6 no-print">
+          <p className="text-[14px]">
+            <span className="font-semibold">Part of the scan didn’t finish.</span>{' '}
+            <span className="text-ink-60">Review text and replies, the ad libraries, social and page speed couldn’t be read this time. They’re left out of the grade, not counted against it.</span>{' '}
+            <button type="button" className="link" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+          </p>
+        </div>
+      )}
+      <Report audit={audit} crawl={crawl ?? null} live={liveAll} market={market} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
           track('share', { method: 'linkedin', content_type: 'report', item_id: target.hotel });
-          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, pickHighlight(audit)))}`, '_blank', 'noopener');
+          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, assess(audit, crawl ?? null, live)))}`, '_blank', 'noopener');
         }}>share on LinkedIn</button>
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy share link'}</button>
         <button type="button" className="btn" onClick={() => { track('print_report', { hotel: target.hotel }); window.print(); }}>print</button>

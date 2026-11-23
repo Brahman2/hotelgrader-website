@@ -159,6 +159,70 @@ export function gradeTone(letter: string): string {
   return TONES[letter.charAt(0)] ?? '';
 }
 
+export interface OwnScan {
+  /** An empty scan in the grading API's shape, so the assessment can run on our evidence alone. Null when nothing was read. */
+  base: Audit | null;
+  crawl: unknown | null;
+  live: Record<string, unknown> | null;
+  pending?: boolean;
+  /** Why spending stopped, if it did: 'monthly' or 'daily'. */
+  limited?: string;
+}
+
+/**
+ * Our own scan of the hotel: prices, the hotels around it, its website, the brand search and an AI question.
+ * It comes back in stages, so this asks again while the server says more is pending, and reports each stage
+ * to `onProgress` as it lands. Null when it couldn't be reached.
+ */
+export async function fetchScan(hotel: string, city: string, state: string, signal?: AbortSignal, onProgress?: (scan: OwnScan) => void): Promise<OwnScan | null> {
+  let last: OwnScan | null = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hotel, city, state }),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(25000)]) : AbortSignal.timeout(25000),
+      });
+      if (!res.ok) return last;
+      const scan = ((await res.json())?.scan ?? null) as OwnScan | null;
+      if (!scan) return last;
+      last = scan;
+      onProgress?.(scan);
+      if (!scan.pending) return scan;
+    } catch { if (signal?.aborted) return last; }
+  }
+  return last;
+}
+
+/** The page speed run for the hotel's website. Slow (up to half a minute), so it's asked for on the side. Null when there's none. */
+export async function fetchSpeed(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
+  try {
+    const res = await fetch('/api/speed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel, city, state }),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(40000)]) : AbortSignal.timeout(40000),
+    });
+    if (!res.ok) return null;
+    return (await res.json())?.speed ?? null;
+  } catch { return null; }
+}
+
+/** The hotel's newest reviews grouped into themes. A model call of several seconds, so it's asked for on the side. Null when there's none. */
+export async function fetchThemes(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
+  try {
+    const res = await fetch('/api/themes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel, city, state }),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35000)]) : AbortSignal.timeout(35000),
+    });
+    if (!res.ok) return null;
+    return (await res.json())?.themes ?? null;
+  } catch { return null; }
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**

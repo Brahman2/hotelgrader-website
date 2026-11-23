@@ -1,24 +1,12 @@
-// Server-side read of a finished scan, for the report email. Same cutoffs and
-// the same "measured" test the site uses, so the email matches the page.
+// Server-side read of a finished scan, for the report email. It runs the same
+// assessment the page runs (shared/assess.mjs), so the email matches the page.
 
 import { sign } from './verify.mjs';
+import { assess, compSet, letterFor } from '../../shared/assess.mjs';
+
+export { letterFor };
 
 const API = process.env.PUBLIC_HG_API || 'https://web-production-13e22.up.railway.app';
-
-const SECTIONS = [
-  ['searchAndAI', 'GEO & AI Visibility'], ['digitalPresence', 'Website & Digital Presence'],
-  ['reputation', 'Reputation Management'], ['socialMedia', 'Social Media'],
-  ['advertising', 'Advertising & Brand'], ['booking', 'Booking & Distribution'],
-  ['competitive', 'Competitive Intelligence'],
-];
-const CUTOFFS = [[95, 'A+'], [90, 'A'], [85, 'B+'], [80, 'B'], [75, 'C+'], [70, 'C'], [65, 'D+'], [60, 'D']];
-
-export function letterFor(score) {
-  if (score == null) return '-';
-  for (const [min, l] of CUTOFFS) if (score >= min) return l;
-  return 'F';
-}
-const measured = (m) => !!m.verified && m.score != null && !/not collected|no data/i.test(m.insight ?? '');
 
 /** The finished scan for a hotel, or null if the API has none ready. */
 export async function fetchAudit(hotel, city, state) {
@@ -33,80 +21,49 @@ export async function fetchAudit(hotel, city, state) {
   return body && body.cached && body.data ? body.data : null;
 }
 
-const same = (a, b) => !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+const nth = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
 
-export function summarize(audit) {
-  const c = audit._meta?.competitors;
-  // Findings the scan itself contradicts are left out, as on the page (see contradicted() in src/lib/hg.ts).
-  const hide = new Set();
-  if (c?.review_rank != null && c.total_in_set != null && c.review_rank > c.total_in_set / 2) hide.add('Review Volume');
-  const mention = (audit.categories?.searchAndAI?.metrics ?? []).find((m) => /ai mention rate/i.test(m.name));
-  if (mention && measured(mention) && mention.score === 0) hide.add('Recommendation Position');
-  const all = SECTIONS.flatMap(([key]) => audit.categories?.[key]?.metrics ?? []).filter((m) => measured(m) && !hide.has(m.name));
-  const fixes = [...all].sort((a, b) => a.score - b.score).filter((m) => m.score < 85).slice(0, 5).map((m) => {
-    const step = (m.actionSteps ?? []).find((s) => s.action);
-    return { name: m.name, score: m.score, letter: letterFor(m.score), step: step ? String(step.action).replace(/[.:]\s*$/, '') + '.' : '' };
-  });
-
-  // The API sometimes writes a section's internal key into its summary sentence.
-  let keyFinding = audit.executiveSummary?.keyFinding || '';
-  for (const [key, name] of SECTIONS) keyFinding = keyFinding.split(key).join(name);
-  keyFinding = keyFinding.split(/(?<=\.)\s+/).filter((s) => ![...hide].some((n) => s.includes(n))).join(' ');
-
-  // One night's price on the hotel's own site against the booking sites.
-  const bp = audit._meta?.booking_pricing;
-  const rates = (bp?.ota_rates ?? []).filter((r) => r && r.rate > 0 && r.source);
-  let prices = null;
-  if (rates.length >= 3) {
-    const direct = rates.find((r) => same(r.source, bp?.matched_name) || same(r.source, audit.hotelName)) || null;
-    const others = rates.filter((r) => r !== direct).sort((a, b) => a.rate - b.rate);
-    const rows = [...(direct ? [{ ...direct, mine: true }] : []), ...others.slice(0, 5)].sort((a, b) => a.rate - b.rate);
-    prices = {
-      direct: direct ? direct.rate : null,
-      cheaper: direct ? others.filter((r) => r.rate < direct.rate).length : 0,
-      total: others.length,
-      lowest: others[0] || null,
-      rows,
-      max: Math.max(...rows.map((r) => r.rate)),
-      checkIn: bp?.identity?.check_in
-        ? new Date(`${bp.identity.check_in}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-        : '',
-    };
-  }
-
-  // Which hotels in the set run ads.
-  const adRivals = audit._meta?.compset_ads?.competitors ?? [];
-  const mine = audit.categories?.advertising?.metrics ?? [];
-  const g = mine.find((m) => /google ads/i.test(m.name))?.verified_data;
-  const f = mine.find((m) => /meta ads/i.test(m.name))?.verified_data;
-  const ads = adRivals.length >= 2 ? [
-    { name: audit.hotelName, you: true, google: g?.registry?.checked ? !!(g.runs_ads_registry ?? g.registry.runs_ads_registry) : null, meta: f?.status === 'ok' ? !!f.running_ads : null },
-    ...adRivals.map((r) => ({ name: r.name, google: r.google_ads ?? null, meta: r.meta_ads ?? null })),
-  ] : null;
-
+export function summarize(audit, crawl = null, live = null) {
+  const a = assess(audit, crawl, live);
+  const c = compSet(audit, live) ?? audit._meta?.competitors;
+  const p = a.prices;
   return {
     hotel: audit.hotelName,
-    place: [audit.city, audit.state].filter(Boolean).join(', '),
-    score: audit.overallScore,
-    letter: letterFor(audit.overallScore),
-    keyFinding,
+    place: a.identity.place,
+    graded: a.graded,
+    score: a.score,
+    letter: a.letter,
+    coverage: Math.round(a.coverage * 100),
+    version: a.version,
+    keyFinding: a.headline,
     rank: c?.rating_rank != null && c?.total_in_set != null ? { place: c.rating_rank, total: c.total_in_set } : null,
-    tally: {
-      fix: all.filter((m) => m.score < 70).length,
-      improve: all.filter((m) => m.score >= 70 && m.score < 85).length,
-      good: all.filter((m) => m.score >= 85).length,
-    },
-    market: c?.own_rating != null ? {
-      own: { name: audit.hotelName, rating: c.own_rating, reviews: c.own_reviews },
-      rivals: (c.top_competitors ?? []).slice(0, 5),
+    market: a.choice ? {
+      own: a.choice.rows.find((r) => r.you),
+      rivals: a.choice.rows.filter((r) => !r.you).slice(0, 5),
     } : null,
-    sections: SECTIONS.map(([key, name]) => {
-      const score = audit.categories?.[key]?.score ?? null;
-      return { name, score, letter: letterFor(score) };
-    }),
-    fixes,
-    prices,
-    ads,
+    sections: a.functions.filter((f) => f.score != null).map((f) => ({ name: f.name, score: f.score, letter: letterFor(f.score), weight: f.weight, seen: Math.round(f.coverage * 100) })),
+    fixes: a.priorities.map((x) => ({ name: x.title, kind: x.type === 'fix' ? 'Fix' : x.type === 'investigate' ? 'Check first' : 'Operations', step: x.evidence, owner: x.owner })),
+    prices: p ? {
+      direct: p.direct ? p.direct.rate : null,
+      cheaper: p.cheaper,
+      total: p.others,
+      lowest: p.lowest,
+      rows: p.rows.slice(0, 6),
+      second: p.nights.length >= 2 ? p.nights[1] : null,
+      max: Math.max(...p.rows.slice(0, 6).map((r) => r.rate)),
+      checkIn: p.night
+        ? new Date(`${p.night}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+        : '',
+    } : null,
+    ads: a.ads && a.ads.rivals.length >= 2 ? [{ ...a.ads.you, you: true }, ...a.ads.rivals] : null,
+    // Where the hotel shows for the searches travellers type. Shown, not graded.
+    searches: a.visibility ? a.visibility.rows.map((r) => ({
+      query: r.query, brand: r.kind === 'brand',
+      hotel: r.kind === 'brand' ? (r.panel ? 'your panel shows' : 'no panel shown') : !r.boxShown ? 'not read' : r.box != null ? `${nth(r.box)} of ${r.boxSize}` : 'not on first page',
+      web: r.organic != null ? nth(r.organic) : r.organicKnown ? 'not in top 10' : "couldn't tell",
+      good: { hotel: r.kind === 'brand' ? !!r.panel : r.boxShown ? r.box != null : null, web: r.organic != null ? true : r.organicKnown ? false : null },
+    })) : null,
+    flags: a.identity.flags,
   };
 }
 
