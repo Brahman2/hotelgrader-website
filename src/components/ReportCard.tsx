@@ -115,7 +115,7 @@ const STAGES: [number, string][] = [
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** What our own scan has found so far, shown as it lands so the wait isn't a blank screen. */
-function Findings({ peek, market, target, ready }: { peek: OwnScan | null; market: Market; target: Target; ready: boolean }) {
+function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null; market: Market; target: Target; ready: boolean; shot?: string }) {
   const live = (peek?.live ?? {}) as any;
   const h = live.prices?.ok ? live.prices.hotel : null;
   const night = live.prices?.ok ? (live.prices.nights ?? []).find((n: any) => n.ok && n.rates?.length) : null;
@@ -183,7 +183,10 @@ function Findings({ peek, market, target, ready }: { peek: OwnScan | null; marke
           <div className="meta mb-3">{site ? 'your website on a phone' : 'opening your website'}</div>
           <div className="flex gap-4 items-start">
             <div className="phone" aria-hidden="true">
-              {site?.frameable
+              {/* The page speed test's own picture of the page when we have it: it always renders, a framed site sometimes doesn't. */}
+              {(shot || live.speed?.screenshot)
+                ? <img src={shot || live.speed.screenshot} alt="" className="block w-full h-full object-cover object-top" />
+                : site?.frameable
                 ? <iframe src={site.finalUrl} title="" tabIndex={-1} loading="lazy" referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin" />
                 : site
                   ? <div className="phone-card">{site.og?.image && <img src={site.og.image} alt="" referrerPolicy="no-referrer" />}<strong>{site.title}</strong><span>{site.description}</span></div>
@@ -240,7 +243,8 @@ function Findings({ peek, market, target, ready }: { peek: OwnScan | null; marke
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Shown while the scan runs, and after it if the email isn't verified yet. */
-function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, onUnlock }: {
+function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, shot, onUnlock }: {
+  shot?: string;
   target: Target; elapsed: number; ready: boolean; settled: boolean; locked: boolean; market: Market; peek: OwnScan | null; onUnlock: (user: User) => void;
 }) {
   // The steps keep moving until the whole scan has settled, even once the first reading can be shown.
@@ -264,7 +268,7 @@ function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, onU
           ? <Gate target={target} ready={ready} onUnlock={onUnlock} />
           : <p className="meta mt-6">The first reading takes about fifteen seconds. Keep this tab open.</p>}
       </div>
-      <Findings peek={peek} market={market} target={target} ready={ready} />
+      <Findings peek={peek} market={market} target={target} ready={ready} shot={shot} />
     </div>
   );
 }
@@ -437,6 +441,7 @@ export default function ReportCard() {
   if (!audit || (!user && !viaLink)) {
     return (
       <ScanScreen
+        shot={(speed as any)?.screenshot || ''}
         target={target}
         elapsed={elapsed}
         ready={!!audit}
