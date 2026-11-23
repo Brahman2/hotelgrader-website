@@ -137,7 +137,7 @@ function Findings({ peek, market, target, ready }: { peek: OwnScan | null; marke
             {h.images?.length > 0 && (
               <div className="grid grid-cols-3 gap-1.5">
                 {h.images.slice(0, 6).map((src: string) => (
-                  <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" className="w-full aspect-square object-cover rounded-sm bg-edge" />
+                  <img key={src} src={src} alt="" referrerPolicy="no-referrer" className="w-full aspect-square object-cover rounded-sm bg-edge" />
                 ))}
               </div>
             )}
@@ -221,15 +221,16 @@ function Findings({ peek, market, target, ready }: { peek: OwnScan | null; marke
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Shown while the scan runs, and after it if the email isn't verified yet. */
-function ScanScreen({ target, elapsed, ready, locked, market, peek, onUnlock }: {
-  target: Target; elapsed: number; ready: boolean; locked: boolean; market: Market; peek: OwnScan | null; onUnlock: (user: User) => void;
+function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, onUnlock }: {
+  target: Target; elapsed: number; ready: boolean; settled: boolean; locked: boolean; market: Market; peek: OwnScan | null; onUnlock: (user: User) => void;
 }) {
-  const current = ready ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
+  // The steps keep moving until the whole scan has settled, even once the first reading can be shown.
+  const current = settled ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
   return (
     <div className="max-w-[1120px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-8 items-start">
       <div className="panel p-6 sm:p-7 md:sticky md:top-20">
         <p className="label label--accent" role="status" aria-live="polite">
-          <span className="dark-only">$ </span>{ready ? 'first reading ready' : `scanning · ${elapsed}s`}
+          <span className="dark-only">$ </span>{settled ? 'scan complete' : ready ? `first reading ready · still scanning · ${elapsed}s` : `scanning · ${elapsed}s`}
         </p>
         <h1 className="headline text-[22px] sm:text-[26px] mt-2">{target.hotel}</h1>
         <ol className="steps list-none m-0 p-0 mt-6">
@@ -398,6 +399,7 @@ export default function ReportCard() {
         target={target}
         elapsed={elapsed}
         ready={!!audit}
+        settled={!!audit && !prelim}
         locked={!user && !viaLink}
         market={market}
         peek={peek}
