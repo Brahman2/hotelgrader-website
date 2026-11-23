@@ -11,12 +11,25 @@ const iso = (d) => d.toISOString().slice(0, 10);
 const addDays = (d, n) => new Date(d.getTime() + n * 86400000);
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
+/** Rough US holiday periods, by month and day, when rates aren't typical. */
+function isHoliday(d) {
+  const md = (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+  return md >= 1218 || md <= 104 // Christmas and New Year
+    || (md >= 1121 && md <= 1130) // Thanksgiving week
+    || (md >= 701 && md <= 706) // Independence Day
+    || (md >= 522 && md <= 531 && [5, 6, 0, 1].includes(d.getUTCDay())) // Memorial Day weekend
+    || (md >= 830 && md <= 907 && [5, 6, 0, 1].includes(d.getUTCDay())) // Labor Day weekend
+    || (md >= 212 && md <= 217 && [5, 6, 0, 1].includes(d.getUTCDay())); // Presidents' Day weekend
+}
+
 /** The two one-night stays we price: the first Tuesday three weeks out, the first Saturday five weeks out. */
 export function sampleNights(today = new Date()) {
   const base = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
   const next = (from, weekday) => { let d = from; while (d.getUTCDay() !== weekday) d = addDays(d, 1); return d; };
-  const tue = next(addDays(base, 21), 2);
-  const sat = next(addDays(base, 35), 6);
+  // Step past holiday periods a week at a time: a holiday rate says little about an ordinary week.
+  const clear = (d) => { let x = d; for (let i = 0; i < 6 && isHoliday(x); i++) x = addDays(x, 7); return x; };
+  const tue = clear(next(addDays(base, 21), 2));
+  const sat = clear(next(addDays(base, 35), 6));
   return [
     { kind: 'midweek', checkIn: iso(tue), checkOut: iso(addDays(tue, 1)) },
     { kind: 'weekend', checkIn: iso(sat), checkOut: iso(addDays(sat, 1)) },

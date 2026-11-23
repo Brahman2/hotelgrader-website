@@ -4,14 +4,15 @@
 
 import { scanPrices } from '../../scanner/prices.mjs';
 import { brandSearch } from '../../scanner/search.mjs';
+import { aiAnswer } from '../../scanner/ai.mjs';
 import { hasKey, searchesLeft } from '../../scanner/serpapi.mjs';
 import { websiteOf } from '../../shared/assess.mjs';
 
 const DAY = 24 * 60 * 60 * 1000;
 // Searches kept back each month so a busy day can't empty the plan.
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
-// The most one scan can spend: two nights, the hotels nearby, the brand search.
-const PER_SCAN = 4;
+// The most one scan can spend: two nights, the hotels nearby, the brand search, one AI question.
+const PER_SCAN = 5;
 
 async function store(name) {
   try {
@@ -38,7 +39,7 @@ async function cached(storeName, key, { fresh, allowed, complete = () => true },
 }
 
 /**
- * { prices, search } for this scan's hotel. Either can be null: no key, no
+ * { prices, search, ai } for this scan's hotel. Either can be null: no key, no
  * budget left this month, or nothing could be read.
  */
 export async function liveFor(audit, { fresh = true } = {}) {
@@ -47,7 +48,7 @@ export async function liveFor(audit, { fresh = true } = {}) {
     token: audit._meta?.booking_pricing?.identity?.hotel_identifier || '',
     site: websiteOf(audit),
   };
-  if (!target.hotel) return { prices: null, search: null };
+  if (!target.hotel) return { prices: null, search: null, ai: null };
   const key = [slug(target.hotel), slug(target.city), slug(target.state)].join('_');
 
   // Ask the provider how many searches are left once, and only if something needs reading.
@@ -58,9 +59,17 @@ export async function liveFor(audit, { fresh = true } = {}) {
     return budget == null || budget >= RESERVE + PER_SCAN;
   };
 
+  const started = Date.now();
   const [prices, search] = await Promise.all([
-    cached('price-scans-v4', key, { fresh, allowed, complete: (p) => p.done !== false }, () => scanPrices(target)).catch(() => null),
+    cached('price-scans-v5', key, { fresh, allowed, complete: (p) => p.done !== false }, () => scanPrices(target)).catch(() => null),
     cached('brand-searches-v2', key, { fresh, allowed }, () => brandSearch(target)).catch(() => null),
   ]);
-  return { prices, search, outOfBudget: hasKey() && budget != null && budget < RESERVE + PER_SCAN };
+  // The AI question names the hotel's star class, which the price reading supplies, so it runs second.
+  // If the first round already took a while, leave it for the page's retry so this call stays short.
+  const slow = Date.now() - started > 2500;
+  const aiTarget = { ...target, hotelClass: prices?.hotel?.hotelClass ?? null };
+  const ai = await cached('ai-answers', key, { fresh: fresh && !slow, allowed }, () => aiAnswer(aiTarget)).catch(() => null);
+  const pending = prices?.done === false || (fresh && slow && !ai && hasKey());
+
+  return { prices, search, ai, pending, outOfBudget: hasKey() && budget != null && budget < RESERVE + PER_SCAN };
 }

@@ -17,7 +17,7 @@ export default async (req) => {
 
   const audit = await fetchAudit(hotel, clean(body.city).slice(0, 80), clean(body.state).slice(0, 80)).catch(() => null);
   if (!audit) return json(409, { error: 'That scan isn’t ready yet.' });
-  const live = await liveFor(audit).catch(() => ({ prices: null, search: null }));
+  const live = await liveFor(audit).catch(() => ({ prices: null, search: null, ai: null }));
   return json(200, { live });
 };
 

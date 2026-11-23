@@ -180,7 +180,10 @@ export function assess(audit, crawl = null, live = null) {
   const webSolid = !!web && web.rendered !== 'script';
   const meta = audit._meta ?? {};
   const when = meta.generatedAt ?? null;
-  const gbp = evidence(audit, /^google business profile/i);
+  // The Google profile as the grading API read it, or the basics from our own listing read when it didn't.
+  const lh = px?.hotel ?? null;
+  const gbp = evidence(audit, /^google business profile/i)
+    ?? (lh ? { ours: true, has_phone: !!lh.phone, has_website: !!lh.link, website_url: lh.link, rating: lh.rating, review_count: lh.reviews, business_status: null, photo_count: null, google_maps_url: '' } : null);
   const bp = meta.booking_pricing ?? evidence(audit, /rate parity/i);
   const links = meta.booking_links ?? null;
   const comp = compSet(audit, live) ?? meta.competitors ?? null;
@@ -395,9 +398,15 @@ export function assess(audit, crawl = null, live = null) {
 
   // --- Profiles and listings (10) ---
   check('profiles', 'gbp-live', 'Google profile is live and marked open', 10,
-    gbp ? (gbp.business_status === 'OPERATIONAL' ? 1 : 0) : null,
-    gbp ? (gbp.business_status === 'OPERATIONAL' ? 'Listed as open.' : `Listed as ${String(gbp.business_status || 'unknown').toLowerCase().replace(/_/g, ' ')}.`) : 'Profile not read this scan.',
+    gbp && gbp.business_status != null ? (gbp.business_status === 'OPERATIONAL' ? 1 : 0) : null,
+    !gbp || gbp.business_status == null ? 'Profile status not read this scan.' : (gbp.business_status === 'OPERATIONAL' ? 'Listed as open.' : `Listed as ${String(gbp.business_status || 'unknown').toLowerCase().replace(/_/g, ' ')}.`),
     'Google Business Profile');
+  // The phone number Google shows against the numbers on the hotel's own home page. Flagged, never scored: a tracking line is a fair reason to differ.
+  const digits = (p) => String(p ?? '').replace(/\D/g, '').slice(-10);
+  const sitePhones = web ? (web.contact?.phones ?? []).map(digits).filter((p) => p.length === 10) : [];
+  if (lh?.phone && digits(lh.phone).length === 10 && sitePhones.length > 0 && !sitePhones.includes(digits(lh.phone))) {
+    flags.push(`Your Google listing shows the phone number ${lh.phone}. It isn’t among the ${sitePhones.length === 1 ? 'number' : `${sitePhones.length} numbers`} on your home page. If it is a call-tracking line, that is fine. If it is out of date, guests are calling the wrong number.`);
+  }
   check('profiles', 'gbp-phone', 'Google profile shows a phone number', 10,
     gbp ? (gbp.has_phone ? 1 : 0) : null,
     gbp ? (gbp.has_phone ? 'A phone number is listed.' : 'No phone number on the profile.') : 'Profile not read this scan.',
@@ -511,12 +520,19 @@ export function assess(audit, crawl = null, live = null) {
   }
 
   // --- AI visibility, sampled (1) ---
-  const records = aiData?.records ?? [];
+  // The grading API's samples plus our own (a narrower question, asked of Google's AI Mode).
+  const records = [...(aiData?.records ?? []), ...(live?.ai?.records ?? [])];
+  const nameKey = (s) => { const c = core(s); return c.split(' ').length >= 2 ? c : norm(s); };
+  const says = (text, name) => { const k = nameKey(name); return !!k && norm(text).replace(/\b(the|hotel|hotels|resort|resorts|by|and|a|an)\b/g, ' ').replace(/\s+/g, ' ').includes(k); };
   const samples = records.map((r) => {
-    const surface = /gpt|chatgpt/i.test(`${r.surface} ${r.model}`) ? 'ChatGPT' : /gemini/i.test(`${r.surface} ${r.model}`) ? 'Gemini' : /claude/i.test(`${r.surface} ${r.model}`) ? 'Claude' : (r.surface || r.model || 'assistant');
+    const ours = r.model === 'google-ai-mode';
+    const surface = ours ? 'Google AI Mode' : /gpt|chatgpt/i.test(`${r.surface} ${r.model}`) ? 'ChatGPT' : /gemini/i.test(`${r.surface} ${r.model}`) ? 'Gemini' : /claude/i.test(`${r.surface} ${r.model}`) ? 'Claude' : (r.surface || r.model || 'assistant');
     const text = String(r.response_text ?? '');
     const valid = !!r.ok && text.length >= 150;
-    return { surface, query: r.query, mentioned: valid ? !!r.mentioned : null, valid, when: r.fetched_at, why: valid ? '' : r.ok ? 'the answer came back cut short' : 'the request failed' };
+    // For our own sample we read the answer ourselves: was this hotel named, and which of its comparison set were.
+    const mentioned = ours ? says(text, audit.hotelName) : !!r.mentioned;
+    const named = ours && valid ? (comp?.top_competitors ?? []).map((c) => c.name).filter((n) => says(text, n)) : [];
+    return { surface, query: r.query, mentioned: valid ? mentioned : null, valid, when: r.fetched_at, why: valid ? '' : r.ok ? 'the answer came back cut short' : 'the request failed', named, sources: ours ? (r.sources ?? []).slice(0, 6) : [] };
   });
   const validSamples = samples.filter((s) => s.valid);
   const queries = [...new Set(samples.map((s) => s.query).filter(Boolean))];
@@ -797,7 +813,8 @@ export function assess(audit, crawl = null, live = null) {
   // ---------- observations that aren't scored ----------
   const gAds = evidence(audit, /^google ads presence/i);
   const mAds = evidence(audit, /^meta ads presence/i);
-  const adRivals = meta.compset_ads?.competitors ?? [];
+  // Ad checks were run for the grading API's comparison set. Once the set is ours, keep only the hotels that are in both.
+  const adRivals = (meta.compset_ads?.competitors ?? []).filter((r) => !comp?.ours || (comp.top_competitors ?? []).some((c) => sameName(c.name, r.name) || likeName(c.name, r.name)));
   const ads = (gAds || mAds || adRivals.length) ? {
     you: {
       name: audit.hotelName,

@@ -373,7 +373,7 @@ function Voice({ a }: { a: Assessment }) {
 
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
-  if (!ads || ads.rivals.length < 2) return null;
+  if (!ads || (ads.rivals.length < 2 && !ads.brand)) return null;
   const cell = (v: boolean | null) =>
     v == null ? <span className="text-ink-40">couldn’t tell</span>
       : v ? <span className="inline-flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />seen</span>
@@ -423,10 +423,12 @@ function AiSample({ a }: { a: Assessment }) {
           <p className="text-[14px]">“{q}”</p>
           <ul className="list-none m-0 p-0 mt-2 flex flex-wrap gap-2">
             {a.ai.samples.filter((s) => s.query === q).map((s) => (
-              <li key={s.surface} className="border border-edge-strong rounded px-3 py-1.5 text-[13px]">
+              <li key={s.surface} className="border border-edge-strong rounded px-3 py-1.5 text-[13px] max-w-[60ch]">
                 <span className="font-semibold">{s.surface}</span>{' '}
                 {s.valid ? (s.mentioned ? <span className="grade--a">named the hotel</span> : <span className="text-ink-60">didn’t name the hotel</span>)
                   : <span className="text-ink-40">no usable answer ({s.why})</span>}
+                {s.named.length > 0 && <span className="block text-ink-60 mt-1">From your comparison set it named {s.named.join(', ')}.</span>}
+                {s.sources.length > 0 && <span className="block text-ink-40 mt-1">It drew on {s.sources.join(', ')}.</span>}
               </li>
             ))}
           </ul>

@@ -105,7 +105,7 @@ export interface Assessment {
   } | null;
   prices: { night: string | null; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number; rows: Rate[]; ours: boolean; nights: NightPrices[]; rooms: { name: string; rate: number }[] } | null;
   headline: string;
-  ai: { samples: { surface: string; query: string; mentioned: boolean | null; valid: boolean; when?: string; why: string }[]; queries: string[] };
+  ai: { samples: { surface: string; query: string; mentioned: boolean | null; valid: boolean; when?: string; why: string; named: string[]; sources: string[] }[]; queries: string[] };
   counts: { checks: number; observed: number };
 }
 

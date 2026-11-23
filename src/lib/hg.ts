@@ -177,7 +177,7 @@ export async function fetchSite(hotel: string, city: string, state: string, sign
 }
 
 /** Our own readings that cost a search each: prices on two nights, the hotels nearby, the brand search. One retry, since a slow search finishes from cache the second time. */
-export async function fetchLive(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<{ prices: unknown | null; search: unknown | null } | null> {
+export async function fetchLive(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<Record<string, unknown> | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await fetch('/api/live-scan', {
@@ -188,7 +188,7 @@ export async function fetchLive(hotel: string, city: string, state: string, sign
       });
       if (!res.ok) return null;
       const live = (await res.json())?.live ?? null;
-      if (!live || live.prices?.done !== false || attempt === 1) return live;
+      if (!live || !live.pending || attempt === 1) return live;
     } catch { if (signal?.aborted) return null; }
   }
   return null;
