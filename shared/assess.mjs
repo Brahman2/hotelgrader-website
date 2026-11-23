@@ -362,7 +362,7 @@ export function assess(audit, crawl = null, live = null) {
   check('reputation', 'responses', 'Management replies to reviews', 15,
     rs && rs.total_reviews >= 10 ? scale(rs.response_rate, [[0, 0], [25, 0.3], [50, 0.6], [80, 1]]) : null,
     rs && rs.total_reviews >= 10 ? `${rs.total_responded} of the ${rs.total_reviews} most recent reviews we read had a reply (${Math.round(rs.response_rate)}%).` : 'Too few reviews read to tell.',
-    rs?.ours ? 'Newest reviews on your Google hotel listing, read by our scanner' : 'Recent Google and Tripadvisor reviews', rs?.ours ? { when: rv.fetchedAt } : {});
+    rs?.ours ? 'Your newest Google reviews, read by our scanner' : 'Recent Google and Tripadvisor reviews', rs?.ours ? { when: rv.fetchedAt } : {});
   const pos = (sent?.positive_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
   const neg = (sent?.negative_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
   check('reputation', 'themes', 'What guests keep saying', 20,

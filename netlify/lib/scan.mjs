@@ -117,7 +117,7 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
     site ? crawlFor(site, { fresh: go }).catch(() => null) : null,
     known ? cached('brand-searches-v2', key, { fresh: go, allowed: haveBudget }, () => brandSearch({ ...target, site })).catch(() => null) : null,
     known ? cached('ai-answers-v3', key, { fresh: go, allowed: haveBudget }, () => aiAnswer({ ...target, hotelClass: prices.hotel?.hotelClass ?? null })).catch(() => null) : null,
-    known && listing ? cached('review-reads-v1', key, { fresh: go, allowed: haveBudget }, () => recentReviews({ token: listing })).catch(() => null) : null,
+    known && listing ? cached('review-reads-v2', key, { fresh: go, allowed: haveBudget }, () => recentReviews({ token: listing })).catch(() => null) : null,
     ...(asks.length ? [cached('market-searches-v2', `${town}_hotel-search`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => townRanking(target, sampleNights()[0])).catch(() => null)] : []),
     ...asks.map((query) => cached('market-searches-v2', `${town}_${slug(query)}`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => marketSearch({ ...target, query })).catch(() => null)),
   ]);

@@ -475,7 +475,7 @@ function Recent({ a }: { a: Assessment }) {
   const stars = (n: number | null) => (n == null ? '' : `${Number.isInteger(n) ? n : n.toFixed(1)}/5`);
   return (
     <Section id="recent" title="Your newest reviews, and whether you answered"
-      kicker={`The ${r.total} most recent reviews on your Google hotel listing, which gathers Google’s own and the main travel sites. A reply is written for the next guest reading, as much as for the one who wrote.`}>
+      kicker={`The ${r.total} most recent Google reviews of your hotel. A reply is written for the next guest reading, as much as for the one who wrote.`}>
       <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
         {r.replied === 0
           ? <><span className="grade--f">None</span> of your {r.total} newest reviews has a reply.</>
