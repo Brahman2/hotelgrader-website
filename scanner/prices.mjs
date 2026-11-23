@@ -58,6 +58,16 @@ const details = (d) => ({
   name: d.name ?? '', token: d.property_token ?? '', address: d.address ?? '', phone: d.phone ?? '', link: d.link ?? '',
   hotelClass: d.extracted_hotel_class ?? null, rating: d.overall_rating ?? null, reviews: d.reviews ?? null,
   lat: d.gps_coordinates?.latitude ?? null, lng: d.gps_coordinates?.longitude ?? null,
+  // The listing itself, from the same response: no extra search.
+  description: String(d.description ?? '').slice(0, 600),
+  checkIn: d.check_in_time ?? '', checkOut: d.check_out_time ?? '',
+  photos: Array.isArray(d.images) ? d.images.length : null,
+  amenities: Array.isArray(d.amenities) ? d.amenities.slice(0, 60) : [],
+  stars: Array.isArray(d.ratings) ? d.ratings.slice(0, 5) : [],
+  themes: Array.isArray(d.reviews_breakdown) ? d.reviews_breakdown.slice(0, 12) : [],
+  otherSites: Array.isArray(d.other_reviews) ? d.other_reviews.slice(0, 6) : [],
+  locationRating: d.location_rating ?? null,
+  ecoCertified: d.eco_certified ?? null,
   typical: d.typical_price_range ? { low: d.typical_price_range.extracted_lowest ?? null, high: d.typical_price_range.extracted_highest ?? null } : null,
 });
 
