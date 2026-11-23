@@ -468,6 +468,38 @@ function Speed({ a }: { a: Assessment }) {
   );
 }
 
+function Recent({ a }: { a: Assessment }) {
+  const r = a.recent;
+  if (!r) return null;
+  const rate = Math.round((r.replied / r.total) * 100);
+  const stars = (n: number | null) => (n == null ? '' : `${Number.isInteger(n) ? n : n.toFixed(1)}/5`);
+  return (
+    <Section id="recent" title="Your newest reviews, and whether you answered"
+      kicker={`The ${r.total} most recent reviews on your Google hotel listing, which gathers Google’s own and the main travel sites. A reply is written for the next guest reading, as much as for the one who wrote.`}>
+      <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
+        {r.replied === 0
+          ? <><span className="grade--f">None</span> of your {r.total} newest reviews has a reply.</>
+          : <><span className={rate >= 80 ? 'grade--a' : rate >= 50 ? 'grade--c' : 'grade--f'}>{r.replied} of {r.total}</span> newest reviews have a reply.</>}
+        {r.low > 0 && <> {r.lowUnanswered > 0
+          ? <>{r.lowUnanswered} of the {r.low} at three stars or below {r.lowUnanswered === 1 ? 'sits' : 'sit'} <span className="grade--f">unanswered</span>.</>
+          : <>Every one at three stars or below was answered.</>}</>}
+      </p>
+      <ul className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+        {r.rows.map((x, i) => (
+          <li key={i} className="border border-edge p-4 flex flex-col gap-2 min-w-0">
+            <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
+              <span className={`num text-[15px] ${x.rating == null ? 'text-ink-40' : x.rating >= 4 ? 'grade--a' : x.rating > 3 ? 'grade--c' : 'grade--f'}`}>{stars(x.rating)}</span>
+              <span className="text-ink-40 truncate">{[x.source, x.when].filter(Boolean).join(' · ')}</span>
+            </div>
+            <p className="text-ink-60 text-[13.5px] leading-snug m-0">“{x.text}”</p>
+            <span className={`meta mt-auto ${x.replied ? 'grade--a' : ''}`}>{x.replied ? 'you replied' : 'no reply'}</span>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
   if (!ads || (ads.rivals.length < 2 && !ads.brand)) return null;
@@ -737,7 +769,7 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
   // The charts that belong with a part sit inside that part.
   const extras: Record<string, ReactNode> = {
     rates: <Prices a={a} />,
-    reputation: <><Choice a={a} audit={audit} market={market} /><Themes a={a} /><Voice a={a} /></>,
+    reputation: <><Choice a={a} audit={audit} market={market} /><Recent a={a} /><Themes a={a} /><Voice a={a} /></>,
     discovery: <Visibility a={a} />,
     speed: <Speed a={a} />,
     ai: <AiSample a={a} />,

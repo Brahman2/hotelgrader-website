@@ -120,6 +120,11 @@ export interface Assessment {
     }[];
     town: string; boxSearches: number; boxHits: number; organicHits: number; searches: number;
   } | null;
+  /** The newest reviews on the hotel's Google hotel listing, read by our scanner. */
+  recent: {
+    when: string; total: number; replied: number; low: number; lowUnanswered: number; average: number | null;
+    rows: { source: string; rating: number | null; when: string; text: string; replied: boolean }[];
+  } | null;
   /** Our own page speed run. Timings are milliseconds. Null when it hasn't run. */
   speed: {
     when: string;

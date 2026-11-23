@@ -350,11 +350,19 @@ export function assess(audit, crawl = null, live = null) {
     ta?.rating != null ? `${Number(ta.rating).toFixed(1)} from ${n0(ta.review_count ?? 0)} reviews.`
       : taG ? `${taG.rating.toFixed(1)}${taG.reviews ? ` from ${n0(taG.reviews)} reviews` : ''}, as shown on your Google hotel listing.` : 'No Tripadvisor rating was read this scan.',
     ta?.rating != null ? 'Tripadvisor' : taG ? 'Google hotel listing' : 'Tripadvisor');
-  const rs = sent?.response_stats;
+  // Our own read of the newest reviews when we have it. A review from the last week hasn't had a fair chance
+  // of a reply, so those are left out of the reply rate when enough older ones remain.
+  const rv = live?.reviews?.ok ? live.reviews : null;
+  const rvSettled = rv ? rv.reviews.filter((x) => x.days == null || x.days >= 7) : [];
+  const rvPool = rvSettled.length >= 10 ? rvSettled : rv?.reviews ?? [];
+  const rvReplied = rvPool.filter((x) => x.reply).length;
+  const rs = rv && rvPool.length >= 10
+    ? { total_reviews: rvPool.length, total_responded: rvReplied, response_rate: (rvReplied / rvPool.length) * 100, ours: true }
+    : sent?.response_stats;
   check('reputation', 'responses', 'Management replies to reviews', 15,
     rs && rs.total_reviews >= 10 ? scale(rs.response_rate, [[0, 0], [25, 0.3], [50, 0.6], [80, 1]]) : null,
     rs && rs.total_reviews >= 10 ? `${rs.total_responded} of the ${rs.total_reviews} most recent reviews we read had a reply (${Math.round(rs.response_rate)}%).` : 'Too few reviews read to tell.',
-    'Recent Google and Tripadvisor reviews');
+    rs?.ours ? 'Newest reviews on your Google hotel listing, read by our scanner' : 'Recent Google and Tripadvisor reviews', rs?.ours ? { when: rv.fetchedAt } : {});
   const pos = (sent?.positive_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
   const neg = (sent?.negative_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
   check('reputation', 'themes', 'What guests keep saying', 20,
@@ -910,6 +918,17 @@ export function assess(audit, crawl = null, live = null) {
     searches: mkRows.length,
   } : null;
 
+  // The newest reviews themselves, for the report.
+  const recent = rv && rv.reviews.length >= 3 ? {
+    when: rv.fetchedAt, total: rv.reviews.length,
+    replied: rv.reviews.filter((x) => x.reply).length,
+    /** Reviews of three stars or fewer with no reply: the ones a future guest reads most closely. */
+    lowUnanswered: rv.reviews.filter((x) => x.rating != null && x.rating <= 3 && !x.reply).length,
+    low: rv.reviews.filter((x) => x.rating != null && x.rating <= 3).length,
+    average: (() => { const r = rv.reviews.filter((x) => x.rating != null); return r.length ? r.reduce((n, x) => n + x.rating, 0) / r.length : null; })(),
+    rows: rv.reviews.filter((x) => x.text).slice(0, 6).map((x) => ({ source: x.source, rating: x.rating, when: x.when, text: x.text.length > 240 ? `${x.text.slice(0, 240).replace(/\s+\S*$/, '')}…` : x.text, replied: !!x.reply })),
+  } : null;
+
   // The page speed run in detail, for the report. Null when the old lab scores are all we have.
   const speedView = sp ? { when: sp.fetchedAt, mobile: sp.mobile ?? null, desktop: sp.desktop ?? null, field: sp.field ?? null, screenshot: sp.screenshot || '' } : null;
 
@@ -946,7 +965,7 @@ export function assess(audit, crawl = null, live = null) {
     letter: graded ? letterFor(score) : '-',
     graded,
     coverage,
-    functions, priorities, strengths, identity, choice, example, ads, themes, voice, visibility, speed: speedView, prices, headline,
+    functions, priorities, strengths, identity, choice, example, ads, themes, voice, recent, visibility, speed: speedView, prices, headline,
     ai: { samples, queries },
     counts: {
       checks: functions.reduce((n, f) => n + f.checks.filter((c) => c.status !== 'na').length, 0),
