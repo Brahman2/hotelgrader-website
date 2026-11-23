@@ -533,7 +533,7 @@ function Ads({ a }: { a: Assessment }) {
                 : 'Google’s library lists no ads for your website. '}
           {ads.you.detail.metaLive == null ? 'Meta’s library couldn’t be read.'
             : ads.you.detail.metaLive > 0 ? <>{ads.you.detail.metaLive} Meta {ads.you.detail.metaLive === 1 ? 'ad is' : 'ads are'} live from “{ads.you.detail.metaPage}”{ads.you.detail.metaSince ? `, the oldest running since ${day(ads.you.detail.metaSince)}` : ''}.</>
-              : <>No live Meta ad comes from a page with your name{ads.you.detail.metaOthers.length > 0 ? `, though ${ads.you.detail.metaOthers.join(', ')} ${ads.you.detail.metaOthers.length === 1 ? 'mentions' : 'mention'} you in theirs` : ''}.</>}
+              : <>No live Meta ad comes from a page with your name{ads.you.detail.metaOthers.length > 0 ? `, though live ads from ${ads.you.detail.metaOthers.join(', ')} use your name` : ''}.</>}
         </p>
       )}
       {ads.brand && (
