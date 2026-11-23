@@ -27,7 +27,9 @@ function realHost(x) {
   const h = host(x.link ?? '');
   if (h && !/(^|\.)google\.[a-z.]+$/.test(h)) return h;
   const shown = String(x.displayed_link ?? '').split(/[\s›>]/)[0];
-  return host(/^https?:/.test(shown) ? shown : `https://${shown}`) || h;
+  const d = host(/^https?:/.test(shown) ? shown : `https://${shown}`);
+  // Social results show a follower count where the address would be ("228.3K+ followers").
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(d) ? d : '';
 }
 
 /** Who a result belongs to, from the hotel's point of view. */
