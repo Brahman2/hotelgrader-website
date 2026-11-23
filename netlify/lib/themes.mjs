@@ -9,7 +9,7 @@ const WEEK = 7 * 24 * 60 * 60 * 1000;
 async function store() {
   try {
     const { getStore } = await import('@netlify/blobs');
-    return getStore('review-themes-v1');
+    return getStore('review-themes-v2');
   } catch { return null; }
 }
 

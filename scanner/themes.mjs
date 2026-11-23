@@ -9,7 +9,7 @@ import { z } from 'zod/v4'; // the SDK's helper reads zod's v4 schema shape
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
 export const hasThemesKey = () => !!process.env.ANTHROPIC_API_KEY;
-const MODEL = process.env.THEMES_MODEL || 'claude-opus-5-5';
+const MODEL = process.env.THEMES_MODEL || 'claude-haiku-5-5';
 
 const Theme = z.object({
   theme: z.string().describe('Two to four plain words naming the subject, e.g. "Room cleanliness", "Front desk staff", "Parking cost".'),
