@@ -500,6 +500,64 @@ function Recent({ a }: { a: Assessment }) {
   );
 }
 
+type Listed = NonNullable<Assessment['listings']>['majors'][number];
+
+function ListedSite({ m }: { m: Listed }) {
+  return (
+    <li className="flex items-center justify-between gap-3 border border-edge px-3 py-2 text-[13px]">
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: m.listed ? 'var(--grade-a)' : 'var(--grade-f)' }} aria-hidden="true" />
+        <span className={`truncate ${m.listed ? '' : 'text-ink-60'}`}>{m.name}</span>
+      </span>
+      <span className="num text-ink-60 whitespace-nowrap">{m.listed ? (m.low != null ? `from $${Math.round(m.low).toLocaleString('en-US')}` : 'rate shown') : 'no rate shown'}</span>
+    </li>
+  );
+}
+
+function Listings({ a }: { a: Assessment }) {
+  const l = a.listings;
+  if (!l || l.total < 1) return null;
+  const missing = l.majors.filter((m) => !m.listed);
+  return (
+    <Section id="listings" title="Where guests can find and book you"
+      kicker={`Every site that showed a rate for you on Google’s hotel search across ${l.nights === 1 ? 'the night' : `the ${l.nights} nights`} we sampled, and the review sites Google gathers on your listing. A site with no rate shown may list you and be sold out or closed for those dates.`}>
+      <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
+        <span className="grade--a">{l.total}</span> booking sites showed a rate for you{l.own ? ', alongside your own site.' : <>, and <span className="grade--f">your own site wasn’t among them</span>.</>}
+        {missing.length > 0 ? <> No rate showed on <span className="grade--c">{missing.map((m) => m.name).join(', ')}</span>.</> : <> Every major one is there.</>}
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div>
+          <div className="meta mb-2">The major booking sites</div>
+          <ul className="list-none m-0 p-0 grid grid-cols-1 gap-1.5">{l.majors.map((m) => <ListedSite key={m.name} m={m} />)}</ul>
+        </div>
+        <div>
+          <div className="meta mb-2">Price-comparison sites</div>
+          <ul className="list-none m-0 p-0 grid grid-cols-1 gap-1.5">{l.metas.map((m) => <ListedSite key={m.name} m={m} />)}</ul>
+        </div>
+      </div>
+      {l.others.length > 0 && (
+        <p className="text-[13.5px] text-ink-60 mt-5 max-w-[84ch]">
+          <span className="text-ink">{l.others.length} smaller resellers also showed a rate:</span> {l.others.slice(0, 14).join(', ')}{l.others.length > 14 ? `, and ${l.others.length - 14} more` : ''}. Many of them resell rooms bought through a wholesaler, which is one way a rate below your own appears.
+        </p>
+      )}
+      {(l.google || l.reviewSites.length > 0) && (
+        <div className="mt-6">
+          <div className="meta mb-2">Ratings Google shows on your listing</div>
+          <ul className="list-none m-0 p-0 flex flex-wrap gap-2">
+            {l.google && <li className="border border-edge px-3 py-2 text-[13px]"><span className="text-ink-60">Google </span><span className="num">{l.google.rating.toFixed(1)}</span><span className="text-ink-40"> / 5{l.google.reviews != null ? ` · ${l.google.reviews.toLocaleString('en-US')}` : ''}</span></li>}
+            {l.reviewSites.map((r) => (
+              <li key={r.source} className="border border-edge px-3 py-2 text-[13px]"><span className="text-ink-60">{r.source} </span><span className="num">{Number.isInteger(r.rating) ? r.rating : r.rating.toFixed(1)}</span><span className="text-ink-40"> / {r.max}{r.reviews != null ? ` · ${r.reviews.toLocaleString('en-US')}` : ''}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {l.ranking.length > 0 && (
+        <p className="meta mt-5 max-w-[84ch]">On a search for your name, these sites rank on the first page beside your own: {l.ranking.map((r) => `${r.domain} (${ordinal(r.position)})`).join(', ')}.</p>
+      )}
+    </Section>
+  );
+}
+
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
   if (!ads || (!ads.brand && !ads.you.detail && ads.you.google == null && ads.you.meta == null)) return null;
@@ -783,6 +841,7 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
     rates: <Prices a={a} />,
     reputation: <><Choice a={a} audit={audit} market={market} /><Recent a={a} /><Themes a={a} /><Voice a={a} /></>,
     discovery: <Visibility a={a} />,
+    profiles: <Listings a={a} />,
     speed: <Speed a={a} />,
     ai: <AiSample a={a} />,
   };
