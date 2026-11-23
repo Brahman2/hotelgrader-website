@@ -332,7 +332,7 @@ function Voice({ a }: { a: Assessment }) {
       kicker={`Google groups every review it holds for your listing${v.total ? ` (${v.total.toLocaleString('en-US')})` : ''} by topic. Green is praise, red is complaint. Not scored: it shows where to look.`}>
       {worst.length > 0 && (
         <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
-          {worst.map((t) => t.name.toLowerCase()).join(' and ')} {worst.length === 1 ? 'draws' : 'draw'} the largest share of complaints: <span className="grade--f">{Math.round(worst[0].negShare * 100)}%</span> of the opinions on {worst[0].name.toLowerCase()} are negative.
+          {worst.map((t, i) => (i === 0 ? t.name : t.name.toLowerCase())).join(' and ')} {worst.length === 1 ? 'draws' : 'draw'} the largest share of complaints: <span className="grade--f">{Math.round(worst[0].negShare * 100)}%</span> of the opinions on {worst[0].name.toLowerCase()} are negative.
         </p>
       )}
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] gap-10 items-start">
@@ -346,7 +346,7 @@ function Voice({ a }: { a: Assessment }) {
                   <span style={{ width: `${(t.positive / sum) * 100}%`, background: 'var(--grade-a)' }} />
                   <span style={{ width: `${(t.negative / sum) * 100}%`, background: 'var(--grade-f)' }} />
                 </span>
-                <span className="num w-[92px] text-right text-ink-60"><span className="text-ink">{Math.round(t.negShare * 100)}%</span> neg · {t.mentions}</span>
+                <span className="num w-[112px] text-right text-ink-60 whitespace-nowrap"><span className="text-ink">{Math.round(t.negShare * 100)}%</span> neg · {t.mentions}</span>
               </li>
             );
           })}
