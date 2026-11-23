@@ -54,7 +54,8 @@ export interface Priority {
   proof: string;
 }
 
-export interface Rate { rate: number; source: string; mine?: boolean }
+export interface Rate { rate: number; source: string; mine?: boolean; official?: boolean; freeCancel?: boolean | null }
+export interface NightPrices { night: string | null; kind: string; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number }
 
 export interface Assessment {
   version: string;
@@ -80,6 +81,8 @@ export interface Assessment {
     compared: string[];
     notCompared: string[];
     verdict: string;
+    /** Lowest rates shown for hotels around this one on the same night. */
+    area: { median: number; count: number; low: number; high: number; own: number | null } | null;
   } | null;
   example: { finding: string; title: string; intro: string; code: string; handoff: string } | null;
   ads: {
@@ -91,11 +94,11 @@ export interface Assessment {
     positive: { theme: string; mentions: number; quote?: string }[];
     negative: { theme: string; mentions: number; quote?: string; severity?: string }[];
   } | null;
-  prices: { night: string | null; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number; rows: Rate[] } | null;
+  prices: { night: string | null; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number; rows: Rate[]; ours: boolean; nights: NightPrices[]; rooms: { name: string; rate: number }[] } | null;
   headline: string;
   ai: { samples: { surface: string; query: string; mentioned: boolean | null; valid: boolean; when?: string; why: string }[]; queries: string[] };
   counts: { checks: number; observed: number };
 }
 
-export function assess(audit: unknown, crawl?: unknown): Assessment;
+export function assess(audit: unknown, crawl?: unknown, live?: unknown): Assessment;
 export function websiteOf(audit: unknown): string;

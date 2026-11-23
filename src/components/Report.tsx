@@ -146,6 +146,8 @@ function PriorityCard({ p, n, fnName }: { p: Priority; n: number; fnName: string
   );
 }
 
+const pos = (v: number, r: { low: number; high: number }) => Math.max(0, Math.min(99, ((v - r.low) / Math.max(1, r.high - r.low)) * 100));
+
 function Choice({ a, audit, market }: { a: Assessment; audit: Audit; market: MarketView }) {
   const c = a.choice;
   if (!c) return null;
@@ -185,6 +187,20 @@ function Choice({ a, audit, market }: { a: Assessment; audit: Audit; market: Mar
               ))}
             </tbody>
           </table>
+          {c.area && c.area.own != null && (
+            <div className="mt-4">
+              <div className="meta mb-1.5">Lowest rate shown that night, across {c.area.count} hotels near you</div>
+              <div className="relative h-[10px] bg-edge" aria-hidden="true">
+                <span className="absolute top-[-3px] h-[16px] w-[2px] bg-ink-40" style={{ left: `${pos(c.area.median, c.area)}%` }} />
+                <span className="absolute top-[-4px] h-[18px] w-[4px]" style={{ left: `${pos(c.area.own, c.area)}%`, background: 'var(--accent)' }} />
+              </div>
+              <div className="flex justify-between text-[12px] text-ink-60 mt-1.5 num">
+                <span>{usd(c.area.low)}</span>
+                <span>you {usd(c.area.own)} · middle of the range {usd(c.area.median)}</span>
+                <span>{usd(c.area.high)}</span>
+              </div>
+            </div>
+          )}
           {points.length >= 3 && <div className="mt-5 max-w-[420px]"><MarketScatter points={points} /></div>}
         </div>
       </div>
@@ -215,8 +231,9 @@ function Prices({ a }: { a: Assessment }) {
   const p = a.prices;
   if (!p) return null;
   const max = Math.max(...p.rows.map((r) => r.rate));
+  const second = p.nights.length >= 2 ? p.nights[1] : null;
   return (
-    <Section id="rates" title="One night across the booking sites"
+    <Section id="rates" title={second ? 'Two nights across the booking sites' : 'One night across the booking sites'}
       kicker="The lowest rate each site showed on Google’s hotel search for the same night. Rooms, fees and cancellation terms aren’t matched, so read a gap as something to check.">
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-8 items-start">
         <div>
@@ -235,7 +252,27 @@ function Prices({ a }: { a: Assessment }) {
           ) : (
             <p className="text-ink-60 text-[14px]">We found {p.rows.length} rates for the same night and couldn’t tell which one is your own site’s.</p>
           )}
-          <p className="meta mt-3">{p.night ? `Check-in ${day(p.night)}, one night. ` : ''}Read {day(a.scannedAt)}. One date can’t show a lasting pattern.</p>
+          {second && (
+            <div className="mt-5 border-t border-edge pt-4">
+              <div className="meta mb-2">The same check on a second night</div>
+              <div className="grid grid-cols-2 gap-3">
+                {p.nights.slice(0, 2).map((n) => (
+                  <div key={n.night ?? n.kind} className="border border-edge p-3">
+                    <div className="meta">{n.night ? day(n.night) : ''}{n.kind ? ` · ${n.kind}` : ''}</div>
+                    <div className="num text-[20px] mt-1">{n.direct ? usd(n.direct.rate) : <span className="text-ink-40 text-[14px]">your site not listed</span>}</div>
+                    <div className="text-[12.5px] text-ink-60 mt-1">
+                      {n.direct && n.lowest
+                        ? (n.cheaper > 0
+                          ? <>lowest other <span className="num text-ink">{usd(n.lowest.rate)}</span>, <span className="grade--c">{Math.round((n.gap ?? 0) * 100)}% less</span></>
+                          : <span className="grade--a">no site lower</span>)
+                        : n.lowest ? <>lowest shown <span className="num text-ink">{usd(n.lowest.rate)}</span></> : 'no rates shown'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="meta mt-3">{p.night ? `Bars show check-in ${day(p.night)}, one night. ` : ''}Read {day(a.scannedAt)}. {second ? 'Two dates are a sample, not a pattern.' : 'One date can’t show a lasting pattern.'}</p>
         </div>
         <ul className="list-none m-0 p-0 space-y-1.5">
           {p.rows.map((r) => (
@@ -437,8 +474,8 @@ function Correction({ audit }: { audit: Audit }) {
   );
 }
 
-export default function Report({ audit, crawl = null, market }: { audit: Audit; crawl?: unknown | null; market: MarketView }) {
-  const a = useMemo(() => assess(audit, crawl), [audit, crawl]);
+export default function Report({ audit, crawl = null, live = null, market }: { audit: Audit; crawl?: unknown | null; live?: unknown | null; market: MarketView }) {
+  const a = useMemo(() => assess(audit, crawl, live), [audit, crawl, live]);
   const fnName = (key: string) => a.functions.find((f) => f.key === key)?.name ?? '';
   const unseen = a.functions.filter((f) => f.coverage < 1 && f.notYet);
 

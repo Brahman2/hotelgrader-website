@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchSite, runAudit, type Audit } from '../lib/hg';
+import { fetchPrices, fetchSite, runAudit, type Audit } from '../lib/hg';
 import { assess } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -150,6 +150,8 @@ export default function ReportCard() {
   const [audit, setAudit] = useState<Audit | null>(null);
   // Our own crawl of the hotel's website. undefined = still reading, null = couldn't read.
   const [crawl, setCrawl] = useState<unknown | null | undefined>(undefined);
+  // Results of our other collectors (prices so far). Null until read.
+  const [live, setLive] = useState<{ prices: unknown | null } | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -174,6 +176,7 @@ export default function ReportCard() {
     setError('');
     setAudit(null);
     setCrawl(undefined);
+    setLive(null);
     setElapsed(0);
     const started = Date.now();
     const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
@@ -182,11 +185,16 @@ export default function ReportCard() {
     runAudit(target.hotel, target.city, target.state, ctrl.signal)
       .then(async (a) => {
         // Read the hotel's own site before showing the grade, so the grade doesn't shift on screen.
-        const site = await fetchSite(target.hotel, target.city, target.state, ctrl.signal);
+        const [site, prices] = await Promise.all([
+          fetchSite(target.hotel, target.city, target.state, ctrl.signal),
+          fetchPrices(target.hotel, target.city, target.state, ctrl.signal),
+        ]);
         if (ctrl.signal.aborted) return;
+        const extra = { prices };
         setCrawl(site);
+        setLive(extra);
         setAudit(a);
-        const done = assess(a, site);
+        const done = assess(a, site, extra);
         track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, seconds: Math.round((Date.now() - started) / 1000) });
       })
       .catch((e) => {
@@ -284,11 +292,11 @@ export default function ReportCard() {
           <a href="/" className="btn btn--primary">grade your hotel</a>
         </div>
       )}
-      <Report audit={audit} crawl={crawl ?? null} market={market} />
+      <Report audit={audit} crawl={crawl ?? null} live={live} market={market} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
           track('share', { method: 'linkedin', content_type: 'report', item_id: target.hotel });
-          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, assess(audit, crawl ?? null)))}`, '_blank', 'noopener');
+          window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText(audit, assess(audit, crawl ?? null, live)))}`, '_blank', 'noopener');
         }}>share on LinkedIn</button>
         <button type="button" className="btn" onClick={copy}>{copied ? 'link copied' : 'copy share link'}</button>
         <button type="button" className="btn" onClick={() => { track('print_report', { hotel: target.hotel }); window.print(); }}>print</button>

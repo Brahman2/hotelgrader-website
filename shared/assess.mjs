@@ -19,7 +19,7 @@
 // Plain JavaScript so the page (Vite) and the email function (Netlify) run the
 // same code. Types are in assess.d.mts.
 
-export const METHOD_VERSION = '2.0';
+export const METHOD_VERSION = '2.1';
 
 /** Importance of each function, in points out of 100. */
 export const FUNCTIONS = [
@@ -27,8 +27,8 @@ export const FUNCTIONS = [
     covers: 'Whether a guest can get from your listing to your site to a booking engine that answers, on a usable date, on a phone.',
     notYet: 'Room selection, fees, policies and checkout inside the booking engine.' },
   { key: 'rates', name: 'Rates and offer', short: 'Rates', weight: 20,
-    covers: 'Whether your direct rate shows where guests compare prices, and how it sits against the OTAs for the same night.',
-    notYet: 'A room-for-room, fee-for-fee match across channels. More than one date. Competitor prices.' },
+    covers: 'Whether your direct rate shows where guests compare prices, and how it sits against the OTAs on two sampled nights.',
+    notYet: 'A room-for-room, fee-for-fee match across channels.' },
   { key: 'reputation', name: 'Reputation', short: 'Reputation', weight: 14,
     covers: 'Ratings, review volume against your comp set, what guests keep saying, and whether management replies.',
     notYet: 'Booking.com and Expedia review scores.' },
@@ -75,6 +75,9 @@ export const MIN_COVERAGE = 0.35;
 
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const sameName = (a, b) => !!a && !!b && norm(a) === norm(b);
+/** Looser match for hotel names from two sources: ignores "hotel", "the", "resort" and trademark marks. */
+const core = (s) => norm(s).replace(/\b(the|hotel|hotels|resort|resorts|by|and|a|an)\b/g, ' ').replace(/\s+/g, ' ').trim();
+const likeName = (a, b) => { const x = core(a), y = core(b); return !!x && !!y && (x === y || (x.length >= 6 && y.includes(x)) || (y.length >= 6 && x.includes(y))); };
 const usd = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 const n0 = (n) => Number(n).toLocaleString('en-US');
 const niceDay = (d) => { const t = new Date(`${d}T12:00:00Z`); return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); };
@@ -121,8 +124,11 @@ function looksLikeHotel(candidate, hotelName) {
  * @param audit  One scan from the grading API.
  * @param crawl  Optional result of our own website collector (scanner/site.mjs). When present it
  *               replaces the API's reading of the hotel's site and fills checks the API never made.
+ * @param live   Optional results of our other collectors: { prices } from scanner/prices.mjs.
+ *               When present they replace the API's reading of the same thing.
  */
-export function assess(audit, crawl = null) {
+export function assess(audit, crawl = null, live = null) {
+  const px = live?.prices?.ok && (live.prices.nights ?? []).some((n) => n.ok && n.rates?.length >= 1) ? live.prices : null;
   const web = crawl && crawl.ok ? crawl : null;
   // A page built in the browser by script reads as nearly empty, so "not found" there means "couldn't read".
   const webSolid = !!web && web.rendered !== 'script';
@@ -201,39 +207,60 @@ export function assess(audit, crawl = null) {
   }
 
   // --- Rates and offer (20) ---
-  const rates = (bp?.ota_rates ?? []).filter((r) => r && r.rate > 0 && r.source);
-  const direct = rates.find((r) => sameName(r.source, bp?.matched_name) || sameName(r.source, audit.hotelName)) ?? null;
-  const others = rates.filter((r) => r !== direct).sort((a, b) => a.rate - b.rate);
-  const lowest = others[0] ?? null;
-  const gap = direct && lowest ? (direct.rate - lowest.rate) / direct.rate : null;
-  const night = bp?.identity?.check_in ?? null;
-  const ratesRan = !!bp && (rates.length > 0 || bp.no_bookable_rates != null || bp.ota_count != null);
+  // One night's rates, read the same way whichever collector supplied them.
+  const nightView = (list, checkIn, kind = '') => {
+    const rs = list.filter((r) => r && r.rate > 0 && r.source).sort((a, b) => a.rate - b.rate);
+    const mine = rs.find((r) => r.official) ?? rs.find((r) => sameName(r.source, px?.hotel?.name) || sameName(r.source, bp?.matched_name) || sameName(r.source, audit.hotelName)) ?? null;
+    const rest = rs.filter((r) => r !== mine);
+    const low = rest[0] ?? null;
+    return { night: checkIn, kind, rates: rs, direct: mine, others: rest, lowest: low, gap: mine && low ? (mine.rate - low.rate) / mine.rate : null, cheaper: mine ? rest.filter((r) => r.rate < mine.rate).length : 0 };
+  };
+  const nights = px
+    ? px.nights.filter((n) => n.ok && n.rates?.length).map((n) => nightView(n.rates, n.checkIn, n.kind))
+    : [nightView(bp?.ota_rates ?? [], bp?.identity?.check_in ?? null)];
+  const n1 = nights[1] ?? null;
+  const { rates, direct, others, lowest, gap, night } = nights[0];
+  const priceSrc = px ? 'Google hotel search, read by our scanner' : 'Google hotel search';
+  const priceWhen = px ? { when: px.fetchedAt } : {};
+  const ratesRan = !!px || (!!bp && (rates.length > 0 || bp.no_bookable_rates != null || bp.ota_count != null));
   check('rates', 'bookable', 'Rates show for the sampled night', 15,
     ratesRan ? (rates.length > 0 ? 1 : null) : null,
     rates.length > 0 ? `${rates.length} rates found on Google’s hotel search${night ? ` for a one-night stay checking in ${niceDay(night)}` : ''}.`
       : 'No rates came back. That can mean sold out, or that the price check failed, so it isn’t scored.',
-    'Google hotel search');
+    priceSrc, priceWhen);
   check('rates', 'direct-listed', 'Your own rate appears next to the OTAs on Google', 25,
     rates.length >= 3 ? (direct ? 1 : 0) : null,
     rates.length >= 3
       ? (direct ? `Your official site is listed at ${usd(direct.rate)}.` : `${rates.length} sites showed a rate. Your own site wasn’t one of them.`)
       : 'Too few rates to tell.',
-    'Google hotel search');
+    priceSrc, priceWhen);
+  const cancelKnown = px ? rates.some((r) => r.freeCancel != null) : offer && offer.has_free_cancellation != null;
+  const cancelFree = px ? nights.some((n) => n.rates.some((r) => r.freeCancel === true)) : !!offer?.has_free_cancellation;
   check('rates', 'free-cancel', 'A free-cancellation rate is on offer', 10,
-    offer && offer.has_free_cancellation != null ? (offer.has_free_cancellation ? 1 : 0.4) : null,
-    offer && offer.has_free_cancellation != null
-      ? (offer.has_free_cancellation ? 'At least one listed rate offers free cancellation.' : 'No listed rate showed free cancellation.')
+    cancelKnown ? (cancelFree ? 1 : 0.4) : null,
+    cancelKnown
+      ? (cancelFree ? 'At least one listed rate offers free cancellation.' : 'No listed rate showed free cancellation.')
       : 'Not read this scan.',
-    'Google hotel search');
+    priceSrc, priceWhen);
+  const gapScore = (g) => scale(g, [[0.02, 1], [0.1, 0.6], [0.25, 0.2], [0.4, 0]]);
   check('rates', 'signal', 'No large gap between your rate and the lowest listed rate', 15,
-    gap == null ? null : scale(gap, [[0.02, 1], [0.1, 0.6], [0.25, 0.2], [0.4, 0]]),
+    gap == null ? null : gapScore(gap),
     gap == null ? 'Not observed.'
       : gap > 0.02
-        ? `Your site shows ${usd(direct.rate)}; the lowest other rate is ${usd(lowest.rate)} on ${lowest.source}, ${Math.round(gap * 100)}% less. This is one night and the rooms may differ, so it counts for a small part of the grade.`
+        ? `Your site shows ${usd(direct.rate)}; the lowest other rate is ${usd(lowest.rate)} on ${lowest.source}, ${Math.round(gap * 100)}% less. The rooms may differ, so it counts for a small part of the grade.`
         : `Your site shows ${usd(direct.rate)} and no listed site was meaningfully lower.`,
-    'Google hotel search, one night, rooms not matched');
-  check('rates', 'parity', 'Same room, same fees, same terms across channels, on more than one date', 35, null,
-    'Not observed. We read the lowest rate each site shows for one night. We don’t yet match room type, mandatory fees or cancellation terms.', '');
+    `${priceSrc}, one night, rooms not matched`, priceWhen);
+  // The same question on a second night. A gap that shows up twice is less likely to be a one-off.
+  const n1Seen = !!n1 && n1.rates.length >= 3;
+  check('rates', 'second-date', 'Your rate holds up on a second date', 15,
+    n1Seen ? (n1.direct ? (n1.gap == null ? null : gapScore(n1.gap)) : 0) : null,
+    !n1Seen ? 'Not observed. Only one night was priced this scan.'
+      : !n1.direct ? `For ${niceDay(n1.night)}, ${n1.rates.length} sites showed a rate and your own site wasn’t one of them.`
+        : n1.gap != null && n1.gap > 0.02 ? `For ${niceDay(n1.night)} your site shows ${usd(n1.direct.rate)}; the lowest other rate is ${usd(n1.lowest.rate)} on ${n1.lowest.source}, ${Math.round(n1.gap * 100)}% less.`
+          : `For ${niceDay(n1.night)} your site shows ${usd(n1.direct.rate)} and no listed site was meaningfully lower.`,
+    `${priceSrc}, a second night, rooms not matched`, priceWhen);
+  check('rates', 'parity', 'Same room, same fees, same terms across channels', 20, null,
+    'Not observed. We read the lowest rate each site shows. We don’t yet match room type, mandatory fees or cancellation terms.', '');
 
   // --- Reputation (14) ---
   const gRating = comp?.own_rating ?? gbp?.rating ?? platforms?.per_platform?.google?.rating ?? null;
@@ -479,10 +506,23 @@ export function assess(audit, crawl = null) {
 
   // ---------- guest choice ----------
   const rivals = (comp?.top_competitors ?? []).filter((r) => r?.name);
+  // Like for like: the lowest rate Google shows for each hotel on the first sampled night.
+  const area = px?.area?.checkIn === night ? (px.area.hotels ?? []).filter((h) => h.rate > 0) : [];
+  const areaRate = (name) => area.find((h) => sameName(h.name, name))?.rate ?? area.find((h) => likeName(h.name, name))?.rate ?? null;
+  const ownLow = rates[0]?.rate ?? null;
   const table = [
-    { name: audit.hotelName, you: true, rating: gRating, reviews: gCount, rate: direct?.rate ?? lowest?.rate ?? null, rateNote: direct ? 'your site' : lowest ? `lowest found, on ${lowest.source}` : '' },
-    ...rivals.map((r) => ({ name: r.name, you: false, rating: r.rating ?? null, reviews: r.reviews ?? null, rate: null, rateNote: '' })),
+    area.length
+      ? { name: audit.hotelName, you: true, rating: gRating, reviews: gCount, rate: ownLow, rateNote: 'lowest shown' }
+      : { name: audit.hotelName, you: true, rating: gRating, reviews: gCount, rate: direct?.rate ?? lowest?.rate ?? null, rateNote: direct ? 'your site' : lowest ? `lowest found, on ${lowest.source}` : '' },
+    ...rivals.map((r) => { const rate = areaRate(r.name); return { name: r.name, you: false, rating: r.rating ?? null, reviews: r.reviews ?? null, rate, rateNote: rate != null ? 'lowest shown' : '' }; }),
   ];
+  const priced = table.filter((r) => !r.you && r.rate != null);
+  const pricedLower = ownLow != null ? priced.filter((r) => r.rate < ownLow).length : 0;
+  const priceLine = priced.length >= 2 && ownLow != null
+    ? ` On price for that night, ${pricedLower === 0 ? `none of the ${priced.length} we could price showed a lower rate than your ${usd(ownLow)}` : `${pricedLower} of the ${priced.length} we could price showed a lower rate than your ${usd(ownLow)}`}.`
+    : '';
+  const areaRates = area.map((h) => h.rate).sort((a, b) => a - b);
+  const areaMedian = areaRates.length >= 5 ? areaRates[Math.floor(areaRates.length / 2)] : null;
   const better = rivals.filter((r) => r.rating != null && gRating != null && r.rating > gRating).length;
   const tied = rivals.filter((r) => r.rating != null && gRating != null && r.rating === gRating).length;
   const choice = rivals.length >= 2 ? {
@@ -490,12 +530,13 @@ export function assess(audit, crawl = null) {
     rows: table,
     peers: rivals.length,
     setSize: comp?.total_in_set ?? null,
-    compared: ['Google rating', 'Google review count'],
-    notCompared: ['Price for the same night at each competitor', 'Room fit for the party', 'Location for the trip', 'Cancellation and payment terms'],
+    compared: priced.length >= 2 ? ['Google rating', 'Google review count', 'Lowest rate shown on Google for the same night'] : ['Google rating', 'Google review count'],
+    notCompared: [...(priced.length >= 2 ? ['Whether those rates are for a similar room'] : ['Price for the same night at each competitor']), 'Room fit for the party', 'Location for the trip', 'Cancellation and payment terms'],
+    area: areaMedian != null ? { median: areaMedian, count: areaRates.length, low: areaRates[0], high: areaRates[areaRates.length - 1], own: ownLow } : null,
     verdict: gRating == null ? 'We couldn’t read your rating, so there is nothing to compare yet.'
       : better === 0
-        ? `On guest rating, you lead this set${tied ? ` (level with ${tied})` : ''}. That is the only thing compared so far, so it isn’t a verdict on who wins the booking.`
-        : `${better} of ${rivals.length} hotels in this set carry a higher Google rating than yours. That is the only thing compared so far, so it isn’t a verdict on who wins the booking.`,
+        ? `On guest rating, you lead this set${tied ? ` (level with ${tied})` : ''}.${priceLine ? '' : ' That is the only thing compared so far, so it isn’t a verdict on who wins the booking.'}${priceLine}`
+        : `${better} of ${rivals.length} hotels in this set carry a higher Google rating than yours.${priceLine ? '' : ' That is the only thing compared so far, so it isn’t a verdict on who wins the booking.'}${priceLine}`,
   } : null;
 
   // ---------- priorities ----------
@@ -504,14 +545,15 @@ export function assess(audit, crawl = null) {
   const cands = [];
   const push = (p) => { if (p.points > 0.15) cands.push(p); };
 
+  const bothNights = gap != null && gap > 0.05 && n1?.gap != null && n1.gap > 0.05;
   if (gap != null && gap > 0.05) {
     push({
-      id: 'rate-gap', type: 'investigate', fn: 'rates', points: 20 * 0.5 * Math.min(1, gap / 0.25) * 0.7,
+      id: 'rate-gap', type: 'investigate', fn: 'rates', points: 20 * 0.5 * Math.min(1, gap / 0.25) * (bothNights ? 0.85 : 0.7),
       title: `Check why ${lowest.source} shows ${usd(lowest.rate)} against ${usd(direct.rate)} on your own site`,
-      evidence: `On Google’s hotel search${night ? ` for the night of ${niceDay(night)}` : ''}, ${others.filter((r) => r.rate < direct.rate).length} of ${others.length} other sites showed a lower rate than your official site.`,
+      evidence: `On Google’s hotel search${night ? ` for the night of ${niceDay(night)}` : ''}, ${others.filter((r) => r.rate < direct.rate).length} of ${others.length} other sites showed a lower rate than your official site.${bothNights ? ` It was the same on ${niceDay(n1.night)}: ${usd(n1.lowest.rate)} on ${n1.lowest.source} against your ${usd(n1.direct.rate)}.` : ''}`,
       why: 'A guest comparing prices on Google sees the cheaper offer first. If it is the same room, each booking that goes there costs a commission.',
       outcome: 'Either the gap is explained (a different room, a member rate, fees left out) or your direct rate matches the lowest public rate for the same room.',
-      owner: 'Revenue manager', effort: 'Low to check', confidence: 'Needs checking',
+      owner: 'Revenue manager', effort: 'Low to check', confidence: bothNights ? 'Likely' : 'Needs checking',
       proof: 'Search the same night on Google, open your site and the cheapest listing, and compare room type, fees and cancellation terms side by side.',
     });
   }
@@ -711,6 +753,9 @@ export function assess(audit, crawl = null) {
     night, direct, lowest, gap,
     cheaper: direct ? others.filter((r) => r.rate < direct.rate).length : 0,
     others: others.length,
+    ours: !!px,
+    nights: nights.filter((n) => n.rates.length >= 3).map((n) => ({ night: n.night, kind: n.kind, direct: n.direct, lowest: n.lowest, gap: n.gap, cheaper: n.cheaper, others: n.others.length })),
+    rooms: px ? (px.nights.find((n) => n.ok)?.rooms ?? []) : [],
     rows: [...(direct ? [{ ...direct, mine: true }] : []), ...others.slice(0, direct ? 9 : 10)].sort((a, b) => a.rate - b.rate),
   } : null;
 

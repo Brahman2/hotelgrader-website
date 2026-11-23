@@ -21,8 +21,8 @@ export async function fetchAudit(hotel, city, state) {
   return body && body.cached && body.data ? body.data : null;
 }
 
-export function summarize(audit, crawl = null) {
-  const a = assess(audit, crawl);
+export function summarize(audit, crawl = null, live = null) {
+  const a = assess(audit, crawl, live);
   const c = audit._meta?.competitors;
   const p = a.prices;
   return {
@@ -47,6 +47,7 @@ export function summarize(audit, crawl = null) {
       total: p.others,
       lowest: p.lowest,
       rows: p.rows.slice(0, 6),
+      second: p.nights.length >= 2 ? p.nights[1] : null,
       max: Math.max(...p.rows.slice(0, 6).map((r) => r.rate)),
       checkIn: p.night
         ? new Date(`${p.night}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
