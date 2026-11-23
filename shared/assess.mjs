@@ -231,9 +231,13 @@ export function assess(audit, crawl = null, live = null) {
         : 'No booking links to check.',
       'Our crawl of your home page', { when: web.fetchedAt });
     const fs = bk.firstStep;
+    // A link to the engine's bare address, with no hotel in it, is finished by script when a guest picks dates.
+    // An error from that address says nothing about whether guests can book.
+    const fsBare = !!fs && !fs.ok && (() => { try { const u = new URL(fs.url); return u.pathname.length <= 1 && !u.search; } catch { return false; } })();
     check('booking', 'first-step', 'The booking engine answers', 15,
-      !fs || fs.blocked ? null : fs.ok ? 1 : 0,
+      !fs || fs.blocked || fsBare ? null : fs.ok ? 1 : 0,
       !fs ? 'Not checked: no link to an outside booking engine was found.'
+        : fsBare ? `Your booking link points at ${hostOf(fs.url)} with no hotel or dates in it, so the page adds those when a guest searches. We can’t follow that step, so this isn’t scored.`
         : fs.blocked ? `${fs.finalHost || hostOf(fs.url)} turned away our automated visit, which is normal for some engines. Not scored.`
           : fs.ok ? `${fs.finalHost} loaded in ${(fs.ms / 1000).toFixed(1)} seconds.`
             : `The booking link answered with an error${fs.status ? ` (${fs.status})` : ''}.`,
@@ -664,7 +668,7 @@ export function assess(audit, crawl = null, live = null) {
       proof: 'Tap each booking button on a phone and reach a date picker every time.',
     });
   }
-  const fsBroken = web?.booking.firstStep && !web.booking.firstStep.ok && !web.booking.firstStep.blocked;
+  const fsBroken = (out.booking ?? []).some((c) => c.id === 'first-step' && c.earned === 0);
   if (fsBroken) {
     push({
       id: 'engine-down', type: 'fix', fn: 'booking', points: stake('booking.first-step'),
@@ -744,7 +748,9 @@ export function assess(audit, crawl = null, live = null) {
       proof: 'Search your hotel’s name and city in a private window and find your site first.',
     });
   }
-  const squatter = (serp?.top_results ?? []).find((r) => r.owner === 'other' && r.position <= 3 && looksLikeHotel(r.title, audit.hotelName));
+  // Tourism-board and destination sites list every hotel in town; they aren't someone passing as this one.
+  const tourism = (d) => /^(www\.)?(visit|discover|explore)[a-z-]+\.|tourism|gohawaii\.com|cvb\./i.test(String(d ?? ''));
+  const squatter = (serp?.top_results ?? []).find((r) => r.owner === 'other' && !tourism(r.domain) && r.position <= 3 && looksLikeHotel(r.title, audit.hotelName));
   if (squatter && rank === 1) {
     push({
       id: 'brand-squatter', type: 'investigate', fn: 'discovery', points: 0.9,
