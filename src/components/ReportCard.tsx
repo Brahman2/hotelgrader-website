@@ -291,9 +291,16 @@ export default function ReportCard() {
   const speedCached = (peek?.live as any)?.speed ?? null;
   useEffect(() => {
     if (!target || !siteKnown) return;
-    if (speedCached) { setSpeed(speedCached); return; }
+    if (speedCached?.mobile && speedCached?.desktop) { setSpeed(speedCached); return; }
+    if (speedCached) setSpeed(speedCached);
     const ctrl = new AbortController();
-    fetchSpeed(target.hotel, target.city, target.state, ctrl.signal).then((sp) => { if (!ctrl.signal.aborted && sp) setSpeed(sp); });
+    const ask = () => fetchSpeed(target.hotel, target.city, target.state, ctrl.signal);
+    // One of the two runs sometimes times out. Show what came back, then ask once more for the other.
+    ask().then(async (sp: any) => {
+      if (ctrl.signal.aborted || !sp) return;
+      setSpeed(sp);
+      if (!sp.mobile || !sp.desktop) { const again = await ask(); if (!ctrl.signal.aborted && again) setSpeed(again); }
+    });
     return () => ctrl.abort();
   }, [target, siteKnown, speedCached]);
   const liveAll = useMemo(() => (live && speed ? { ...(live as object), speed } : live), [live, speed]);

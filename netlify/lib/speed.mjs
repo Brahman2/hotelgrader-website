@@ -20,13 +20,17 @@ export async function speedFor(rawUrl, { fresh = false, why = null } = {}) {
   if (!url) { if (why) why.reason = 'no-site'; return null; }
   const key = url.hostname.replace(/^www\./, '') + (url.pathname.length > 1 ? url.pathname.replace(/[^a-z0-9]+/gi, '_') : '');
   const s = await store();
+  let hit = null;
   try {
-    const hit = s ? await s.get(key, { type: 'json' }) : null;
-    if (hit?.ok && hit.fetchedAt && Date.now() - Date.parse(hit.fetchedAt) < DAY) return hit;
-  } catch { /* cache miss */ }
-  if (!fresh || !hasSpeedKey()) { if (why) why.reason = fresh ? 'no-key' : 'not-cached'; return null; }
-  const got = await scanSpeed(url.toString());
+    hit = s ? await s.get(key, { type: 'json' }) : null;
+    if (!(hit?.ok && hit.fetchedAt && Date.now() - Date.parse(hit.fetchedAt) < DAY)) hit = null;
+  } catch { hit = null; }
+  const whole = hit && hit.mobile && hit.desktop;
+  // A cached reading with one run missing is still served; a fresh call fills in the other run.
+  if (whole || (hit && !fresh)) return hit;
+  if (!fresh || !hasSpeedKey()) { if (why) why.reason = fresh ? 'no-key' : 'not-cached'; return hit; }
+  const got = await scanSpeed(url.toString(), { have: hit });
   try { if (s && got.ok) await s.setJSON(key, got); } catch { /* the reading still stands */ }
   if (!got.ok && why) why.reason = got.error || 'failed';
-  return got.ok ? got : null;
+  return got.ok ? got : hit;
 }

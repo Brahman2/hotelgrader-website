@@ -9,7 +9,7 @@ const API = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
 
 export const hasSpeedKey = () => !!process.env.PAGESPEED_KEY;
 
-const audit = (lh, id) => { const a = lh?.audits?.[id]; return a && typeof a.numericValue === 'number' ? a.numericValue : null; };
+const audit = (lh, id) => { const a = lh?.audits?.[id]; return a && typeof a.numericValue === 'number' ? Math.round(a.numericValue * 1000) / 1000 : null; };
 
 /** One lab run. Returns { ok, error, data }. Never throws. */
 async function run(url, strategy, timeout) {
@@ -52,21 +52,36 @@ function field(data) {
   };
 }
 
-/** Both lab runs for one address, and the field data. */
-export async function scanSpeed(url, { timeout = 24000 } = {}) {
+/** Tracking tags on the address don't change the page, and Google keeps its real-visitor data under the clean address. */
+function tidy(url) {
+  try {
+    const u = new URL(url);
+    for (const k of [...u.searchParams.keys()]) if (/^(utm_|gclid|fbclid|msclkid|y_source)/i.test(k)) u.searchParams.delete(k);
+    u.hash = '';
+    return u.toString();
+  } catch { return url; }
+}
+
+/**
+ * The lab runs for one address, and the field data. `have` is an earlier reading with one run missing
+ * (they sometimes time out); only the missing run is repeated and the two are merged.
+ */
+export async function scanSpeed(rawUrl, { timeout = 23000, have = null } = {}) {
   const fetchedAt = new Date().toISOString();
+  const url = tidy(rawUrl);
   if (!hasSpeedKey()) return { ok: false, error: 'no-key', fetchedAt, url };
-  const [m, d] = await Promise.all([run(url, 'mobile', timeout), run(url, 'desktop', timeout)]);
-  const mobile = m.ok ? lab(m.data) : null;
-  const desktop = d.ok ? lab(d.data) : null;
+  const skip = { ok: false, error: '', data: null };
+  const [m, d] = await Promise.all([have?.mobile ? skip : run(url, 'mobile', timeout), have?.desktop ? skip : run(url, 'desktop', timeout)]);
+  const mobile = have?.mobile ?? (m.ok ? lab(m.data) : null);
+  const desktop = have?.desktop ?? (d.ok ? lab(d.data) : null);
   const shot = m.ok ? m.data.lighthouseResult.audits?.['final-screenshot']?.details?.data : '';
   return {
     ok: !!(mobile || desktop),
-    error: [m, d].filter((x) => !x.ok).map((x) => x.error).join(', '),
-    fetchedAt, url,
+    error: [m, d].map((x) => x.error).filter(Boolean).join(', '),
+    fetchedAt: have?.fetchedAt ?? fetchedAt, url,
     mobile, desktop,
-    field: (m.ok && field(m.data)) || (d.ok && field(d.data)) || null,
+    field: have?.field ?? ((m.ok && field(m.data)) || (d.ok && field(d.data)) || null),
     // The page as the test phone drew it. Kept only when it's a small image.
-    screenshot: typeof shot === 'string' && shot.startsWith('data:image/') && shot.length < 120000 ? shot : '',
+    screenshot: have?.screenshot || (typeof shot === 'string' && shot.startsWith('data:image/') && shot.length < 120000 ? shot : ''),
   };
 }
