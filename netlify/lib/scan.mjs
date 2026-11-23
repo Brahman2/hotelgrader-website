@@ -13,6 +13,7 @@ import { brandSearch } from '../../scanner/search.mjs';
 import { aiAnswer } from '../../scanner/ai.mjs';
 import { marketQueries, marketSearch } from '../../scanner/market.mjs';
 import { recentReviews } from '../../scanner/reviews.mjs';
+import { scanAds } from '../../scanner/ads.mjs';
 import { hasKey, searchesLeft } from '../../scanner/serpapi.mjs';
 import { websiteOf } from '../../shared/assess.mjs';
 import { fetchAudit } from './report.mjs';
@@ -25,7 +26,9 @@ const DAY = 24 * 60 * 60 * 1000;
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
 // The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question, the newest reviews,
 // and up to four searches for its town (shared by every hotel there, so usually already paid for).
-const PER_SCAN = 12;
+const PER_SCAN = 14;
+// The ad libraries cost two searches a hotel and aren't graded, so they can be switched off with SCAN_ADS=off.
+const ADS_ON = process.env.SCAN_ADS !== 'off';
 const WEEK = 7 * DAY;
 // New hotels scanned per day before we stop spending and lean on the grading API alone.
 const DAILY_CAP = Number(process.env.SCAN_DAILY_CAP || 20);
@@ -76,7 +79,7 @@ const within = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => 
  */
 export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const target = { hotel: String(hotel ?? '').trim(), city: String(city ?? '').trim(), state: String(state ?? '').trim() };
-  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null, speed: null, reviews: null, themes: null }, pending: false, limited: '' };
+  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null, speed: null, reviews: null, themes: null, ads: null }, pending: false, limited: '' };
   if (!target.hotel) return empty;
   const key = scanKey(target);
   const started = Date.now();
@@ -116,16 +119,17 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const town = [slug(target.city), slug(target.state)].join('_');
   const asks = known && target.city ? marketQueries({ city: target.city, hotelClass: prices.hotel?.hotelClass ?? null }) : [];
   const listing = prices?.hotel?.token || token;
-  const [crawl, search, ai, reviews, ...market] = await Promise.all([
+  const [crawl, search, ai, reviews, ads, ...market] = await Promise.all([
     site ? crawlFor(site, { fresh: go }).catch(() => null) : null,
     known ? cached('brand-searches-v2', key, { fresh: go, allowed: haveBudget }, () => brandSearch({ ...target, site })).catch(() => null) : null,
     known ? cached('ai-answers-v3', key, { fresh: go, allowed: haveBudget }, () => aiAnswer({ ...target, hotelClass: prices.hotel?.hotelClass ?? null })).catch(() => null) : null,
     known && listing ? cached('review-reads-v3', key, { fresh: go, allowed: haveBudget }, () => recentReviews({ token: listing, pages: process.env.ANTHROPIC_API_KEY ? 2 : 1 })).catch(() => null) : null,
+    known && ADS_ON ? cached('ad-reads-v1', key, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => scanAds({ ...target, site })).catch(() => null) : null,
     ...(asks.length ? [cached('market-searches-v2', `${town}_hotel-search`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => townRanking(target, sampleNights()[0])).catch(() => null)] : []),
     ...asks.map((query) => cached('market-searches-v2', `${town}_${slug(query)}`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => marketSearch({ ...target, query })).catch(() => null)),
   ]);
   const read = market.filter((m) => m?.ok);
-  const missing = (site && !crawl) || (known && hasKey() && (!search || !ai || (listing && !reviews) || read.length < asks.length + (asks.length ? 1 : 0)));
+  const missing = (site && !crawl) || (known && hasKey() && (!search || !ai || (listing && !reviews) || (ADS_ON && !ads) || read.length < asks.length + (asks.length ? 1 : 0)));
   const pending = fresh && (prices?.done === false || (slow && missing));
 
   // Page speed is read from cache only: the run is too slow for this call (see /api/speed).
@@ -138,5 +142,5 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
     hotelName: target.hotel, city: target.city, state: target.state, categories: {},
     _meta: { ownScan: true, generatedAt: prices?.fetchedAt ?? crawl?.fetchedAt ?? new Date().toISOString() },
   } : null;
-  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null, speed, reviews, themes }, pending, limited };
+  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null, speed, reviews, themes, ads: ads?.ok ? ads : null }, pending, limited };
 }

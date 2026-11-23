@@ -524,6 +524,18 @@ function Ads({ a }: { a: Assessment }) {
           ))}
         </tbody>
       </table>
+      {ads.you.detail && (
+        <p className="text-[14px] text-ink-60 mt-4 max-w-[70ch]">
+          <span className="text-ink">Your own ads:</span>{' '}
+          {ads.you.detail.googleRecent == null ? 'Google’s library couldn’t be read. '
+            : ads.you.detail.googleRecent > 0 ? <>{ads.you.detail.googleRecent} Google {ads.you.detail.googleRecent === 1 ? 'ad' : 'ads'} for your site ran in the last 45 days{ads.you.detail.googleFormats.length > 0 ? ` (${ads.you.detail.googleFormats.join(', ')})` : ''}. </>
+              : ads.you.detail.googleTotal ? <>No Google ad for your site has run in the last 45 days{ads.you.detail.googleLast ? `; the last one showed on ${day(ads.you.detail.googleLast)}` : ''}. </>
+                : 'Google’s library lists no ads for your website. '}
+          {ads.you.detail.metaLive == null ? 'Meta’s library couldn’t be read.'
+            : ads.you.detail.metaLive > 0 ? <>{ads.you.detail.metaLive} Meta {ads.you.detail.metaLive === 1 ? 'ad is' : 'ads are'} live from “{ads.you.detail.metaPage}”{ads.you.detail.metaSince ? `, the oldest running since ${day(ads.you.detail.metaSince)}` : ''}.</>
+              : <>No live Meta ad comes from a page with your name{ads.you.detail.metaOthers.length > 0 ? `, though ${ads.you.detail.metaOthers.join(', ')} ${ads.you.detail.metaOthers.length === 1 ? 'mentions' : 'mention'} you in theirs` : ''}.</>}
+        </p>
+      )}
       {ads.brand && (
         <p className="text-[14px] text-ink-60 mt-4 max-w-[70ch]">
           <span className="text-ink">On a search for “{ads.brand.query}”:</span>{' '}
@@ -534,7 +546,7 @@ function Ads({ a }: { a: Assessment }) {
         </p>
       )}
       <p className="meta mt-3 max-w-[84ch]">
-        Google’s Ads Transparency Center, searched by each hotel’s website, and Meta’s Ad Library, searched by each hotel’s Facebook page.
+        Google’s Ads Transparency Center, searched by each hotel’s website, and Meta’s Ad Library, searched by each hotel’s name or Facebook page.
         {ads.you.googleBy.length > 0 && ` The Google ads for your site run under ${ads.you.googleBy.join(', ')}.`}
         {' '}Ads placed under a management group or agency name can be missed.
       </p>

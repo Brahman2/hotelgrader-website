@@ -90,7 +90,7 @@ export interface Assessment {
   } | null;
   example: { finding: string; title: string; intro: string; code: string; handoff: string } | null;
   ads: {
-    you: { name: string; google: boolean | null; googleBy: string[]; meta: boolean | null };
+    you: { name: string; google: boolean | null; googleBy: string[]; meta: boolean | null; detail?: { googleRecent: number | null; googleTotal: number | null; googleLast: string; googleFormats: string[]; metaLive: number | null; metaPage: string; metaSince: string; metaOthers: string[] } | null };
     rivals: { name: string; google: boolean | null; meta: boolean | null }[];
     brand: { query: string; own: boolean; others: string[] } | null;
   } | null;

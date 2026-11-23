@@ -501,25 +501,34 @@ export function assess(audit, crawl = null, live = null) {
 
   // --- Social presence (2) ---
   // Profiles the hotel links to from its own site are certain to be the hotel's. Prefer them.
-  const linked = web?.social ?? {};
-  const fb = linked.facebook ? { success: true, page_name: linked.facebook.handle, page_url: linked.facebook.url, followers: null, fromSite: true } : socialData?.facebook;
-  const ig = linked.instagram ? { success: true, username: linked.instagram.handle, full_name: '', followers: null, fromSite: true } : socialData?.instagram;
+  const linked = { ...(web?.social ?? {}) };
+  // A profile that shows in a search for the hotel's name and carries its name is the next best evidence.
+  const seenIn = (dom) => (bs?.results ?? []).find((r) => r.domain && r.domain.endsWith(dom) && (looksLikeHotel(r.title, audit.hotelName) || likeName(r.title.split(/[|(•·-]/)[0], audit.hotelName)));
+  const igHit = !linked.instagram ? seenIn('instagram.com') : null;
+  const fbHit = !linked.facebook ? seenIn('facebook.com') : null;
+  const igHandle = igHit?.title.match(/\(@([A-Za-z0-9._]+)\)/)?.[1] ?? '';
+  const searched = {
+    facebook: fbHit ? { success: true, page_name: fbHit.title.split(/\s[|•·-]\s/)[0].trim(), page_url: 'facebook.com', followers: null, fromSearch: true } : null,
+    instagram: igHit && igHandle ? { success: true, username: igHandle, full_name: audit.hotelName, followers: null, fromSearch: true } : null,
+  };
+  const fb = linked.facebook ? { success: true, page_name: linked.facebook.handle, page_url: linked.facebook.url, followers: null, fromSite: true } : searched.facebook ?? socialData?.facebook;
+  const ig = linked.instagram ? { success: true, username: linked.instagram.handle, full_name: '', followers: null, fromSite: true } : searched.instagram ?? socialData?.instagram;
   const fbOk = fb?.success && (fb.page_url || fb.followers != null);
-  const fbMatch = fb?.fromSite ? true : fbOk ? looksLikeHotel(`${fb.page_name ?? ''} ${fb.page_url ?? ''}`, audit.hotelName) : null;
+  const fbMatch = fb?.fromSite || fb?.fromSearch ? true : fbOk ? looksLikeHotel(`${fb.page_name ?? ''} ${fb.page_url ?? ''}`, audit.hotelName) : null;
   check('social', 'facebook', 'A Facebook page for this hotel', 40,
     socialData || fbOk ? (fbOk ? (fbMatch === false ? null : 1) : 0) : null,
     socialData || fbOk
-      ? (fbOk ? (fbMatch === false ? `We matched “${fb.page_name}”, which may be a different business, so this isn’t scored.` : fb.fromSite ? `Your site links to facebook.com/${fb.page_name}.` : `Found: ${fb.page_name || fb.page_url}${fb.followers != null ? `, ${n0(fb.followers)} followers` : ''}.`) : 'No Facebook page was found.')
+      ? (fbOk ? (fbMatch === false ? `We matched “${fb.page_name}”, which may be a different business, so this isn’t scored.` : fb.fromSite ? `Your site links to facebook.com/${fb.page_name}.` : fb.fromSearch ? `“${fb.page_name}” shows in a search for your name. Your website doesn’t link to it.` : `Found: ${fb.page_name || fb.page_url}${fb.followers != null ? `, ${n0(fb.followers)} followers` : ''}.`) : 'No Facebook page was found.')
       : 'Not searched this scan.',
     'Facebook', { when: fb?.fetched_at });
   const igOk = ig?.success && ig.username;
-  const igMatch = ig?.fromSite ? true : igOk ? looksLikeHotel(`${ig.full_name ?? ''} ${ig.username ?? ''}`, audit.hotelName) : null;
+  const igMatch = ig?.fromSite || ig?.fromSearch ? true : igOk ? looksLikeHotel(`${ig.full_name ?? ''} ${ig.username ?? ''}`, audit.hotelName) : null;
   if (igOk && igMatch === false) flags.push(`The Instagram account our search matched is @${ig.username} (“${ig.full_name}”), which looks like a different property. We left Instagram out of the grade.`);
   if (fbOk && fbMatch === false) flags.push(`The Facebook page our search matched is “${fb.page_name}”, which may not be this hotel. We left it out of the grade.`);
   check('social', 'instagram', 'An Instagram account for this hotel', 40,
     socialData || igOk ? (igOk ? (igMatch === false ? null : 1) : 0) : null,
     socialData || igOk
-      ? (igOk ? (igMatch === false ? `We matched @${ig.username} (“${ig.full_name}”), which looks like a different property, so this isn’t scored.` : ig.fromSite ? `Your site links to @${ig.username}.` : `Found: @${ig.username}${ig.followers != null ? `, ${n0(ig.followers)} followers` : ''}.`) : 'No Instagram account was found.')
+      ? (igOk ? (igMatch === false ? `We matched @${ig.username} (“${ig.full_name}”), which looks like a different property, so this isn’t scored.` : ig.fromSite ? `Your site links to @${ig.username}.` : ig.fromSearch ? `@${ig.username} shows in a search for your name. Your website doesn’t link to it.` : `Found: @${ig.username}${ig.followers != null ? `, ${n0(ig.followers)} followers` : ''}.`) : 'No Instagram account was found.')
       : 'Not searched this scan.',
     'Instagram', { when: ig?.fetched_at });
   check('social', 'useful', 'Profiles are current and answer guest questions', 20, null, 'Not observed. Follower counts and posting frequency aren’t scored.', '');
@@ -846,12 +855,21 @@ export function assess(audit, crawl = null, live = null) {
   const mAds = evidence(audit, /^meta ads presence/i);
   // Ad checks were run for the grading API's comparison set. Once the set is ours, keep only the hotels that are in both.
   const adRivals = (meta.compset_ads?.competitors ?? []).filter((r) => !comp?.ours || (comp.top_competitors ?? []).some((c) => sameName(c.name, r.name) || likeName(c.name, r.name)));
-  const ads = (gAds || mAds || adRivals.length) ? {
+  // Our own read of the two ad libraries, when we have it.
+  const la = live?.ads?.ok ? live.ads : null;
+  const myMeta = la?.meta ? la.meta.ads.filter((x) => sameName(x.page, audit.hotelName) || likeName(x.page, audit.hotelName) || (lh?.name && likeName(x.page, lh.name))) : [];
+  const ads = (gAds || mAds || adRivals.length || la || bs) ? {
     you: {
       name: audit.hotelName,
-      google: gAds?.registry?.checked ? !!(gAds.runs_ads_registry ?? gAds.registry.runs_ads_registry) : null,
-      googleBy: (gAds?.registry?.advertisers ?? []).filter(Boolean),
-      meta: mAds?.status === 'ok' ? !!mAds.running_ads : null,
+      google: la?.google ? la.google.recent > 0 : gAds?.registry?.checked ? !!(gAds.runs_ads_registry ?? gAds.registry.runs_ads_registry) : null,
+      googleBy: la?.google ? la.google.advertisers : (gAds?.registry?.advertisers ?? []).filter(Boolean),
+      meta: la?.meta ? myMeta.length > 0 : mAds?.status === 'ok' ? !!mAds.running_ads : null,
+      /** Detail from our own read: how many Google ads ran, when one last showed, and how many Meta ads are live. */
+      detail: la ? {
+        googleRecent: la.google?.recent ?? null, googleTotal: la.google?.total ?? null, googleLast: la.google?.lastShown ?? '', googleFormats: la.google?.formats ?? [],
+        metaLive: la.meta ? myMeta.length : null, metaPage: myMeta[0]?.page ?? '', metaSince: myMeta.map((x) => x.started).filter(Boolean).sort()[0] ?? '',
+        metaOthers: la.meta ? [...new Set(la.meta.ads.filter((x) => !myMeta.includes(x)).map((x) => x.page))].slice(0, 4) : [],
+      } : null,
     },
     rivals: adRivals.map((r) => ({ name: r.name, google: r.google_ads ?? null, meta: r.meta_ads ?? null })),
     /** Who was advertising on a search for the hotel's own name, from our brand search. Null when not read. */
