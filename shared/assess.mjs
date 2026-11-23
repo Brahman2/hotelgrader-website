@@ -448,11 +448,11 @@ export function assess(audit, crawl = null, live = null) {
   check('speed', 'mobile', 'Home page speed on a phone', 60,
     speed?.mobile_score != null ? speed.mobile_score / 100 : null,
     speed?.mobile_score != null ? `Lab score ${speed.mobile_score} out of 100.` : 'Not tested this scan.',
-    'Lighthouse lab test', { status: speed?.mobile_score != null ? (speed.mobile_score >= 90 ? 'pass' : speed.mobile_score >= 50 ? 'partial' : 'fail') : 'unknown' });
+    sp ? 'Google PageSpeed lab test, run by our scanner' : 'Lighthouse lab test', { ...(sp ? { when: sp.fetchedAt } : {}), status: speed?.mobile_score != null ? (speed.mobile_score >= 90 ? 'pass' : speed.mobile_score >= 50 ? 'partial' : 'fail') : 'unknown' });
   check('speed', 'desktop', 'Home page speed on a desktop', 20,
     speed?.desktop_score != null ? speed.desktop_score / 100 : null,
     speed?.desktop_score != null ? `Lab score ${speed.desktop_score} out of 100.` : 'Not tested this scan.',
-    'Lighthouse lab test', { status: speed?.desktop_score != null ? (speed.desktop_score >= 90 ? 'pass' : speed.desktop_score >= 50 ? 'partial' : 'fail') : 'unknown' });
+    sp ? 'Google PageSpeed lab test, run by our scanner' : 'Lighthouse lab test', { ...(sp ? { when: sp.fetchedAt } : {}), status: speed?.desktop_score != null ? (speed.desktop_score >= 90 ? 'pass' : speed.desktop_score >= 50 ? 'partial' : 'fail') : 'unknown' });
   // What Chrome measured for real visitors over the last 28 days, when the site has enough of them.
   const fld = sp?.field ?? null;
   const fldWord = { FAST: 'fast', AVERAGE: 'middling', SLOW: 'slow' }[fld?.overall] ?? '';
