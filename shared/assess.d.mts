@@ -72,12 +72,13 @@ export interface Assessment {
   functions: FunctionResult[];
   priorities: Priority[];
   strengths: { label: string; observed: string; fn: string; value: number }[];
-  identity: { name: string; place: string; website: string; mapsUrl: string; bookingEngine: string; hotelClass: string; flags: string[] };
+  identity: { name: string; place: string; website: string; mapsUrl: string; bookingEngine: string; hotelClass: string; classSource: 'google' | 'model'; flags: string[] };
   choice: {
     scenario: string;
     rows: { name: string; you: boolean; rating: number | null; reviews: number | null; rate: number | null; rateNote: string }[];
     peers: number;
     setSize: number | null;
+    basis: 'same-class' | 'near-class' | 'nearby' | 'model';
     compared: string[];
     notCompared: string[];
     verdict: string;
@@ -103,3 +104,9 @@ export interface Assessment {
 
 export function assess(audit: unknown, crawl?: unknown, live?: unknown): Assessment;
 export function websiteOf(audit: unknown): string;
+export interface CompSet {
+  basis: string; ours: true; tier_label: string; rating_rank: number; total_in_set: number;
+  top_competitors: { name: string; rating: number; reviews: number; rate: number | null; lat: number | null; lng: number | null }[];
+}
+/** Our own comparison set, or null when the grading API's set is still in use. */
+export function compSet(audit: unknown, live?: unknown): CompSet | null;

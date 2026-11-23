@@ -2,7 +2,7 @@
 // assessment the page runs (shared/assess.mjs), so the email matches the page.
 
 import { sign } from './verify.mjs';
-import { assess, letterFor } from '../../shared/assess.mjs';
+import { assess, compSet, letterFor } from '../../shared/assess.mjs';
 
 export { letterFor };
 
@@ -23,7 +23,7 @@ export async function fetchAudit(hotel, city, state) {
 
 export function summarize(audit, crawl = null, live = null) {
   const a = assess(audit, crawl, live);
-  const c = audit._meta?.competitors;
+  const c = compSet(audit, live) ?? audit._meta?.competitors;
   const p = a.prices;
   return {
     hotel: audit.hotelName,

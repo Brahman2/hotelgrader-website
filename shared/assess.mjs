@@ -127,6 +127,45 @@ function looksLikeHotel(candidate, hotelName) {
 
 // ---------- the assessment ----------
 
+const km = (a, b) => {
+  if (a?.lat == null || a?.lng == null || b?.lat == null || b?.lng == null) return null;
+  const rad = Math.PI / 180, dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad * Math.cos(((a.lat + b.lat) / 2) * rad);
+  return Math.hypot(dLat, dLng) * 6371;
+};
+
+/**
+ * Our own comparison set, built from Google's hotel listings around the hotel:
+ * the same star class first, then the closest. Returns the same shape the
+ * grading API used, or null when there is too little to build one (the API's
+ * set is used then).
+ */
+export function compSet(audit, live = null) {
+  const px = live?.prices?.ok ? live.prices : null;
+  const own = px?.hotel;
+  const listed = (px?.area?.hotels ?? []).filter((h) => h.name && h.rating != null && h.reviews > 0
+    && !sameName(h.name, own?.name) && !sameName(h.name, audit.hotelName) && !likeName(h.name, audit.hotelName));
+  if (!own || own.rating == null || listed.length < 4) return null;
+  const cls = own.hotelClass;
+  const same = cls != null ? listed.filter((h) => h.hotelClass === cls) : [];
+  const near = cls != null ? listed.filter((h) => h.hotelClass != null && Math.abs(h.hotelClass - cls) <= 1) : [];
+  const pool = same.length >= 4 ? same : near.length >= 4 ? near : listed;
+  const basis = same.length >= 4 ? 'same-class' : near.length >= 4 ? 'near-class' : 'nearby';
+  const ranked = pool.map((h, i) => ({ ...h, km: km(own, h), i })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9) || a.i - b.i);
+  const avg = (xs) => xs.reduce((t, x) => t + x, 0) / xs.length;
+  return {
+    basis, ours: true, hotel_class: cls ?? null,
+    tier_label: cls != null ? `${cls}-star` : '',
+    own_rating: own.rating, own_reviews: own.reviews ?? null,
+    compset_avg_rating: Math.round(avg(pool.map((h) => h.rating)) * 10) / 10,
+    compset_avg_reviews: Math.round(avg(pool.map((h) => h.reviews))),
+    rating_rank: 1 + pool.filter((h) => h.rating > own.rating).length,
+    review_rank: own.reviews != null ? 1 + pool.filter((h) => h.reviews > own.reviews).length : null,
+    total_in_set: pool.length + 1,
+    total_nearby: listed.length,
+    top_competitors: ranked.slice(0, 5).map((h) => ({ name: h.name, rating: h.rating, reviews: h.reviews, rate: h.rate ?? null, lat: h.lat, lng: h.lng, km: h.km, hotel_class: h.hotelClass })),
+  };
+}
+
 /**
  * @param audit  One scan from the grading API.
  * @param crawl  Optional result of our own website collector (scanner/site.mjs). When present it
@@ -144,7 +183,7 @@ export function assess(audit, crawl = null, live = null) {
   const gbp = evidence(audit, /^google business profile/i);
   const bp = meta.booking_pricing ?? evidence(audit, /rate parity/i);
   const links = meta.booking_links ?? null;
-  const comp = meta.competitors ?? null;
+  const comp = compSet(audit, live) ?? meta.competitors ?? null;
   const platforms = evidence(audit, /directory listings|review volume|platform distribution/i);
   const sent = evidence(audit, /^(sentiment score|response rate)/i);
   // Our own brand search when we have it, in the shape the checks below already read.
@@ -516,6 +555,8 @@ export function assess(audit, crawl = null, live = null) {
     bookingEngine: web?.booking.engine || links?.engine || '',
     /** Our comp-set model's guess at the hotel's class. Not an official star rating. */
     hotelClass: comp?.tier_label ?? '',
+    /** 'google' when the class is Google's star class for the listing, 'model' when it is the grading API's guess. */
+    classSource: comp?.ours ? 'google' : 'model',
     flags,
   };
 
@@ -523,7 +564,7 @@ export function assess(audit, crawl = null, live = null) {
   const rivals = (comp?.top_competitors ?? []).filter((r) => r?.name);
   // Like for like: the lowest rate Google shows for each hotel on the first sampled night.
   const area = px?.area?.checkIn === night ? (px.area.hotels ?? []).filter((h) => h.rate > 0) : [];
-  const areaRate = (name) => area.find((h) => sameName(h.name, name))?.rate ?? area.find((h) => likeName(h.name, name))?.rate ?? null;
+  const areaRate = (name) => rivals.find((r) => r.name === name)?.rate ?? area.find((h) => sameName(h.name, name))?.rate ?? area.find((h) => likeName(h.name, name))?.rate ?? null;
   const ownLow = rates[0]?.rate ?? null;
   const table = [
     area.length
@@ -549,13 +590,15 @@ export function assess(audit, crawl = null, live = null) {
     rows: table,
     peers: rivals.length,
     setSize: comp?.total_in_set ?? null,
+    /** How the set was chosen: 'same-class' | 'near-class' | 'nearby' from our own listings, or 'model' from the grading API. */
+    basis: comp?.ours ? comp.basis : 'model',
     compared: priced.length >= 2 ? ['Google rating', 'Google review count', 'Lowest rate shown on Google for the same night'] : areaMedian != null ? ['Google rating', 'Google review count', 'Lowest rate shown that night across nearby hotels'] : ['Google rating', 'Google review count'],
     notCompared: [...(priced.length >= 2 ? ['Whether those rates are for a similar room'] : ['Price for the same night at each competitor']), 'Room fit for the party', 'Location for the trip', 'Cancellation and payment terms'],
     area: areaMedian != null ? { median: areaMedian, count: areaRates.length, low: areaRates[0], high: areaRates[areaRates.length - 1], own: ownLow } : null,
     verdict: gRating == null ? 'We couldn’t read your rating, so there is nothing to compare yet.'
       : better === 0
         ? `On guest rating, you lead this set${tied ? ` (level with ${tied})` : ''}.${priceLine ? '' : ' That is the only thing compared so far, so it isn’t a verdict on who wins the booking.'}${priceLine}`
-        : `${better} of ${rivals.length} hotels in this set carry a higher Google rating than yours.${priceLine ? '' : ' That is the only thing compared so far, so it isn’t a verdict on who wins the booking.'}${priceLine}`,
+        : `${better} of ${rivals.length} hotels in this set ${better === 1 ? 'carries' : 'carry'} a higher Google rating than yours.${priceLine ? '' : ' That is the only thing compared so far, so it isn’t a verdict on who wins the booking.'}${priceLine}`,
   } : null;
 
   // ---------- priorities ----------

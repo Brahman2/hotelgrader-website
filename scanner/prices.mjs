@@ -57,6 +57,7 @@ function rooms(d) {
 const details = (d) => ({
   name: d.name ?? '', token: d.property_token ?? '', address: d.address ?? '', phone: d.phone ?? '', link: d.link ?? '',
   hotelClass: d.extracted_hotel_class ?? null, rating: d.overall_rating ?? null, reviews: d.reviews ?? null,
+  lat: d.gps_coordinates?.latitude ?? null, lng: d.gps_coordinates?.longitude ?? null,
   typical: d.typical_price_range ? { low: d.typical_price_range.extracted_lowest ?? null, high: d.typical_price_range.extracted_highest ?? null } : null,
 });
 

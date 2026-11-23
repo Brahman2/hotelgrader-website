@@ -59,7 +59,7 @@ export async function liveFor(audit, { fresh = true } = {}) {
   };
 
   const [prices, search] = await Promise.all([
-    cached('price-scans', key, { fresh, allowed, complete: (p) => p.done !== false }, () => scanPrices(target)).catch(() => null),
+    cached('price-scans-v2', key, { fresh, allowed, complete: (p) => p.done !== false }, () => scanPrices(target)).catch(() => null),
     cached('brand-searches-v2', key, { fresh, allowed }, () => brandSearch(target)).catch(() => null),
   ]);
   return { prices, search, outOfBudget: hasKey() && budget != null && budget < RESERVE + PER_SCAN };

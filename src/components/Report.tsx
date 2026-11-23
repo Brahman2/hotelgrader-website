@@ -218,7 +218,10 @@ function Choice({ a, audit, market }: { a: Assessment; audit: Audit; market: Mar
         <div>
           <div className="meta mb-1.5">Why these hotels</div>
           <p className="text-ink-60">
-            {c.setSize ? `Our model picked these ${c.peers} from ${c.setSize} hotels near you that it placed in a similar class. ` : 'Our model picked these from hotels near you. '}
+            {c.basis === 'same-class' ? `These are the ${c.peers} closest hotels Google lists near you in the same star class. Ranks are among all ${c.setSize} in that class. `
+              : c.basis === 'near-class' ? `These are the ${c.peers} closest hotels Google lists near you within one star of your class. `
+                : c.basis === 'nearby' ? `These are the ${c.peers} closest hotels Google lists near you. Too few shared your star class to match on it. `
+                  : c.setSize ? `Our model picked these ${c.peers} from ${c.setSize} hotels near you that it placed in a similar class. ` : 'Our model picked these from hotels near you. '}
             Nearby isn’t the same as comparable. If these aren’t the hotels you lose bookings to, <a href="#correct">tell us</a>.
           </p>
         </div>
@@ -520,7 +523,9 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
           <p className="mt-4 text-[16px] max-w-[62ch]">{a.headline}</p>
           <p className="text-ink-60 text-[13.5px] mt-3 max-w-[70ch]">
             The grade says how well the hotel runs the marketing, listing and booking work a public scan can observe. It isn’t a verdict on the hotel, or on which hotel a guest would pick.
-            {a.identity.hotelClass && <> We placed the hotel in the <span className="text-ink">{a.identity.hotelClass.toLowerCase()}</span> class to choose comparisons. That’s our model’s estimate, not a star rating.</>}
+            {a.identity.hotelClass && (a.identity.classSource === 'google'
+              ? <> Google lists it as a <span className="text-ink">{a.identity.hotelClass}</span> hotel, and we used that class to choose comparisons.</>
+              : <> We placed the hotel in the <span className="text-ink">{a.identity.hotelClass.toLowerCase()}</span> class to choose comparisons. That’s our model’s estimate, not a star rating.</>)}
           </p>
           {a.siteNote && <p className="meta mt-3 max-w-[70ch]">{a.siteNote}</p>}
           {a.identity.flags.length > 0 && (

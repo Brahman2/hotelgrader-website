@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchLive, fetchSite, runAudit, type Audit } from '../lib/hg';
-import { assess } from '../../shared/assess.mjs';
+import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
 import Gate from './Gate';
@@ -23,7 +23,7 @@ const MAILED_KEY = 'hg-mailed';
 const LEADS_KEY = 'hg-leads';
 
 type Target = { hotel: string; city: string; state: string };
-type Rival = { n: number; name: string; rating?: number; reviews?: number };
+type Rival = { n: number; name: string; rating?: number; reviews?: number; lat?: number | null; lng?: number | null };
 
 function readStore(key: string): string {
   try { return localStorage.getItem(key) || ''; } catch { return ''; }
@@ -51,7 +51,7 @@ function recordLead(user: User, t: Target) {
  * Locates the hotel as soon as the page opens, then each named competitor once
  * the scan returns them. Blips appear one by one as they are found.
  */
-function useMarket(target: Target | null | undefined, audit: Audit | null) {
+function useMarket(target: Target | null | undefined, audit: Audit | null, live: unknown | null = null) {
   const [center, setCenter] = useState<LatLon | null>(null);
   const [located, setLocated] = useState(false);
   const [approximate, setApproximate] = useState(false);
@@ -73,7 +73,9 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
     return () => ctrl.abort();
   }, [target]);
 
-  const rivals: Rival[] = (audit?._meta?.competitors?.top_competitors ?? []).map((c, i) => ({ ...c, n: i + 1 }));
+  // Our own comparison set when we have one (it carries coordinates); otherwise the grading API's.
+  const ours = audit ? compSet(audit, live) : null;
+  const rivals: Rival[] = (ours?.top_competitors ?? audit?._meta?.competitors?.top_competitors ?? []).map((c, i) => ({ ...c, n: i + 1 }));
   const rivalKey = rivals.map((r) => r.name).join('|');
 
   useEffect(() => {
@@ -81,7 +83,8 @@ function useMarket(target: Target | null | undefined, audit: Audit | null) {
     if (!target || !center || approximate || !rivalKey) return;
     const ctrl = new AbortController();
     rivals.forEach((r) => {
-      geocode(r.name, target.city, target.state, ctrl.signal).then((p) => {
+      const known = r.lat != null && r.lng != null ? Promise.resolve({ lat: r.lat, lon: r.lng }) : null;
+      (known ?? geocode(r.name, target.city, target.state, ctrl.signal)).then((p) => {
         if (!p || ctrl.signal.aborted) return;
         const { x, y } = offset(center, p);
         if (Math.hypot(x, y) > 80000) return; // a wrong match in another city
@@ -157,7 +160,7 @@ export default function ReportCard() {
   const [attempt, setAttempt] = useState(0);
   const [copied, setCopied] = useState(false);
   const [share, setShare] = useState(''); // link that opens this report without the gate
-  const market = useMarket(target, audit);
+  const market = useMarket(target, audit, live);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
