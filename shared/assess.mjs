@@ -313,9 +313,11 @@ export function assess(audit, crawl = null, live = null) {
 
   // --- Search and local discovery (12) ---
   const rank = serp?.found === false ? 0 : serp?.brand_rank ?? null;
+  // A results page we couldn't attribute to sites says nothing about where the hotel ranks.
+  const rankKnown = !!serp && (serp.found != null || serp.brand_rank != null);
   check('discovery', 'brand-rank', 'Your own site ranks first for your name', 25,
-    serp ? (rank === 1 ? 1 : rank >= 2 && rank <= 3 ? 0.6 : rank > 3 ? 0.2 : 0) : null,
-    serp ? (rank ? `Your site is result #${rank} for “${serp.query}”.` : `Your site wasn’t in the top results for “${serp.query}”.`) : 'Not searched this scan.',
+    rankKnown ? (rank === 1 ? 1 : rank >= 2 && rank <= 3 ? 0.6 : rank > 3 ? 0.2 : 0) : null,
+    rankKnown ? (rank ? `Your site is result #${rank} for “${serp.query}”.` : `Your site wasn’t in the top results for “${serp.query}”.`) : serp ? 'The results page couldn’t be read clearly this scan, so this isn’t scored.' : 'Not searched this scan.',
     serpSrc, { when: serp?.checked_at });
   check('discovery', 'panel', 'Google shows a knowledge panel for the hotel', 10,
     serp && serp.has_knowledge_panel != null ? (serp.has_knowledge_panel ? 1 : 0) : null,
@@ -669,7 +671,7 @@ export function assess(audit, crawl = null, live = null) {
       proof: 'Paste your home page address into Google’s Rich Results Test and see a valid Hotel item.',
     });
   }
-  if (serp && rank !== 1) {
+  if (rankKnown && rank !== 1) {
     push({
       id: 'brand-rank', type: 'investigate', fn: 'discovery', points: stake('discovery.brand-rank'),
       title: 'Find out why your site isn’t the first result for your own name',
