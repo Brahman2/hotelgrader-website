@@ -550,7 +550,7 @@ function Side({ a }: { a: Assessment }) {
       </div>
       <nav className="mt-5 pt-3 border-t border-edge hidden lg:block" aria-label="Parts of the grade">{rows}</nav>
       <details className="mt-4 pt-3 border-t border-edge lg:hidden">
-        <summary className="cursor-pointer text-[14px] font-medium py-1">The twelve parts of the grade</summary>
+        <summary className="cursor-pointer text-[14px] font-medium py-1 flex justify-between list-none">The twelve parts of the grade</summary>
         <nav className="mt-1" aria-label="Parts of the grade">{rows}</nav>
       </details>
       <a href="#priorities" className="btn btn--primary w-full justify-center mt-5 no-print">what to do first</a>
