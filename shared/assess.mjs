@@ -398,7 +398,7 @@ export function assess(audit, crawl = null, live = null) {
         : web.sitemap.found ? `Nothing blocks search engines, and a sitemap lists ${web.sitemap.urls} ${web.sitemap.urls === 1 ? 'entry' : 'entries'}.` : 'Nothing blocks search engines, but no sitemap was found.',
       'robots.txt and sitemap on your site', { when: web.fetchedAt });
   }
-  check('discovery', 'non-brand', 'Searches that don’t include your name', web ? 25 : 30, null, 'Not observed. We only searched for the hotel by name.', '');
+  check('discovery', 'non-brand', 'Searches that don’t include your name', web ? 25 : 30, null, (live?.market?.readings ?? []).some((m) => m?.ok) ? 'Read this scan and shown in the table below. Not scored yet.' : 'Not observed. We only searched for the hotel by name.', '');
 
   // --- Profiles and listings (10) ---
   check('profiles', 'gbp-live', 'Google profile is live and marked open', 10,
