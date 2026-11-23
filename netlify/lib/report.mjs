@@ -55,7 +55,8 @@ export function summarize(audit, crawl = null, live = null) {
         ? new Date(`${p.night}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
         : '',
     } : null,
-    ads: a.ads && a.ads.rivals.length >= 2 ? [{ ...a.ads.you, you: true }, ...a.ads.rivals] : null,
+    // The hotel's own ads only.
+    ads: a.ads && (a.ads.you.google != null || a.ads.you.meta != null) ? [{ ...a.ads.you, you: true }] : null,
     // Where the hotel shows for the searches travellers type. Shown, not graded.
     searches: a.visibility ? a.visibility.rows.map((r) => ({
       query: r.query, brand: r.kind === 'brand',

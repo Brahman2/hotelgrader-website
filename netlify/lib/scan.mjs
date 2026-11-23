@@ -26,8 +26,9 @@ const DAY = 24 * 60 * 60 * 1000;
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
 // The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question, the newest reviews,
 // and up to four searches for its town (shared by every hotel there, so usually already paid for).
-// The ad libraries cost two more searches a hotel and aren't graded, so they are off unless SCAN_ADS=on.
-const ADS_ON = process.env.SCAN_ADS === 'on';
+// The ad libraries are read for the hotel itself only, never its competitors: two searches a hotel, cached a week.
+// They aren't graded, so SCAN_ADS=off switches them off to save searches.
+const ADS_ON = process.env.SCAN_ADS !== 'off';
 const PER_SCAN = ADS_ON ? 14 : 12;
 const WEEK = 7 * DAY;
 // New hotels scanned per day before we stop spending and lean on the grading API alone.
