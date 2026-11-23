@@ -96,6 +96,8 @@ export interface Assessment {
   } | null;
   themes: {
     reviews: number | null;
+    /** True when the themes come from our own read of the newest Google reviews. */
+    ours?: boolean;
     positive: { theme: string; mentions: number; quote?: string }[];
     negative: { theme: string; mentions: number; quote?: string; severity?: string }[];
   } | null;

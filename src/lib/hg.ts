@@ -209,6 +209,20 @@ export async function fetchSpeed(hotel: string, city: string, state: string, sig
   } catch { return null; }
 }
 
+/** The hotel's newest reviews grouped into themes. A model call of several seconds, so it's asked for on the side. Null when there's none. */
+export async function fetchThemes(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
+  try {
+    const res = await fetch('/api/themes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel, city, state }),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35000)]) : AbortSignal.timeout(35000),
+    });
+    if (!res.ok) return null;
+    return (await res.json())?.themes ?? null;
+  } catch { return null; }
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchScan, fetchSpeed, runAudit, type Audit, type OwnScan } from '../lib/hg';
+import { fetchScan, fetchSpeed, fetchThemes, runAudit, type Audit, type OwnScan } from '../lib/hg';
 import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -290,6 +290,7 @@ export default function ReportCard() {
   const [peek, setPeek] = useState<OwnScan | null>(null);
   // Our page speed run, which arrives on its own after the scan has found the website.
   const [speed, setSpeed] = useState<unknown | null>(null);
+  const [themes, setThemes] = useState<unknown | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -326,13 +327,24 @@ export default function ReportCard() {
     });
     return () => ctrl.abort();
   }, [target, siteKnown, speedCached]);
-  const liveAll = useMemo(() => (live && speed ? { ...(live as object), speed } : live), [live, speed]);
+  // The same for review themes: asked for once the scan has read the reviews.
+  const reviewsRead = !!(peek?.live as any)?.reviews?.ok;
+  const themesCached = (peek?.live as any)?.themes ?? null;
+  useEffect(() => {
+    if (!target || !reviewsRead) return;
+    if (themesCached) { setThemes(themesCached); return; }
+    const ctrl = new AbortController();
+    fetchThemes(target.hotel, target.city, target.state, ctrl.signal).then((t) => { if (!ctrl.signal.aborted && t) setThemes(t); });
+    return () => ctrl.abort();
+  }, [target, reviewsRead, themesCached]);
+  const liveAll = useMemo(() => (live && (speed || themes) ? { ...(live as object), ...(speed ? { speed } : {}), ...(themes ? { themes } : {}) } : live), [live, speed, themes]);
 
   useEffect(() => {
     if (!target) return;
     const ctrl = new AbortController();
     setError('');
     setSpeed(null);
+    setThemes(null);
     setAudit(null);
     setCrawl(undefined);
     setLive(null);

@@ -288,7 +288,7 @@ function Themes({ a }: { a: Assessment }) {
   );
   return (
     <Section id="guests" title="What guests keep saying"
-      kicker={`Themes from ${t.reviews ?? 'recent'} recent Google and Tripadvisor reviews, grouped by AI. The number is how many reviews raised each one.`}>
+      kicker={`Themes from ${t.reviews ?? 'recent'} ${t.ours ? 'of your newest Google reviews' : 'recent Google and Tripadvisor reviews'}, grouped by AI. The number is how many reviews raised each one.`}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {col('They value', t.positive, 'var(--grade-a)')}
         {col('They complain about', t.negative, 'var(--grade-f)')}

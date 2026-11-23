@@ -31,17 +31,27 @@ const row = (r) => {
   };
 };
 
-/** The newest reviews for one listing. `token` is the Google hotel listing id from the price reading. */
-export async function recentReviews({ token }) {
+/** The newest reviews for one listing. `token` is the Google hotel listing id from the price reading. Ten reviews per page, one search each. */
+export async function recentReviews({ token, pages = 1 }) {
   if (!token) return { ok: false, error: 'no-listing', searches: 0 };
-  const r = await search({ engine: 'google_hotels_reviews', property_token: token, sort_by: '2', source_number: '-1', hl: 'en' });
-  if (!r.ok) return { ok: false, error: r.error, searches: 0 };
-  const reviews = (r.data.reviews ?? []).map(row).filter((x) => x.rating != null || x.text);
-  const replied = reviews.filter((x) => x.reply).length;
+  const params = { engine: 'google_hotels_reviews', property_token: token, sort_by: '2', source_number: '-1', hl: 'en' };
+  let reviews = [];
+  let searches = 0;
+  let next = '';
+  let error = '';
+  for (let p = 0; p < pages; p++) {
+    const r = await search(next ? { ...params, next_page_token: next } : params);
+    if (!r.ok) { error = r.error; break; }
+    searches += 1;
+    reviews = reviews.concat((r.data.reviews ?? []).map(row).filter((x) => x.rating != null || x.text));
+    next = r.data.serpapi_pagination?.next_page_token ?? '';
+    if (!next) break;
+  }
+  if (!reviews.length) return { ok: false, error: error || 'none', searches };
   return {
-    ok: reviews.length > 0, error: reviews.length ? '' : 'none', searches: 1,
+    ok: true, error: '', searches,
     fetchedAt: new Date().toISOString(), source: 'Google reviews, newest first',
-    reviews, total: reviews.length, replied,
-    more: !!r.data.serpapi_pagination?.next_page_token,
+    reviews, total: reviews.length, replied: reviews.filter((x) => x.reply).length,
+    more: !!next,
   };
 }

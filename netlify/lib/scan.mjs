@@ -18,13 +18,14 @@ import { websiteOf } from '../../shared/assess.mjs';
 import { fetchAudit } from './report.mjs';
 import { crawlFor } from './site.mjs';
 import { speedFor } from './speed.mjs';
+import { themesFor } from './themes.mjs';
 
 const DAY = 24 * 60 * 60 * 1000;
 // Searches kept back each month so a busy day can't empty the plan.
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
 // The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question, the newest reviews,
 // and up to four searches for its town (shared by every hotel there, so usually already paid for).
-const PER_SCAN = 11;
+const PER_SCAN = 12;
 const WEEK = 7 * DAY;
 // New hotels scanned per day before we stop spending and lean on the grading API alone.
 const DAILY_CAP = Number(process.env.SCAN_DAILY_CAP || 20);
@@ -37,6 +38,8 @@ async function store(name) {
 }
 
 const slug = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+/** The cache key for one hotel. */
+export const scanKey = (t) => [slug(t.hotel), slug(t.city), slug(t.state)].join('_');
 const stampOf = (x) => x?.fetchedAt ?? x?.checkedAt;
 const freshEnough = (x, ttl = DAY) => !!stampOf(x) && Date.now() - Date.parse(stampOf(x)) < ttl;
 
@@ -73,9 +76,9 @@ const within = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => 
  */
 export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const target = { hotel: String(hotel ?? '').trim(), city: String(city ?? '').trim(), state: String(state ?? '').trim() };
-  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null, speed: null, reviews: null }, pending: false, limited: '' };
+  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null, speed: null, reviews: null, themes: null }, pending: false, limited: '' };
   if (!target.hotel) return empty;
-  const key = [slug(target.hotel), slug(target.city), slug(target.state)].join('_');
+  const key = scanKey(target);
   const started = Date.now();
 
   // A finished grading-API scan, if one is already cached there. It can hand us the hotel's website and
@@ -117,7 +120,7 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
     site ? crawlFor(site, { fresh: go }).catch(() => null) : null,
     known ? cached('brand-searches-v2', key, { fresh: go, allowed: haveBudget }, () => brandSearch({ ...target, site })).catch(() => null) : null,
     known ? cached('ai-answers-v3', key, { fresh: go, allowed: haveBudget }, () => aiAnswer({ ...target, hotelClass: prices.hotel?.hotelClass ?? null })).catch(() => null) : null,
-    known && listing ? cached('review-reads-v2', key, { fresh: go, allowed: haveBudget }, () => recentReviews({ token: listing })).catch(() => null) : null,
+    known && listing ? cached('review-reads-v3', key, { fresh: go, allowed: haveBudget }, () => recentReviews({ token: listing, pages: process.env.ANTHROPIC_API_KEY ? 2 : 1 })).catch(() => null) : null,
     ...(asks.length ? [cached('market-searches-v2', `${town}_hotel-search`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => townRanking(target, sampleNights()[0])).catch(() => null)] : []),
     ...asks.map((query) => cached('market-searches-v2', `${town}_${slug(query)}`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => marketSearch({ ...target, query })).catch(() => null)),
   ]);
@@ -128,9 +131,12 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   // Page speed is read from cache only: the run is too slow for this call (see /api/speed).
   const speed = site ? await speedFor(crawl?.finalUrl || site).catch(() => null) : null;
 
+  // Review themes likewise: read from cache here, built on the side by /api/themes.
+  const themes = reviews?.ok ? await themesFor(key, reviews.reviews).catch(() => null) : null;
+
   const base = prices?.ok || crawl?.ok ? {
     hotelName: target.hotel, city: target.city, state: target.state, categories: {},
     _meta: { ownScan: true, generatedAt: prices?.fetchedAt ?? crawl?.fetchedAt ?? new Date().toISOString() },
   } : null;
-  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null, speed, reviews }, pending, limited };
+  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null, speed, reviews, themes }, pending, limited };
 }

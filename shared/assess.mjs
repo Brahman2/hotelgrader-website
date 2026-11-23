@@ -363,12 +363,19 @@ export function assess(audit, crawl = null, live = null) {
     rs && rs.total_reviews >= 10 ? scale(rs.response_rate, [[0, 0], [25, 0.3], [50, 0.6], [80, 1]]) : null,
     rs && rs.total_reviews >= 10 ? `${rs.total_responded} of the ${rs.total_reviews} most recent reviews we read had a reply (${Math.round(rs.response_rate)}%).` : 'Too few reviews read to tell.',
     rs?.ours ? 'Your newest Google reviews, read by our scanner' : 'Recent Google and Tripadvisor reviews', rs?.ours ? { when: rv.fetchedAt } : {});
-  const pos = (sent?.positive_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
-  const neg = (sent?.negative_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
+  // Themes grouped from our own review read when we have them, in the shape the grading API used.
+  const th = live?.themes?.ok ? live.themes : null;
+  const sentT = th ? {
+    ours: true, read: th.read,
+    positive_themes: th.positive.map((t) => ({ theme: t.theme, mentions: t.mentions, example_phrase: t.quote })),
+    negative_themes: th.negative.map((t) => ({ theme: t.theme, mentions: t.mentions, example_phrase: t.quote, severity: t.severity })),
+  } : sent;
+  const pos = (sentT?.positive_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
+  const neg = (sentT?.negative_themes ?? []).reduce((n, t) => n + (t.mentions || 0), 0);
   check('reputation', 'themes', 'What guests keep saying', 20,
     pos + neg >= 10 ? scale(pos / (pos + neg), [[0.5, 0], [0.6, 0.25], [0.7, 0.5], [0.8, 0.75], [0.9, 1]]) : null,
-    pos + neg >= 10 ? `In ${rs?.total_reviews ?? 'the'} recent reviews, positive themes came up ${pos} times and complaints ${neg} times.` : 'Too few reviews read to summarise.',
-    'Recent reviews, themes grouped by AI');
+    pos + neg >= 10 ? `In ${th ? th.read : rs?.total_reviews ?? 'the'} recent reviews, positive themes came up ${pos} times and complaints ${neg} times.` : 'Too few reviews read to summarise.',
+    th ? 'Your newest Google reviews, themes grouped by AI' : 'Recent reviews, themes grouped by AI', th ? { when: th.fetchedAt } : {});
 
   // --- Search and local discovery (12) ---
   const rank = serp?.found === false ? 0 : serp?.brand_rank ?? null;
@@ -720,7 +727,7 @@ export function assess(audit, crawl = null, live = null) {
       proof: 'The ten most recent Google and Tripadvisor reviews each carry a reply.',
     });
   }
-  const majorThemes = (sent?.negative_themes ?? []).filter((t) => t.mentions >= 3).sort((a, b) => b.mentions - a.mentions);
+  const majorThemes = (sentT?.negative_themes ?? []).filter((t) => t.mentions >= 3).sort((a, b) => b.mentions - a.mentions);
   if (majorThemes.length && rs?.total_reviews) {
     const t = majorThemes[0];
     push({
@@ -851,10 +858,11 @@ export function assess(audit, crawl = null, live = null) {
     brand: bs ? { query: bs.query, own: bs.ownAd, others: [...new Set(bs.ads.filter((x) => x.owner !== 'you').map((x) => x.domain))].slice(0, 6) } : null,
   } : null;
 
-  const themes = sent ? {
-    reviews: rs?.total_reviews ?? null,
-    positive: (sent.positive_themes ?? []).slice(0, 5).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.example_phrase })),
-    negative: (sent.negative_themes ?? []).slice(0, 5).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.example_phrase, severity: t.severity })),
+  const themes = sentT ? {
+    reviews: th ? th.read : rs?.total_reviews ?? null,
+    ours: !!th,
+    positive: (sentT.positive_themes ?? []).slice(0, 5).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.example_phrase })),
+    negative: (sentT.negative_themes ?? []).slice(0, 5).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.example_phrase, severity: t.severity })),
   } : null;
 
   // Google's own review topics and star spread for the listing. Shown, not scored: the themes check already covers what guests say.
