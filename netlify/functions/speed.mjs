@@ -21,8 +21,9 @@ export default async (req) => {
   if (!site) return json(200, { speed: null, why: 'no-site', pending: false });
   if (!hasSpeedKey()) return json(200, { speed: null, why: 'no-key', pending: false });
 
-  const { hit, running } = await speedState(site);
+  const { hit, running, failed } = await speedState(site);
   if (hit?.mobile && hit?.desktop) return json(200, { speed: hit, why: '', pending: false });
+  if (failed) return json(200, { speed: hit, why: 'failed', pending: false });
   // A run is under way: hand back what's cached so far and let the page ask again.
   if (running) return json(200, { speed: hit, why: '', pending: true });
 

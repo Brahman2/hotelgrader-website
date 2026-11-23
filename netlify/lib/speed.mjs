@@ -20,20 +20,27 @@ const freshHit = (hit) => (hit?.ok && hit.fetchedAt && Date.now() - Date.parse(h
 /** What the cache holds for a site, and whether a background run was started in the last two minutes. */
 export async function speedState(rawUrl) {
   const url = publicUrl(rawUrl);
-  if (!url) return { url: null, hit: null, running: false };
+  if (!url) return { url: null, hit: null, running: false, failed: false };
   const s = await store();
   let hit = null;
   let running = false;
+  let failed = false;
   try { hit = freshHit(s ? await s.get(keyOf(url), { type: 'json' }) : null); } catch { hit = null; }
-  try { const r = s ? await s.get(`${keyOf(url)}:running`, { type: 'json' }) : null; running = !!r?.at && Date.now() - Date.parse(r.at) < 120000; } catch { running = false; }
-  return { url, hit, running };
+  try {
+    const r = s ? await s.get(`${keyOf(url)}:running`, { type: 'json' }) : null;
+    const age = r?.at ? Date.now() - Date.parse(r.at) : Infinity;
+    // A run that failed isn't tried again for ten minutes, so a site Google can't test doesn't keep the page waiting.
+    failed = !!r?.failed && age < 600000;
+    running = !r?.failed && age < 120000;
+  } catch { running = false; }
+  return { url, hit, running, failed };
 }
 
-/** Note that a background run has started, so a second visitor doesn't start another. */
-export async function markRunning(rawUrl) {
+/** Note that a background run has started (so a second visitor doesn't start another), or that it failed. */
+export async function markRunning(rawUrl, { failed = false } = {}) {
   const url = publicUrl(rawUrl);
   const s = await store();
-  try { if (url && s) await s.setJSON(`${keyOf(url)}:running`, { at: new Date().toISOString() }); } catch { /* best effort */ }
+  try { if (url && s) await s.setJSON(`${keyOf(url)}:running`, { at: new Date().toISOString(), failed }); } catch { /* best effort */ }
 }
 
 /**

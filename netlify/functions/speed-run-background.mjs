@@ -6,7 +6,7 @@
 
 import { clean } from '../lib/verify.mjs';
 import { scanFor } from '../lib/scan.mjs';
-import { speedFor } from '../lib/speed.mjs';
+import { speedFor, markRunning } from '../lib/speed.mjs';
 
 export default async (req) => {
   let body;
@@ -16,5 +16,8 @@ export default async (req) => {
   // Only for a hotel the scan already knows, so this can't be pointed at any address.
   const scan = await scanFor({ hotel, city: clean(body.city).slice(0, 80), state: clean(body.state).slice(0, 80) }, { fresh: false }).catch(() => null);
   const site = scan?.crawl?.finalUrl || scan?.crawl?.url || scan?.live?.prices?.hotel?.link || '';
-  if (site) await speedFor(site, { fresh: true, background: true }).catch(() => null);
+  if (!site) return;
+  const got = await speedFor(site, { fresh: true, background: true }).catch(() => null);
+  // Nothing came back at all: say so, so the page stops waiting.
+  if (!got) await markRunning(site, { failed: true });
 };
