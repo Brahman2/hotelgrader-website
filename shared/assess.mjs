@@ -961,11 +961,13 @@ export function assess(audit, crawl = null, live = null) {
   // Where the hotel is listed, from what we already read: the sites showing a rate on Google's hotel search
   // (both sampled nights), the review sites Google gathers on the listing, and who ranks for the hotel's name.
   const listings = px ? (() => {
-    const key = (x) => norm(x).replace(/\b(com|net|ca|co|uk)\b/g, '').replace(/ /g, '');
+    // "KAYAK.com" and "Expedia.ca" are KAYAK and Expedia; "trivago DEALS" is trivago.
+    const key = (x) => norm(x).replace(/\b(com|net|ca|co|uk|deals)\b/g, '').replace(/ /g, '');
     const nightsRead = px.nights.filter((n) => n.ok && n.rates?.length);
     const seen = new Map();
     for (const n of nightsRead) for (const r of n.rates) { if (r.official) continue; const k = key(r.source); const e = seen.get(k) ?? { name: r.source, nights: 0, low: null }; e.nights += 1; e.low = e.low == null ? r.rate : Math.min(e.low, r.rate); seen.set(k, e); }
-    const has = (name) => [...seen.entries()].find(([k]) => k.includes(key(name)) || key(name).includes(k))?.[1] ?? null;
+    // Exact names only: "Hotels.com" must not match "Hotels In America".
+    const has = (name) => seen.get(key(name)) ?? null;
     const MAJOR = ['Booking.com', 'Expedia', 'Hotels.com', 'Agoda', 'Priceline', 'Trip.com'];
     const META = ['Tripadvisor', 'KAYAK', 'trivago', 'momondo', 'Hotelscombined', 'Skyscanner'];
     const row = (name) => { const e = has(name); return { name, listed: !!e, nights: e?.nights ?? 0, low: e?.low ?? null }; };
