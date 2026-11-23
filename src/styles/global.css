@@ -296,3 +296,8 @@ html[data-theme='dark'] {
 
 /* The terminal prompt glyph sits inside the search box in dark mode only. */
 html[data-theme='dark'] .dark-pad { padding-left: 2.5rem; }
+
+/* A small pulsing dot: something is still being read. */
+.scan-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: none; animation: scan-dot 1.4s ease-in-out infinite; }
+@keyframes scan-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
+@media (prefers-reduced-motion: reduce) { .scan-dot { animation: none; } }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchLive, fetchSite, runAudit, type Audit } from '../lib/hg';
+import { fetchScan, runAudit, type Audit, type OwnScan } from '../lib/hg';
 import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -155,6 +155,10 @@ export default function ReportCard() {
   const [crawl, setCrawl] = useState<unknown | null | undefined>(undefined);
   // Results of our other collectors (prices, brand search). Null until read.
   const [live, setLive] = useState<unknown | null>(null);
+  // True while the report on screen rests on our own scan and the grading API is still working.
+  const [prelim, setPrelim] = useState(false);
+  // True when the grading API never finished and the report rests on our own scan alone.
+  const [ownOnly, setOwnOnly] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -180,27 +184,52 @@ export default function ReportCard() {
     setAudit(null);
     setCrawl(undefined);
     setLive(null);
+    setPrelim(false);
+    setOwnOnly(false);
     setElapsed(0);
     const started = Date.now();
     const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
     document.title = `${target.hotel} · report card · hotelgrader`;
     track('grade_start', hotelParams(target));
-    runAudit(target.hotel, target.city, target.state, ctrl.signal)
+    const where = [target.hotel, target.city, target.state] as const;
+    const graded = (s: OwnScan | null) => !!s?.base && assess(s.base, s.crawl, s.live).graded;
+    let final = false;
+    const finish = (a: Audit, s: OwnScan | null, ownOnly: boolean) => {
+      final = true;
+      setCrawl(s?.crawl ?? null);
+      setLive(s?.live ?? null);
+      setAudit(a);
+      setPrelim(false);
+      setOwnOnly(ownOnly);
+      const done = assess(a, s?.crawl ?? null, s?.live ?? null);
+      track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, own_only: ownOnly, seconds: Math.round((Date.now() - started) / 1000) });
+    };
+
+    // Our own scan takes seconds; the grading API takes about two minutes. Show ours as soon as it can
+    // carry a grade, marked as still filling in, then settle when the rest arrives.
+    const own = fetchScan(...where, ctrl.signal);
+    own.then((s) => {
+      if (ctrl.signal.aborted || final || !s?.base || !graded(s)) return;
+      setCrawl(s.crawl);
+      setLive(s.live);
+      setAudit(s.base);
+      setPrelim(true);
+      track('grade_preview', { ...hotelParams(target), seconds: Math.round((Date.now() - started) / 1000) });
+    });
+    runAudit(...where, ctrl.signal)
       .then(async (a) => {
-        // Read the hotel's own site before showing the grade, so the grade doesn't shift on screen.
-        const [site, extra] = await Promise.all([
-          fetchSite(target.hotel, target.city, target.state, ctrl.signal),
-          fetchLive(target.hotel, target.city, target.state, ctrl.signal),
-        ]);
+        let s = await own;
+        // Without a search budget our scan needs the grading API's scan to learn the hotel's website. Ask once more now that it exists.
+        if (!s?.crawl || !s?.live?.prices) s = (await fetchScan(...where, ctrl.signal)) ?? s;
         if (ctrl.signal.aborted) return;
-        setCrawl(site);
-        setLive(extra);
-        setAudit(a);
-        const done = assess(a, site, extra);
-        track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, seconds: Math.round((Date.now() - started) / 1000) });
+        finish(a, s, false);
       })
-      .catch((e) => {
+      .catch(async (e) => {
         if (e?.name === 'AbortError') return;
+        // The grading API failed or timed out. Our own scan still stands if it can carry a grade.
+        const s = await own;
+        if (ctrl.signal.aborted) return;
+        if (s?.base && graded(s)) { finish(s.base, s, true); return; }
         setError(e?.message || 'The scan failed.');
         track('grade_error', hotelParams(target));
       })
@@ -216,19 +245,20 @@ export default function ReportCard() {
 
   // Email the report card once per hotel to visitors who verified their address.
   useEffect(() => {
-    if (!target || !audit || !user || ['tester', 'unverified'].includes(user.proof)) return;
+    // Wait for the settled report, so the emailed grade matches the page.
+    if (!target || !audit || prelim || !user || ['tester', 'unverified'].includes(user.proof)) return;
     const id = [target.hotel, target.city, target.state].join('|').toLowerCase();
     const mailed = readStore(MAILED_KEY).split('\n').filter(Boolean);
     if (mailed.includes(id)) return;
     writeStore(MAILED_KEY, [...mailed, id].slice(-50).join('\n'));
     void sendReport(user, target);
-  }, [target, audit, user]);
+  }, [target, audit, prelim, user]);
 
   // Fetched ahead of the click, so copying stays a single tap.
   useEffect(() => {
-    if (!target || !audit || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
+    if (!target || !audit || prelim || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
     void shareLink(user, target).then(setShare);
-  }, [target, audit, user, viaLink]);
+  }, [target, audit, prelim, user, viaLink]);
 
   if (target === undefined) return <div className="min-h-[420px]" />;
 
@@ -292,6 +322,27 @@ export default function ReportCard() {
             <span className="text-ink-60">See how your own hotel scores. It’s free and takes two minutes.</span>
           </p>
           <a href="/" className="btn btn--primary">grade your hotel</a>
+        </div>
+      )}
+      {prelim && (
+        <div className="panel px-5 sm:px-8 py-4 mb-6 no-print" role="status">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="scan-dot" aria-hidden="true" />
+            <p className="flex-1 min-w-[240px] text-[14px]">
+              <span className="font-semibold">First reading. The grade can still move.</span>{' '}
+              <span className="text-ink-60">Prices, search, your website and the hotels around you are in. Review text and replies, the ad libraries, social and page speed are still being read, usually within two minutes.</span>
+            </p>
+            <span className="meta tabular">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
+          </div>
+        </div>
+      )}
+      {ownOnly && (
+        <div className="panel px-5 sm:px-8 py-4 mb-6 no-print">
+          <p className="text-[14px]">
+            <span className="font-semibold">Part of the scan didn’t finish.</span>{' '}
+            <span className="text-ink-60">Review text and replies, the ad libraries, social and page speed couldn’t be read this time. They’re left out of the grade, not counted against it.</span>{' '}
+            <button type="button" className="link" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+          </p>
         </div>
       )}
       <Report audit={audit} crawl={crawl ?? null} live={live} market={market} />

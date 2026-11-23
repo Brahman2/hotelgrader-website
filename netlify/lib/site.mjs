@@ -13,9 +13,9 @@ async function store() {
   } catch { return null; } // not on Netlify (local runs): no cache
 }
 
-/** The crawl for this scan's hotel: from cache when fresh, otherwise read now. Null when the scan has no website. */
-export async function siteFor(audit, { fresh = true } = {}) {
-  const url = publicUrl(websiteOf(audit));
+/** The crawl for one website address: from cache when fresh, otherwise read now. Null when the address isn't usable. */
+export async function crawlFor(rawUrl, { fresh = true } = {}) {
+  const url = publicUrl(rawUrl);
   if (!url) return null;
   const key = url.hostname.replace(/^www\./, '') + (url.pathname.length > 1 ? url.pathname.replace(/[^a-z0-9]+/gi, '_') : '');
   const s = await store();
@@ -28,3 +28,6 @@ export async function siteFor(audit, { fresh = true } = {}) {
   try { if (s && crawl.ok) await s.setJSON(key, crawl); } catch { /* cache write failed: the crawl still stands */ }
   return crawl;
 }
+
+/** The crawl for a finished grading-API scan's hotel. */
+export const siteFor = (audit, opts) => crawlFor(websiteOf(audit), opts);

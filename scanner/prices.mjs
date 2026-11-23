@@ -11,6 +11,15 @@ const iso = (d) => d.toISOString().slice(0, 10);
 const addDays = (d, n) => new Date(d.getTime() + n * 86400000);
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
+/** Whether Google's listing name and the name the visitor typed are plausibly the same hotel. */
+export function sameHotel(found, asked) {
+  const words = (s) => norm(s).split(' ').filter((w) => w.length > 1 && !['the', 'hotel', 'hotels', 'resort', 'resorts', 'and', 'by', 'inn', 'suites', 'spa'].includes(w));
+  const f = words(found), a = words(asked);
+  if (!f.length || !a.length) return norm(found) === norm(asked);
+  const shared = a.filter((w) => f.includes(w)).length;
+  return shared >= Math.ceil(Math.min(a.length, f.length) / 2) && shared >= 1;
+}
+
 /** Rough US holiday periods, by month and day, when rates aren't typical. */
 function isHoliday(d) {
   const md = (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
@@ -124,7 +133,17 @@ export async function areaQuotes({ hotel, city, state }, night) {
 /** The full price reading for one hotel. Up to three searches when the token is known. */
 export async function scanPrices(target, { today = new Date() } = {}) {
   const [n1, n2] = sampleNights(today);
-  const [a, b, area] = await Promise.all([nightQuote(target, n1), nightQuote(target, n2), areaQuotes(target, n1)]);
+  let a, b, area;
+  if (target.token) {
+    [a, b, area] = await Promise.all([nightQuote(target, n1), nightQuote(target, n2), areaQuotes(target, n1)]);
+  } else {
+    // No listing id yet: find the hotel by name first, and spend nothing more unless Google's match is this hotel.
+    a = await nightQuote(target, n1);
+    if (!a.ok || !a.hotel?.token || !sameHotel(a.hotel.name, target.hotel)) {
+      return { ok: false, done: true, fetchedAt: new Date().toISOString(), hotel: null, nights: [], area: null, errors: [a.ok ? 'name-mismatch' : a.error], matched: a.hotel?.name ?? '', searches: a.searches };
+    }
+    [b, area] = await Promise.all([nightQuote({ ...target, token: a.hotel.token }, n2), areaQuotes(target, n1)]);
+  }
   const first = [a, b].find((n) => n.ok);
   const timedOut = [a, b, area].some((x) => !x.ok && x.error === 'timeout');
   return {

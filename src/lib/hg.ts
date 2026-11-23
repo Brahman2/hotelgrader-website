@@ -159,39 +159,38 @@ export function gradeTone(letter: string): string {
   return TONES[letter.charAt(0)] ?? '';
 }
 
-/**
- * Our own reading of the hotel's website, from /api/site-scan. Null when it
- * couldn't be read; the report then falls back to the scan's older reading.
- */
-export async function fetchSite(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
-  try {
-    const res = await fetch('/api/site-scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hotel, city, state }),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000),
-    });
-    if (!res.ok) return null;
-    return (await res.json())?.crawl ?? null;
-  } catch { return null; }
+export interface OwnScan {
+  /** An empty scan in the grading API's shape, so the assessment can run on our evidence alone. Null when nothing was read. */
+  base: Audit | null;
+  crawl: unknown | null;
+  live: Record<string, unknown> | null;
+  pending?: boolean;
+  /** Why spending stopped, if it did: 'monthly' or 'daily'. */
+  limited?: string;
 }
 
-/** Our own readings that cost a search each: prices on two nights, the hotels nearby, the brand search. One retry, since a slow search finishes from cache the second time. */
-export async function fetchLive(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<Record<string, unknown> | null> {
-  for (let attempt = 0; attempt < 2; attempt++) {
+/**
+ * Our own scan of the hotel: prices, the hotels around it, its website, the brand search and an AI question.
+ * It comes back in stages, so this asks again while the server says more is pending. Null when it couldn't be reached.
+ */
+export async function fetchScan(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<OwnScan | null> {
+  let last: OwnScan | null = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      const res = await fetch('/api/live-scan', {
+      const res = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hotel, city, state }),
-        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(14000)]) : AbortSignal.timeout(14000),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(25000)]) : AbortSignal.timeout(25000),
       });
-      if (!res.ok) return null;
-      const live = (await res.json())?.live ?? null;
-      if (!live || !live.pending || attempt === 1) return live;
-    } catch { if (signal?.aborted) return null; }
+      if (!res.ok) return last;
+      const scan = ((await res.json())?.scan ?? null) as OwnScan | null;
+      if (!scan) return last;
+      last = scan;
+      if (!scan.pending) return scan;
+    } catch { if (signal?.aborted) return last; }
   }
-  return null;
+  return last;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
