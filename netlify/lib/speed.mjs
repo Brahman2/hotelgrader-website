@@ -15,17 +15,18 @@ async function store() {
 }
 
 /** From cache when fresh; run now only when `fresh` is set and a key exists. Null when there's nothing. */
-export async function speedFor(rawUrl, { fresh = false } = {}) {
+export async function speedFor(rawUrl, { fresh = false, why = null } = {}) {
   const url = publicUrl(rawUrl);
-  if (!url) return null;
+  if (!url) { if (why) why.reason = 'no-site'; return null; }
   const key = url.hostname.replace(/^www\./, '') + (url.pathname.length > 1 ? url.pathname.replace(/[^a-z0-9]+/gi, '_') : '');
   const s = await store();
   try {
     const hit = s ? await s.get(key, { type: 'json' }) : null;
     if (hit?.ok && hit.fetchedAt && Date.now() - Date.parse(hit.fetchedAt) < DAY) return hit;
   } catch { /* cache miss */ }
-  if (!fresh || !hasSpeedKey()) return null;
+  if (!fresh || !hasSpeedKey()) { if (why) why.reason = fresh ? 'no-key' : 'not-cached'; return null; }
   const got = await scanSpeed(url.toString());
   try { if (s && got.ok) await s.setJSON(key, got); } catch { /* the reading still stands */ }
+  if (!got.ok && why) why.reason = got.error || 'failed';
   return got.ok ? got : null;
 }
