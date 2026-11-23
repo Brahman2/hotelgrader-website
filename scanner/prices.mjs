@@ -132,6 +132,16 @@ export async function areaQuotes({ hotel, city, state }, night) {
   return { ...night, ok: true, error: '', hotels, searches: 1 };
 }
 
+/** Google's own hotel search for a town, in the order it lists them. One search, shared by every hotel in the town. */
+export async function townRanking({ city, state }, night) {
+  const query = `hotels in ${[city, state].filter(Boolean).join(', ')}`;
+  const r = await search({ ...common, check_in_date: night.checkIn, check_out_date: night.checkOut, q: query });
+  if (!r.ok) return { ok: false, error: r.error, query, searches: 0 };
+  const list = (r.data.properties ?? []).filter((p) => !p.sponsored).map(listRow).filter((h) => h.name && h.type !== 'vacation rental')
+    .map((h, i) => ({ position: i + 1, name: h.name, rating: h.rating, reviews: h.reviews, hotelClass: h.hotelClass }));
+  return { ok: list.length >= 5, error: list.length >= 5 ? '' : 'thin', searches: 1, kind: 'hotels', query, checkedAt: new Date().toISOString(), night: night.checkIn, list };
+}
+
 /** The full price reading for one hotel. Up to three searches when the token is known. */
 export async function scanPrices(target, { today = new Date() } = {}) {
   const [n1, n2] = sampleNights(today);

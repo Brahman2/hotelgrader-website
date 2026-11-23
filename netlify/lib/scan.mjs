@@ -8,7 +8,7 @@
 // Searches cost money, so three limits apply: a monthly reserve, a cap on new
 // hotels per day, and a name check before anything past the first search.
 
-import { scanPrices } from '../../scanner/prices.mjs';
+import { scanPrices, townRanking, sampleNights } from '../../scanner/prices.mjs';
 import { brandSearch } from '../../scanner/search.mjs';
 import { aiAnswer } from '../../scanner/ai.mjs';
 import { marketQueries, marketSearch } from '../../scanner/market.mjs';
@@ -21,8 +21,8 @@ const DAY = 24 * 60 * 60 * 1000;
 // Searches kept back each month so a busy day can't empty the plan.
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
 // The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question,
-// and up to three searches for its town (shared by every hotel there, so usually already paid for).
-const PER_SCAN = 9;
+// and up to four searches for its town (shared by every hotel there, so usually already paid for).
+const PER_SCAN = 10;
 const WEEK = 7 * DAY;
 // New hotels scanned per day before we stop spending and lean on the grading API alone.
 const DAILY_CAP = Number(process.env.SCAN_DAILY_CAP || 20);
@@ -114,10 +114,11 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
     site ? crawlFor(site, { fresh: go }).catch(() => null) : null,
     known ? cached('brand-searches-v2', key, { fresh: go, allowed: haveBudget }, () => brandSearch({ ...target, site })).catch(() => null) : null,
     known ? cached('ai-answers-v3', key, { fresh: go, allowed: haveBudget }, () => aiAnswer({ ...target, hotelClass: prices.hotel?.hotelClass ?? null })).catch(() => null) : null,
-    ...asks.map((query) => cached('market-searches-v1', `${town}_${slug(query)}`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => marketSearch({ ...target, query })).catch(() => null)),
+    ...(asks.length ? [cached('market-searches-v2', `${town}_hotel-search`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => townRanking(target, sampleNights()[0])).catch(() => null)] : []),
+    ...asks.map((query) => cached('market-searches-v2', `${town}_${slug(query)}`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => marketSearch({ ...target, query })).catch(() => null)),
   ]);
   const read = market.filter((m) => m?.ok);
-  const missing = (site && !crawl) || (known && hasKey() && (!search || !ai || read.length < asks.length));
+  const missing = (site && !crawl) || (known && hasKey() && (!search || !ai || read.length < asks.length + (asks.length ? 1 : 0)));
   const pending = fresh && (prices?.done === false || (slow && missing));
 
   const base = prices?.ok || crawl?.ok ? {

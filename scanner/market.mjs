@@ -1,6 +1,8 @@
 // Market search collector. The searches a traveller types before they know
 // which hotel they want ("hotels in Honolulu"): which sites hold the regular
-// results, and which hotels Google shows in its own hotel box.
+// results. The search provider doesn't return Google's hotel box on these
+// pages, so the hotels Google itself lists come from its hotel search instead
+// (townRanking in prices.mjs).
 //
 // A reading belongs to the town, not to one hotel, so every hotel in the same
 // town shares it. The report works out each hotel's place in it afterwards.
@@ -27,22 +29,6 @@ function realHost(x) {
   return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(d) ? d : '';
 }
 
-/** The hotels Google lists in its own box on the page. The response has carried them under several names. */
-function hotelBox(d) {
-  const from = (list, source) => (Array.isArray(list) && list.length ? { source, list } : null);
-  const got = from(d.local_results?.places, 'local') ?? from(d.local_results, 'local')
-    ?? from(d.answer_box?.hotels, 'hotels') ?? from(d.hotels_results?.hotels, 'hotels') ?? from(d.hotels_results, 'hotels')
-    ?? from(d.answer_box?.results, 'hotels');
-  if (!got) return { source: '', list: [] };
-  const list = got.list.map((p, i) => ({
-    position: i + 1,
-    name: String(p.title ?? p.name ?? '').slice(0, 120),
-    rating: typeof p.rating === 'number' ? p.rating : null,
-    reviews: typeof p.reviews === 'number' ? p.reviews : null,
-  })).filter((p) => p.name).slice(0, 10);
-  return { source: got.source, list };
-}
-
 /** One search for one town. */
 export async function marketSearch({ city, state, query }) {
   const location = searchLocation(city, state);
@@ -53,15 +39,12 @@ export async function marketSearch({ city, state, query }) {
     const domain = realHost(x);
     return { position: x.position ?? i + 1, title: String(x.title ?? '').slice(0, 140), domain, owner: ownerOf(domain, '') };
   });
-  const box = hotelBox(d);
   return {
     ok: true, error: '', searches: 1,
     query, location, checkedAt: new Date().toISOString(),
     results,
     readable: results.filter((x) => x.domain).length >= 5,
-    box: box.list, boxSource: box.source,
+    kind: 'web',
     ads: (d.ads ?? []).length,
-    // Which blocks the page carried, kept so a missing hotel box can be told apart from one we failed to read.
-    blocks: Object.keys(d).filter((k) => !/^search_|^pagination|^serpapi_/.test(k)).slice(0, 30),
   };
 }

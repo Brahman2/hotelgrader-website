@@ -856,24 +856,31 @@ export function assess(audit, crawl = null, live = null) {
   const myRoot = rootOf(hostOf(site));
   const isMe = (name) => sameName(name, audit.hotelName) || likeName(name, audit.hotelName) || (lh?.name ? sameName(name, lh.name) || likeName(name, lh.name) : false);
   const label = { you: 'your site', ota: 'booking sites', review: 'review sites', social: 'social', reference: 'reference', other: 'others' };
+  // Google's own hotel search for the town: the list behind the hotel box on a results page.
+  const townList = mk.find((m) => m.kind === 'hotels')?.list ?? [];
+  const myClass = lh?.hotelClass ?? null;
+  const placeIn = (list) => { const i = list.findIndex((h) => isMe(h.name)); return { box: i >= 0 ? i + 1 : null, boxSize: list.length, boxShown: list.length >= 3, boxTop: list.slice(0, 3).map((h) => h.name) }; };
+  const none = { box: null, boxSize: 0, boxShown: false, boxTop: [] };
   const visRows = [
     ...(bs ? [{
       query: bs.query, kind: 'brand', when: bs.checkedAt,
       organic: bs.brandRank ?? null, organicKnown: bs.found != null,
-      box: null, boxSize: 0, boxShown: false, boxTop: [],
+      ...none, boxNote: '',
       panel: !!bs.hasKnowledgePanel,
       holders: [], otas: bs.results.filter((r) => r.owner === 'ota').length, results: bs.results.length,
     }] : []),
-    ...mk.map((m) => {
+    ...mk.filter((m) => m.kind !== 'hotels').map((m, i) => {
       const mine = myRoot ? m.results.find((r) => r.domain && rootOf(r.domain) === myRoot) : null;
-      const inBox = (m.box ?? []).find((b) => isMe(b.name));
       const tally = {};
       for (const r of m.results) if (r.domain) { const k = myRoot && rootOf(r.domain) === myRoot ? 'you' : r.owner; tally[k] = (tally[k] ?? 0) + 1; }
+      // The open search uses the whole list. The star-class search uses the hotels of this hotel's class in it.
+      const byClass = /\b(star|luxury|cheap) hotels in\b/.test(m.query) && myClass != null;
+      const list = /^hotels in\b/.test(m.query) ? townList : byClass ? townList.filter((h) => h.hotelClass === myClass) : [];
       return {
         query: m.query, kind: 'market', when: m.checkedAt,
         organic: mine?.position ?? null, organicKnown: !!m.readable && !!myRoot,
-        box: inBox?.position ?? null, boxSize: (m.box ?? []).length, boxShown: (m.box ?? []).length > 0,
-        boxTop: (m.box ?? []).slice(0, 3).map((b) => b.name),
+        ...(list.length ? placeIn(list) : none),
+        boxNote: byClass && list.length ? `${myClass}-star hotels on the first page` : '',
         panel: null,
         holders: Object.entries(tally).sort((x, y) => y[1] - x[1]).map(([k, n]) => ({ who: label[k] ?? k, count: n })),
         otas: tally.ota ?? 0, results: m.results.filter((r) => r.domain).length,

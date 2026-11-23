@@ -350,6 +350,9 @@ function Visibility({ a }: { a: Assessment }) {
   const v = a.visibility;
   if (!v) return null;
   const town = v.town || 'your town';
+  const open = v.rows.find((r) => r.kind === 'market' && r.boxShown && !r.boxNote);
+  const first = open?.box ?? null;
+  const firstOf = open?.boxSize ?? 0;
   const Place = ({ n, of }: { n: number; of?: number }) => (
     <span className={`num text-[15px] ${n <= 3 ? 'grade--a' : 'grade--c'}`}>{ordinal(n)}{of ? <span className="text-ink-40 text-[12px]"> of {of}</span> : null}</span>
   );
@@ -357,12 +360,12 @@ function Visibility({ a }: { a: Assessment }) {
   const Unseen = ({ children }: { children: ReactNode }) => <span className="text-ink-40 text-[13px]">{children}</span>;
   return (
     <Section id="searches" title="Where you appear when travellers search"
-      kicker={`Google searches run from ${town}. The first is your own name. The rest are what someone types before they have picked a hotel. Not scored: it shows who holds the page.`}>
+      kicker={`Google searches run from ${town}. The first is your own name. The rest are what someone types before they have picked a hotel. Hotel search is Google’s own list of hotels for the town, the one behind the hotel box on a results page. Not scored: it shows who holds the page.`}>
       <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
         {v.boxSearches > 0
           ? v.boxHits > 0
-            ? <>Google lists you among its own hotel picks for <span className={v.boxHits === v.boxSearches ? 'grade--a' : 'grade--c'}>{v.boxHits} of {v.boxSearches}</span> open searches for a hotel in {town}.</>
-            : <>Google lists hotels of its own choosing on {v.boxSearches} of these searches, and <span className="grade--f">you aren’t one of them</span>.</>
+            ? <>You’re on the first page of Google’s hotel search for {town}{first ? <>, <span className={first <= 5 ? 'grade--a' : 'grade--c'}>{ordinal(first)} of {firstOf}</span></> : null}.</>
+            : <>Google’s hotel search for {town} lists {firstOf || 'a page of'} hotels first, and <span className="grade--f">you aren’t one of them</span>.</>
           : v.organicHits > 0
             ? <>Your own site reaches the first page for {v.organicHits} of {v.searches} open searches for a hotel in {town}.</>
             : <>Your own site isn’t on the first page for any open search for a hotel in {town}.</>}
@@ -372,7 +375,7 @@ function Visibility({ a }: { a: Assessment }) {
           <thead>
             <tr className="meta text-left">
               <th className="font-normal pb-2 pr-4">Search</th>
-              <th className="font-normal pb-2 pr-4 w-[150px]">Google’s hotel picks</th>
+              <th className="font-normal pb-2 pr-4 w-[150px]">Hotel search</th>
               <th className="font-normal pb-2 pr-4 w-[130px]">Regular results</th>
               <th className="font-normal pb-2">Who holds the first page</th>
             </tr>
@@ -387,8 +390,8 @@ function Visibility({ a }: { a: Assessment }) {
                 <td className="py-3 pr-4">
                   {r.kind === 'brand'
                     ? (r.panel ? <span className="grade--a text-[13px]">your panel shows</span> : <Absent>no panel shown</Absent>)
-                    : !r.boxShown ? <Unseen>none on this page</Unseen>
-                      : r.box != null ? <Place n={r.box} of={r.boxSize} /> : <Absent>not listed</Absent>}
+                    : !r.boxShown ? <Unseen>not read</Unseen>
+                      : <>{r.box != null ? <Place n={r.box} of={r.boxSize} /> : <Absent>not on first page</Absent>}{r.boxNote && <span className="meta block">{r.boxNote}</span>}</>}
                 </td>
                 <td className="py-3 pr-4">
                   {r.organic != null ? <Place n={r.organic} /> : r.organicKnown ? <Absent>not in top 10</Absent> : <Unseen>couldn’t tell</Unseen>}
@@ -398,7 +401,7 @@ function Visibility({ a }: { a: Assessment }) {
                     ? (r.otas > 0 ? `${r.otas} of ${r.results} results are booking sites` : 'no booking sites on the page')
                     : <>
                         {r.holders.slice(0, 3).map((h) => `${h.count} ${h.who}`).join(' · ') || 'couldn’t read'}
-                        {r.boxTop.length > 0 && r.box == null && <span className="block text-ink-40 truncate max-w-[34ch]">picked: {r.boxTop.join(', ')}</span>}
+                        {r.boxTop.length > 0 && r.box !== 1 && <span className="block text-ink-40 truncate max-w-[40ch]">listed first: {r.boxTop.filter((_, i) => i < 2).join(', ')}</span>}
                       </>}
                 </td>
               </tr>
@@ -406,7 +409,7 @@ function Visibility({ a }: { a: Assessment }) {
           </tbody>
         </table>
       </div>
-      <p className="meta mt-5">Open searches are mostly held by booking and review sites, for every hotel. The place a hotel can win is Google’s own list, which is built from hotel listings, so the listing’s rating, reviews, photos and details are what you can work on.</p>
+      <p className="meta mt-5">Open searches are mostly held by booking and review sites, for every hotel. The place a hotel can win is Google’s hotel search, which is built from hotel listings, so the listing’s rating, reviews, photos, rates and details are what you can work on. Its order also shifts with dates and the person searching.</p>
     </Section>
   );
 }

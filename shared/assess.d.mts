@@ -109,8 +109,8 @@ export interface Assessment {
       query: string; kind: 'brand' | 'market'; when: string;
       /** Place in the regular results, or null when not in the first ten. */
       organic: number | null; organicKnown: boolean;
-      /** Place in Google's own hotel box, or null. */
-      box: number | null; boxSize: number; boxShown: boolean; boxTop: string[];
+      /** Place on Google's own hotel search for the town, or null. */
+      box: number | null; boxSize: number; boxShown: boolean; boxTop: string[]; boxNote: string;
       /** Brand search only: whether Google showed the hotel's own panel. */
       panel: boolean | null;
       holders: { who: string; count: number }[]; otas: number; results: number;
