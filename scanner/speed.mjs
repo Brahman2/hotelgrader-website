@@ -66,12 +66,16 @@ function tidy(url) {
  * The lab runs for one address, and the field data. `have` is an earlier reading with one run missing
  * (they sometimes time out); only the missing run is repeated and the two are merged.
  */
-export async function scanSpeed(rawUrl, { timeout = 23000, have = null } = {}) {
+export async function scanSpeed(rawUrl, { timeout = Number(process.env.SPEED_TIMEOUT_MS || 40000), have = null } = {}) {
   const fetchedAt = new Date().toISOString();
   const url = tidy(rawUrl);
   if (!hasSpeedKey()) return { ok: false, error: 'no-key', fetchedAt, url };
   const skip = { ok: false, error: '', data: null };
-  const [m, d] = await Promise.all([have?.mobile ? skip : run(url, 'mobile', timeout), have?.desktop ? skip : run(url, 'desktop', timeout)]);
+  // One run per call. Two at once slow each other down, and a heavy site can take most of the time allowed.
+  // The phone run comes first because it carries most of the points; the next call adds the desktop run.
+  const wantMobile = !have?.mobile;
+  const m = wantMobile ? await run(url, 'mobile', timeout) : skip;
+  const d = !wantMobile && !have?.desktop ? await run(url, 'desktop', timeout) : skip;
   const mobile = have?.mobile ?? (m.ok ? lab(m.data) : null);
   const desktop = have?.desktop ?? (d.ok ? lab(d.data) : null);
   const shot = m.ok ? m.data.lighthouseResult.audits?.['final-screenshot']?.details?.data : '';

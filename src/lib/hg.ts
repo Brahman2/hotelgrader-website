@@ -202,7 +202,7 @@ export async function fetchSpeed(hotel: string, city: string, state: string, sig
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hotel, city, state }),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(40000)]) : AbortSignal.timeout(40000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(55000)]) : AbortSignal.timeout(55000),
     });
     if (!res.ok) return null;
     return (await res.json())?.speed ?? null;
