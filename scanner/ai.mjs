@@ -31,8 +31,11 @@ export async function aiAnswer(target) {
   const base = { surface: 'Google AI Mode', model: 'google-ai-mode', intent: 'class-discovery', query, fetched_at: new Date().toISOString() };
   if (!r.ok) return { ok: false, error: r.error, searches: 0, records: [{ ...base, ok: false, response_text: '', sources: [] }] };
   const d = r.data;
-  const text = textOf(d.text_blocks ?? d.ai_overview?.text_blocks ?? []).join('\n').slice(0, 6000);
-  const sources = [...new Set((d.references ?? d.ai_overview?.references ?? []).map((x) => host(x.link ?? '')).filter(Boolean))].slice(0, 12);
+  // The provider's rebuilt markdown keeps the hotel names (they are headings and links); the blocks alone can drop them.
+  const md = typeof d.reconstructed_markdown === 'string' ? d.reconstructed_markdown.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') : '';
+  const text = (md.trim() || textOf(d.text_blocks ?? []).join('\n')).slice(0, 6000);
+  const notGoogle = (h) => h && !/(^|\.)google\.[a-z.]+$/.test(h);
+  const sources = [...new Set((d.references ?? []).map((x) => (notGoogle(host(x.link ?? '')) ? host(x.link) : String(x.source ?? '').trim())).filter(Boolean))].slice(0, 12);
   return {
     ok: text.length > 0, error: text.length ? '' : 'empty', searches: 1, fetchedAt: base.fetched_at,
     records: [{ ...base, ok: text.length > 0, response_text: text, sources }],
