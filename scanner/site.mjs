@@ -70,12 +70,15 @@ const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); 
 const engineOf = (u) => { for (const [re, name] of ENGINES) if (re.test(hostOf(u))) return name || hostOf(u); return ''; };
 
 function pastDate(url, today) {
+  // A date only a few days gone usually means the page was cached with "today" filled in, which the booking engine corrects.
+  // Count a link as out of date when it is more than a week behind.
+  const cutoff = new Date(Date.parse(`${today}T00:00:00Z`) - 7 * 86400000).toISOString().slice(0, 10);
   try {
     const q = new URL(url).searchParams;
     for (const [k, v] of q) {
       if (!DATE_KEYS.includes(k.toLowerCase())) continue;
       const m = v.match(/(\d{4})-(\d{2})-(\d{2})/) || (v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/) ? [null, v.slice(6), v.slice(0, 2), v.slice(3, 5)] : null);
-      if (m && `${m[1]}-${m[2]}-${m[3]}` < today) return `${m[1]}-${m[2]}-${m[3]}`;
+      if (m && `${m[1]}-${m[2]}-${m[3]}` < cutoff) return `${m[1]}-${m[2]}-${m[3]}`;
     }
   } catch { /* not a URL */ }
   return '';

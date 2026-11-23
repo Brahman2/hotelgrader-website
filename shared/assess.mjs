@@ -864,6 +864,8 @@ export function assess(audit, crawl = null, live = null) {
   const mk = (live?.market?.readings ?? []).filter((m) => m?.ok);
   const rootOf = (h) => { const p = String(h ?? '').toLowerCase().replace(/^www\./, '').split('.'); return p.length <= 2 ? p.join('.') : p.slice(/^(co|com|org|net)$/.test(p[p.length - 2]) ? -3 : -2).join('.'); };
   const myRoot = rootOf(hostOf(site));
+  const onGroupSite = (() => { try { return new URL(site).pathname.replace(/\/$/, '').length > 1; } catch { return false; } })();
+  const namesMe = (title) => { const w = core(audit.hotelName).split(' ').filter(Boolean); const t = ` ${norm(title)} `; return w.length > 0 && w.every((x) => t.includes(` ${x} `)); };
   const isMe = (name) => sameName(name, audit.hotelName) || likeName(name, audit.hotelName) || (lh?.name ? sameName(name, lh.name) || likeName(name, lh.name) : false);
   const label = { you: 'your site', ota: 'booking sites', review: 'review sites', social: 'social', reference: 'reference', other: 'others' };
   // Google's own hotel search for the town: the list behind the hotel box on a results page.
@@ -880,9 +882,10 @@ export function assess(audit, crawl = null, live = null) {
       holders: [], otas: bs.results.filter((r) => r.owner === 'ota').length, results: bs.results.length,
     }] : []),
     ...mk.filter((m) => m.kind !== 'hotels').map((m, i) => {
-      const mine = myRoot ? m.results.find((r) => r.domain && rootOf(r.domain) === myRoot) : null;
+      // A hotel on its group's site (auberge.com/hotel-jerome) shares that domain with sister hotels, so the result has to name it too.
+      const mine = myRoot ? m.results.find((r) => r.domain && rootOf(r.domain) === myRoot && (!onGroupSite || namesMe(r.title))) : null;
       const tally = {};
-      for (const r of m.results) if (r.domain) { const k = myRoot && rootOf(r.domain) === myRoot ? 'you' : r.owner; tally[k] = (tally[k] ?? 0) + 1; }
+      for (const r of m.results) if (r.domain) { const k = mine && r === mine ? 'you' : r.owner; tally[k] = (tally[k] ?? 0) + 1; }
       // The open search uses the whole list. The star-class search uses the hotels of this hotel's class in it.
       const byClass = /\b(star|luxury|cheap) hotels in\b/.test(m.query) && myClass != null;
       const list = /^hotels in\b/.test(m.query) ? townList : byClass ? townList.filter((h) => h.hotelClass === myClass) : [];
