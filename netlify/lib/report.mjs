@@ -21,6 +21,8 @@ export async function fetchAudit(hotel, city, state) {
   return body && body.cached && body.data ? body.data : null;
 }
 
+const nth = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+
 export function summarize(audit, crawl = null, live = null) {
   const a = assess(audit, crawl, live);
   const c = compSet(audit, live) ?? audit._meta?.competitors;
@@ -54,6 +56,13 @@ export function summarize(audit, crawl = null, live = null) {
         : '',
     } : null,
     ads: a.ads && a.ads.rivals.length >= 2 ? [{ ...a.ads.you, you: true }, ...a.ads.rivals] : null,
+    // Where the hotel shows for the searches travellers type. Shown, not graded.
+    searches: a.visibility ? a.visibility.rows.map((r) => ({
+      query: r.query, brand: r.kind === 'brand',
+      hotel: r.kind === 'brand' ? (r.panel ? 'your panel shows' : 'no panel shown') : !r.boxShown ? 'not read' : r.box != null ? `${nth(r.box)} of ${r.boxSize}` : 'not on first page',
+      web: r.organic != null ? nth(r.organic) : r.organicKnown ? 'not in top 10' : "couldn't tell",
+      good: { hotel: r.kind === 'brand' ? !!r.panel : r.boxShown ? r.box != null : null, web: r.organic != null ? true : r.organicKnown ? false : null },
+    })) : null,
     flags: a.identity.flags,
   };
 }

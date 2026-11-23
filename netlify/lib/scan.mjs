@@ -16,6 +16,7 @@ import { hasKey, searchesLeft } from '../../scanner/serpapi.mjs';
 import { websiteOf } from '../../shared/assess.mjs';
 import { fetchAudit } from './report.mjs';
 import { crawlFor } from './site.mjs';
+import { speedFor } from './speed.mjs';
 
 const DAY = 24 * 60 * 60 * 1000;
 // Searches kept back each month so a busy day can't empty the plan.
@@ -71,7 +72,7 @@ const within = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => 
  */
 export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const target = { hotel: String(hotel ?? '').trim(), city: String(city ?? '').trim(), state: String(state ?? '').trim() };
-  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null }, pending: false, limited: '' };
+  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null, speed: null }, pending: false, limited: '' };
   if (!target.hotel) return empty;
   const key = [slug(target.hotel), slug(target.city), slug(target.state)].join('_');
   const started = Date.now();
@@ -121,9 +122,12 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const missing = (site && !crawl) || (known && hasKey() && (!search || !ai || read.length < asks.length + (asks.length ? 1 : 0)));
   const pending = fresh && (prices?.done === false || (slow && missing));
 
+  // Page speed is read from cache only: the run is too slow for this call (see /api/speed).
+  const speed = site ? await speedFor(crawl?.finalUrl || site).catch(() => null) : null;
+
   const base = prices?.ok || crawl?.ok ? {
     hotelName: target.hotel, city: target.city, state: target.state, categories: {},
     _meta: { ownScan: true, generatedAt: prices?.fetchedAt ?? crawl?.fetchedAt ?? new Date().toISOString() },
   } : null;
-  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null }, pending, limited };
+  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null, speed }, pending, limited };
 }

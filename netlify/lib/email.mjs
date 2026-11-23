@@ -121,6 +121,12 @@ ${s.ads.map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}paddin
 ${[{ ...s.market.own, you: true }, ...s.market.rivals].map((r) => `<tr><td style="${td}${r.you ? 'font-weight:600;' : ''}padding-right:10px;">${e(r.name)}</td><td align="right" style="${td}font-family:${t.num};${r.you ? 'font-weight:600;' : ''}">${r.rating != null ? Number(r.rating).toFixed(1) : '-'}</td><td align="right" style="${td}font-family:${t.num};color:${t.muted};">${num(r.reviews)}</td></tr>`).join('')}
 </table>` : '';
 
+  const seen = (ok) => (ok == null ? `color:${t.faint};` : ok ? `color:${t.accent};` : '');
+  const searches = s.searches ? label('Where you appear when travellers search (not graded)') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="${th}">search</th><th style="${th}" width="27%">Google hotel search</th><th style="${th}" width="24%">regular results</th></tr>
+${s.searches.map((r) => `<tr><td style="${td}padding-right:10px;">${e(r.query)}</td><td style="${td}${seen(r.good.hotel)}">${e(r.hotel)}</td><td style="${td}${seen(r.good.web)}">${e(r.web)}</td></tr>`).join('')}
+</table>` : '';
+
   const html = shell(t, s.graded ? `${s.hotel}: ${s.letter}, ${s.score} out of 100` : `${s.hotel}: your hotelgrader report`, `
 <p style="margin:0 0 4px;color:${t.accent};font-size:13px;">report card</p>
 <h1 style="margin:0;font-family:${t.font};font-size:24px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:${t.ink};">${e(s.hotel)}</h1>
@@ -138,6 +144,7 @@ ${label('What the grade is made of')}
 ${prices}
 ${ads}
 ${market}
+${searches}
 <div style="margin-top:28px;padding-top:22px;border-top:1px solid ${t.edge};">${button(t, link, 'Open the full report')}</div>
 <p style="margin:14px 0 0;color:${t.faint};font-size:13px;">Hi ${e(name)}, the full report has the evidence behind every check, and a form to correct anything we got wrong. This link opens it without asking for a code again. Questions? Just reply to this email.</p>`);
 
@@ -155,6 +162,7 @@ ${market}
     '',
     ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} other sites showed a lower rate${s.prices.cheaper && s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}. Rooms and fees aren't matched.`, ''] : []),
     ...(s.ads ? ['Advertising we could see (not graded):', ...s.ads.map((r) => `  ${r.name}: Google ${r.google == null ? "couldn't tell" : r.google ? 'seen' : 'none found'}, Meta ${r.meta == null ? "couldn't tell" : r.meta ? 'seen' : 'none found'}`), ''] : []),
+    ...(s.searches ? ['Where you appear when travellers search (not graded):', ...s.searches.map((r) => `  ${r.query}: Google hotel search ${r.hotel}, regular results ${r.web}`), ''] : []),
     `Open the full report: ${link}`,
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
 

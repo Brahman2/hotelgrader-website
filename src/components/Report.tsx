@@ -423,6 +423,51 @@ function Visibility({ a }: { a: Assessment }) {
   );
 }
 
+function Speed({ a }: { a: Assessment }) {
+  const sp = a.speed;
+  if (!sp || !(sp.mobile || sp.desktop)) return null;
+  const run = sp.mobile ?? sp.desktop!;
+  const secs = (ms: number | null) => (ms == null ? '-' : `${(ms / 1000).toFixed(1)}s`);
+  // Google's own good / poor lines for each timing.
+  const tone = (v: number | null, good: number, poor: number) => (v == null ? 'text-ink-40' : v <= good ? 'grade--a' : v <= poor ? 'grade--c' : 'grade--f');
+  const tiles: [string, string, string, string][] = [
+    ['First content', secs(run.fcp), tone(run.fcp, 1800, 3000), 'something appears'],
+    ['Main content', secs(run.lcp), tone(run.lcp, 2500, 4000), 'the largest image or heading is drawn'],
+    ['Blocked time', run.tbt == null ? '-' : `${Math.round(run.tbt)}ms`, tone(run.tbt, 200, 600), 'taps wait on script'],
+    ['Layout shift', run.cls == null ? '-' : run.cls.toFixed(2), tone(run.cls, 0.1, 0.25), 'how much the page jumps'],
+  ];
+  const word: Record<string, [string, string]> = { FAST: ['fast', 'grade--a'], AVERAGE: ['middling', 'grade--c'], SLOW: ['slow', 'grade--f'] };
+  const f = sp.field && word[sp.field.overall] ? sp.field : null;
+  return (
+    <Section id="speed" title="How the home page loads on a phone"
+      kicker="One lab visit by Google’s PageSpeed test on a mid-range phone with a slowed connection. It’s a fixed test, so it reads slower than most guests’ phones.">
+      <div className="flex flex-col sm:flex-row gap-7 items-start">
+        {sp.screenshot && <div className="phone"><img src={sp.screenshot} alt="Your home page as the test phone drew it" className="block w-full h-full object-cover object-top" /></div>}
+        <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
+            {tiles.map(([name, value, cls, note]) => (
+              <div key={name}>
+                <div className="meta">{name}</div>
+                <div className={`num text-[26px] leading-tight ${cls}`}>{value}</div>
+                <div className="text-ink-40 text-[12px]">{note}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-ink-60 text-[13.5px] mt-5">
+            Lab score {sp.mobile ? <><span className="num text-ink">{sp.mobile.score}</span> on a phone</> : null}{sp.mobile && sp.desktop ? ' and ' : null}{sp.desktop ? <><span className="num text-ink">{sp.desktop.score}</span> on a desktop</> : null}, out of 100
+            {run.bytes ? <>. The page weighs <span className="num text-ink">{(run.bytes / 1048576).toFixed(1)} MB</span></> : null}.
+          </p>
+          <p className="text-[13.5px] mt-2">
+            {f
+              ? <>Real visitors: Chrome rates {f.origin ? 'the site as a whole' : 'this page'} as <span className={word[f.overall][1]}>{word[f.overall][0]}</span> over the last 28 days{f.lcp ? <>, with the main content in <span className="num">{secs(f.lcp.value)}</span> for three visitors in four</> : null}.</>
+              : <span className="text-ink-60">Google has too few real visits on record for this site to report how guests experience it.</span>}
+          </p>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
   if (!ads || (ads.rivals.length < 2 && !ads.brand)) return null;
@@ -694,6 +739,7 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
     rates: <Prices a={a} />,
     reputation: <><Choice a={a} audit={audit} market={market} /><Themes a={a} /><Voice a={a} /></>,
     discovery: <Visibility a={a} />,
+    speed: <Speed a={a} />,
     ai: <AiSample a={a} />,
   };
 

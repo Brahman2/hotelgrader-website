@@ -195,6 +195,20 @@ export async function fetchScan(hotel: string, city: string, state: string, sign
   return last;
 }
 
+/** The page speed run for the hotel's website. Slow (up to half a minute), so it's asked for on the side. Null when there's none. */
+export async function fetchSpeed(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<unknown | null> {
+  try {
+    const res = await fetch('/api/speed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel, city, state }),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(40000)]) : AbortSignal.timeout(40000),
+    });
+    if (!res.ok) return null;
+    return (await res.json())?.speed ?? null;
+  } catch { return null; }
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**

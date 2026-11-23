@@ -197,7 +197,9 @@ export function assess(audit, crawl = null, live = null) {
   } : evidence(audit, /^(search visibility|brand protection|local seo)/i);
   const serpSrc = bs ? 'Google search, read by our scanner' : 'Google search';
   const geo = evidence(audit, /geo optimization/i);
-  const speed = evidence(audit, /^(website performance|mobile speed)/i);
+  // Our own page speed run when we have it, in the shape the checks below already read.
+  const sp = live?.speed?.ok ? live.speed : null;
+  const speed = sp ? { mobile_score: sp.mobile?.score ?? null, desktop_score: sp.desktop?.score ?? null } : evidence(audit, /^(website performance|mobile speed)/i);
   const aiData = evidence(audit, /^(ai mention rate|recommendation position)/i);
   const socialData = evidence(audit, /^(facebook presence|instagram presence|social media score)/i);
   const offer = evidence(audit, /amenity comparison|cancellation policy|description quality/i);
@@ -451,8 +453,16 @@ export function assess(audit, crawl = null, live = null) {
     speed?.desktop_score != null ? speed.desktop_score / 100 : null,
     speed?.desktop_score != null ? `Lab score ${speed.desktop_score} out of 100.` : 'Not tested this scan.',
     'Lighthouse lab test', { status: speed?.desktop_score != null ? (speed.desktop_score >= 90 ? 'pass' : speed.desktop_score >= 50 ? 'partial' : 'fail') : 'unknown' });
-  check('speed', 'field', 'Speed for real visitors', 20, null,
-    'Not observed. A lab test is one simulated visit; it isn’t proof that guests have a slow experience.', '');
+  // What Chrome measured for real visitors over the last 28 days, when the site has enough of them.
+  const fld = sp?.field ?? null;
+  const fldWord = { FAST: 'fast', AVERAGE: 'middling', SLOW: 'slow' }[fld?.overall] ?? '';
+  check('speed', 'field', 'Speed for real visitors', 20,
+    fld && fldWord ? (fld.overall === 'FAST' ? 1 : fld.overall === 'AVERAGE' ? 0.5 : 0) : null,
+    fld && fldWord
+      ? `Chrome rates real visits to ${fld.origin ? 'your site as a whole' : 'this page'} as ${fldWord} over the last 28 days${fld.lcp ? `: the main content appears in ${(fld.lcp.value / 1000).toFixed(1)} seconds for three visitors in four` : ''}.`
+      : sp ? 'Google has too few real visits on record for this site to report. The lab test above is one simulated visit.'
+        : 'Not observed. A lab test is one simulated visit; it isn’t proof that guests have a slow experience.',
+    fld && fldWord ? 'Chrome user experience data, via PageSpeed Insights' : '', { when: sp?.fetchedAt });
 
   // --- Brand clarity (3) ---
   // The API's own title check is accent-sensitive ("Waikīkī" ≠ "Waikiki"), so we redo it from the search result.
@@ -897,6 +907,9 @@ export function assess(audit, crawl = null, live = null) {
     searches: mkRows.length,
   } : null;
 
+  // The page speed run in detail, for the report. Null when the old lab scores are all we have.
+  const speedView = sp ? { when: sp.fetchedAt, mobile: sp.mobile ?? null, desktop: sp.desktop ?? null, field: sp.field ?? null, screenshot: sp.screenshot || '' } : null;
+
   const prices = rates.length >= 3 ? {
     night, direct, lowest, gap,
     cheaper: direct ? others.filter((r) => r.rate < direct.rate).length : 0,
@@ -930,7 +943,7 @@ export function assess(audit, crawl = null, live = null) {
     letter: graded ? letterFor(score) : '-',
     graded,
     coverage,
-    functions, priorities, strengths, identity, choice, example, ads, themes, voice, visibility, prices, headline,
+    functions, priorities, strengths, identity, choice, example, ads, themes, voice, visibility, speed: speedView, prices, headline,
     ai: { samples, queries },
     counts: {
       checks: functions.reduce((n, f) => n + f.checks.filter((c) => c.status !== 'na').length, 0),

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { fetchScan, runAudit, type Audit, type OwnScan } from '../lib/hg';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchScan, fetchSpeed, runAudit, type Audit, type OwnScan } from '../lib/hg';
 import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -265,6 +265,8 @@ export default function ReportCard() {
   const [ownOnly, setOwnOnly] = useState(false);
   // The latest stage of our own scan, for the scan screen.
   const [peek, setPeek] = useState<OwnScan | null>(null);
+  // Our page speed run, which arrives on its own after the scan has found the website.
+  const [speed, setSpeed] = useState<unknown | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -284,10 +286,23 @@ export default function ReportCard() {
     setTarget(hotel ? { hotel, city: q.get('city') || '', state: q.get('state') || '' } : null);
   }, []);
 
+  // Ask for the page speed run once the scan knows the website, unless the scan already carried one.
+  const siteKnown = !!((peek?.crawl as any)?.ok || (peek?.live as any)?.prices?.hotel?.link);
+  const speedCached = (peek?.live as any)?.speed ?? null;
+  useEffect(() => {
+    if (!target || !siteKnown) return;
+    if (speedCached) { setSpeed(speedCached); return; }
+    const ctrl = new AbortController();
+    fetchSpeed(target.hotel, target.city, target.state, ctrl.signal).then((sp) => { if (!ctrl.signal.aborted && sp) setSpeed(sp); });
+    return () => ctrl.abort();
+  }, [target, siteKnown, speedCached]);
+  const liveAll = useMemo(() => (live && speed ? { ...(live as object), speed } : live), [live, speed]);
+
   useEffect(() => {
     if (!target) return;
     const ctrl = new AbortController();
     setError('');
+    setSpeed(null);
     setAudit(null);
     setCrawl(undefined);
     setLive(null);
@@ -455,7 +470,7 @@ export default function ReportCard() {
           </p>
         </div>
       )}
-      <Report audit={audit} crawl={crawl ?? null} live={live} market={market} />
+      <Report audit={audit} crawl={crawl ?? null} live={liveAll} market={market} />
       <div className="flex flex-wrap gap-3 mt-5 no-print">
         <button type="button" className="btn" onClick={() => {
           track('share', { method: 'linkedin', content_type: 'report', item_id: target.hotel });

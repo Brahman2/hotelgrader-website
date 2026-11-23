@@ -57,6 +57,9 @@ export interface Priority {
 export interface Rate { rate: number; source: string; mine?: boolean; official?: boolean; freeCancel?: boolean | null }
 export interface NightPrices { night: string | null; kind: string; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number }
 
+export interface LabRun { score: number; fcp: number | null; lcp: number | null; tbt: number | null; cls: number | null; si: number | null; bytes: number | null }
+export interface FieldMetric { value: number; rating: string }
+
 export interface Assessment {
   version: string;
   scannedAt: string | null;
@@ -116,6 +119,14 @@ export interface Assessment {
       holders: { who: string; count: number }[]; otas: number; results: number;
     }[];
     town: string; boxSearches: number; boxHits: number; organicHits: number; searches: number;
+  } | null;
+  /** Our own page speed run. Timings are milliseconds. Null when it hasn't run. */
+  speed: {
+    when: string;
+    mobile: LabRun | null; desktop: LabRun | null;
+    field: { overall: string; origin: boolean; lcp: FieldMetric | null; inp: FieldMetric | null; cls: FieldMetric | null } | null;
+    /** The page as the test phone drew it, as a data address, or ''. */
+    screenshot: string;
   } | null;
   prices: { night: string | null; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number; rows: Rate[]; ours: boolean; nights: NightPrices[]; rooms: { name: string; rate: number }[] } | null;
   headline: string;
