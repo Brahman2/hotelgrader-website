@@ -171,9 +171,10 @@ export interface OwnScan {
 
 /**
  * Our own scan of the hotel: prices, the hotels around it, its website, the brand search and an AI question.
- * It comes back in stages, so this asks again while the server says more is pending. Null when it couldn't be reached.
+ * It comes back in stages, so this asks again while the server says more is pending, and reports each stage
+ * to `onProgress` as it lands. Null when it couldn't be reached.
  */
-export async function fetchScan(hotel: string, city: string, state: string, signal?: AbortSignal): Promise<OwnScan | null> {
+export async function fetchScan(hotel: string, city: string, state: string, signal?: AbortSignal, onProgress?: (scan: OwnScan) => void): Promise<OwnScan | null> {
   let last: OwnScan | null = null;
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
@@ -187,6 +188,7 @@ export async function fetchScan(hotel: string, city: string, state: string, sign
       const scan = ((await res.json())?.scan ?? null) as OwnScan | null;
       if (!scan) return last;
       last = scan;
+      onProgress?.(scan);
       if (!scan.pending) return scan;
     } catch { if (signal?.aborted) return last; }
   }

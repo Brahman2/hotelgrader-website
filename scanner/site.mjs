@@ -56,7 +56,9 @@ async function get(url, { timeout = 7000, text = true } = {}) {
       const buf = await res.arrayBuffer();
       body = new TextDecoder('utf-8').decode(buf.byteLength > MAX_BYTES ? buf.slice(0, MAX_BYTES) : buf);
     }
-    return { ok: res.ok, status: res.status, url: res.url, body, type: res.headers.get('content-type') || '', ms: Date.now() - started };
+    // Whether the site lets another page show it in a frame (used for the phone preview on the scan screen).
+    const frameable = !res.headers.get('x-frame-options') && !/frame-ancestors/i.test(res.headers.get('content-security-policy') || '');
+    return { ok: res.ok, status: res.status, url: res.url, body, type: res.headers.get('content-type') || '', frameable, ms: Date.now() - started };
   } catch (e) {
     return { ok: false, status: 0, error: e?.name === 'TimeoutError' ? 'timed out' : 'could not connect', ms: Date.now() - started };
   }
@@ -237,7 +239,7 @@ export async function scanSite(rawUrl, { now = new Date() } = {}) {
   const images = root.querySelectorAll('img');
   return {
     ok: true,
-    url: start.toString(), finalUrl: home.url, host: siteHost, status: home.status, ms: home.ms, bytes: home.body.length, https: home.url.startsWith('https:'),
+    url: start.toString(), finalUrl: home.url, host: siteHost, status: home.status, ms: home.ms, bytes: home.body.length, https: home.url.startsWith('https:'), frameable: !!home.frameable,
     rendered, words: bodyText.split(' ').filter(Boolean).length,
     title: tidy(root.querySelector('title')?.text), description: meta('meta[name="description"]'),
     h1: root.querySelectorAll('h1').map((h) => tidy(h.text)).filter(Boolean).slice(0, 5),

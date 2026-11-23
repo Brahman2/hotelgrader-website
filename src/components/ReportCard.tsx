@@ -100,28 +100,136 @@ function useMarket(target: Target | null | undefined, audit: Audit | null, live:
 
 type Market = ReturnType<typeof useMarket>;
 
-// What the scan is doing, by seconds elapsed. The API reports few progress
-// steps, so these plain-language lines keep the wait readable.
+// What the scan is doing, by seconds elapsed. Our own readings land in the
+// first fifteen seconds; the slower review, ad and speed checks follow.
 const STAGES: [number, string][] = [
   [0, 'Finding the hotel on Google'],
-  [12, 'Reading reviews and ratings'],
-  [30, 'Checking rate parity across the OTAs'],
-  [55, 'Asking AI assistants about the hotel'],
-  [85, 'Comparing with nearby hotels'],
-  [100, 'Reading the hotel’s own website'],
+  [5, 'Reading prices on two nights'],
+  [10, 'Opening the website and booking path'],
+  [16, 'Searching your name and asking AI'],
+  [30, 'Reading review text and replies'],
+  [60, 'Checking the ad libraries and social'],
+  [95, 'Testing page speed'],
   [115, 'Weighing the evidence'],
 ];
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/** What our own scan has found so far, shown as it lands so the wait isn't a blank screen. */
+function Findings({ peek, market, target, ready }: { peek: OwnScan | null; market: Market; target: Target; ready: boolean }) {
+  const live = (peek?.live ?? {}) as any;
+  const h = live.prices?.ok ? live.prices.hotel : null;
+  const night = live.prices?.ok ? (live.prices.nights ?? []).find((n: any) => n.ok && n.rates?.length) : null;
+  const site = (peek?.crawl as any)?.ok ? (peek!.crawl as any) : null;
+  const topics: any[] = (h?.topics ?? []).filter((t: any) => t.mentions >= 10);
+  const share = (t: any) => t.positive / Math.max(1, t.positive + t.negative);
+  const praised = [...topics].sort((x, y) => share(y) - share(x)).slice(0, 3);
+  const griped = [...topics].filter((t) => share(t) < 0.6).sort((x, y) => share(x) - share(y)).slice(0, 3);
+  const stars: any[] = h?.stars ?? [];
+  const starTotal = stars.reduce((t, r) => t + r.count, 0);
+  const card = 'panel p-5 reveal';
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+      {/* The listing: photos, address, rating */}
+      <div className={`${card} sm:col-span-2`}>
+        <div className="meta mb-3">{h ? 'found on Google' : 'finding the hotel on Google'}</div>
+        {h ? (
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-center">
+            {h.images?.length > 0 && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {h.images.slice(0, 6).map((src: string) => (
+                  <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" className="w-full aspect-square object-cover rounded-sm bg-edge" />
+                ))}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="font-semibold text-[17px]">{h.name}</div>
+              {h.address && <div className="text-ink-60 text-[13.5px] mt-0.5">{h.address}</div>}
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-3">
+                {h.rating != null && <span className="num text-[26px] leading-none">{Number(h.rating).toFixed(1)}<span className="text-accent text-[18px]"> ★</span></span>}
+                {h.reviews != null && <span className="text-ink-60 text-[13.5px]">{Number(h.reviews).toLocaleString('en-US')} Google reviews</span>}
+              </div>
+              {h.hotelClass != null && <div className="meta mt-2">Google lists it as a {h.hotelClass}-star hotel</div>}
+            </div>
+          </div>
+        ) : <div className="skeleton h-[92px]" />}
+      </div>
+
+      {/* What guests say */}
+      {h && (starTotal >= 20 || topics.length >= 3) && (
+        <div className={card}>
+          <div className="meta mb-3">reading {starTotal ? starTotal.toLocaleString('en-US') : 'the'} guest reviews</div>
+          {starTotal >= 20 && (
+            <ul className="list-none m-0 p-0 space-y-1 mb-4">
+              {[5, 4, 3, 2, 1].map((n) => {
+                const c = stars.find((r) => r.stars === n)?.count ?? 0;
+                return (
+                  <li key={n} className="grid grid-cols-[14px_1fr] items-center gap-2 text-[12px]">
+                    <span className="num text-ink-60">{n}</span>
+                    <span className="h-[7px] bg-edge"><span className="block h-full" style={{ width: `${(c / starTotal) * 100}%`, background: n >= 4 ? 'var(--grade-a)' : n === 3 ? 'var(--ink-40)' : 'var(--grade-f)' }} /></span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {praised.length > 0 && <p className="text-[13.5px]"><span className="text-ink-60">Guests praise </span>{praised.map((t) => t.name.toLowerCase()).join(', ')}.</p>}
+          {griped.length > 0 && <p className="text-[13.5px] mt-1"><span className="text-ink-60">Complaints gather around </span>{griped.map((t) => t.name.toLowerCase()).join(', ')}.</p>}
+        </div>
+      )}
+
+      {/* The hotel's own site, as a phone sees it */}
+      {(site || h?.link) && (
+        <div className={card}>
+          <div className="meta mb-3">{site ? 'your website on a phone' : 'opening your website'}</div>
+          <div className="flex gap-4 items-start">
+            <div className="phone" aria-hidden="true">
+              {site?.frameable
+                ? <iframe src={site.finalUrl} title="" tabIndex={-1} loading="lazy" referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin" />
+                : site
+                  ? <div className="phone-card">{site.og?.image && <img src={site.og.image} alt="" referrerPolicy="no-referrer" />}<strong>{site.title}</strong><span>{site.description}</span></div>
+                  : <div className="skeleton h-full" />}
+            </div>
+            {site && (
+              <ul className="list-none m-0 p-0 text-[13px] space-y-2 min-w-0">
+                <li className="truncate font-medium">{site.host}</li>
+                <li className="text-ink-60">loaded in {(site.ms / 1000).toFixed(1)}s</li>
+                {site.booking?.engine && <li className="text-ink-60">books through {site.booking.engine}</li>}
+                {site.booking?.buttons > 0 && <li className="text-ink-60">{site.booking.buttons} booking {site.booking.buttons === 1 ? 'link' : 'links'} found</li>}
+                {site.schema?.lodging && <li className="text-ink-60">hotel data for search engines found</li>}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Prices, as a count only: the detail is in the report */}
+      {night && (
+        <div className={card}>
+          <div className="meta mb-2">comparing prices</div>
+          <div className="num text-[30px] leading-none">{night.rates.length}</div>
+          <p className="text-ink-60 text-[13.5px] mt-1.5">booking sites show a rate for {new Date(`${night.checkIn}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}. Your own site is {night.rates.some((r: any) => r.official) ? 'one of them' : 'not among them'}.</p>
+        </div>
+      )}
+
+      {/* The hotels around it */}
+      <div className={`${card} ${night && !(site || h?.link) ? '' : ''}`}>
+        <div className="meta mb-3">{market.rivals.length > 0 ? `${market.rivals.length} hotels to compare you with` : 'mapping the hotels around you'}</div>
+        <Scanner center={market.center} blips={market.blips} scanning={!ready || !market.located} hotel={target.hotel} approximate={market.approximate} />
+      </div>
+    </div>
+  );
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 /** Shown while the scan runs, and after it if the email isn't verified yet. */
-function ScanScreen({ target, elapsed, ready, locked, market, onUnlock }: {
-  target: Target; elapsed: number; ready: boolean; locked: boolean; market: Market; onUnlock: (user: User) => void;
+function ScanScreen({ target, elapsed, ready, locked, market, peek, onUnlock }: {
+  target: Target; elapsed: number; ready: boolean; locked: boolean; market: Market; peek: OwnScan | null; onUnlock: (user: User) => void;
 }) {
   const current = ready ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
   return (
-    <div className="max-w-content mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-10 items-start">
-      <div className="panel p-6 sm:p-7">
+    <div className="max-w-[1120px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-8 items-start">
+      <div className="panel p-6 sm:p-7 md:sticky md:top-20">
         <p className="label label--accent" role="status" aria-live="polite">
-          <span className="dark-only">$ </span>{ready ? 'scan complete' : `scanning · ${elapsed}s`}
+          <span className="dark-only">$ </span>{ready ? 'first reading ready' : `scanning · ${elapsed}s`}
         </p>
         <h1 className="headline text-[22px] sm:text-[26px] mt-2">{target.hotel}</h1>
         <ol className="steps list-none m-0 p-0 mt-6">
@@ -134,14 +242,9 @@ function ScanScreen({ target, elapsed, ready, locked, market, onUnlock }: {
         </ol>
         {locked
           ? <Gate target={target} ready={ready} onUnlock={onUnlock} />
-          : <p className="meta mt-6">A live scan takes one to two minutes. Keep this tab open.</p>}
+          : <p className="meta mt-6">The first reading takes about fifteen seconds. Keep this tab open.</p>}
       </div>
-      <div className="max-w-[460px] w-full mx-auto md:pt-2">
-        <Scanner center={market.center} blips={market.blips} scanning={!ready || !market.located} hotel={target.hotel} approximate={market.approximate} />
-        {market.rivals.length > 0 && (
-          <p className="meta mt-4">{market.rivals.length} competing hotels found nearby.</p>
-        )}
-      </div>
+      <Findings peek={peek} market={market} target={target} ready={ready} />
     </div>
   );
 }
@@ -159,12 +262,15 @@ export default function ReportCard() {
   const [prelim, setPrelim] = useState(false);
   // True when the grading API never finished and the report rests on our own scan alone.
   const [ownOnly, setOwnOnly] = useState(false);
+  // The latest stage of our own scan, for the scan screen.
+  const [peek, setPeek] = useState<OwnScan | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [copied, setCopied] = useState(false);
   const [share, setShare] = useState(''); // link that opens this report without the gate
-  const market = useMarket(target, audit, live);
+  // Before the report exists, the scan screen maps the comparison set from the scan's first stage.
+  const market = useMarket(target, audit ?? peek?.base ?? null, live ?? peek?.live ?? null);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -186,6 +292,7 @@ export default function ReportCard() {
     setLive(null);
     setPrelim(false);
     setOwnOnly(false);
+    setPeek(null);
     setElapsed(0);
     const started = Date.now();
     const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
@@ -207,7 +314,7 @@ export default function ReportCard() {
 
     // Our own scan takes seconds; the grading API takes about two minutes. Show ours as soon as it can
     // carry a grade, marked as still filling in, then settle when the rest arrives.
-    const own = fetchScan(...where, ctrl.signal);
+    const own = fetchScan(...where, ctrl.signal, (s) => { if (!ctrl.signal.aborted) setPeek(s); });
     own.then((s) => {
       if (ctrl.signal.aborted || final || !s?.base || !graded(s)) return;
       setCrawl(s.crawl);
@@ -293,6 +400,7 @@ export default function ReportCard() {
         ready={!!audit}
         locked={!user && !viaLink}
         market={market}
+        peek={peek}
         onUnlock={(u) => {
           saveUser(u);
           setUser(u);

@@ -84,6 +84,8 @@ const details = (d) => ({
   description: String(d.description ?? '').slice(0, 600),
   checkIn: d.check_in_time ?? '', checkOut: d.check_out_time ?? '',
   photos: Array.isArray(d.images) ? d.images.length : null,
+  // A few of the listing's own photo thumbnails, for the scan screen.
+  images: (Array.isArray(d.images) ? d.images : []).map((i) => i?.thumbnail).filter((u) => typeof u === 'string' && u.startsWith('https://')).slice(0, 6),
   amenities: Array.isArray(d.amenities) ? d.amenities.slice(0, 60) : [],
   stars: (Array.isArray(d.ratings) ? d.ratings : []).slice(0, 5).map((r) => ({ stars: r.stars, count: r.count })).filter((r) => r.stars >= 1 && r.count >= 0),
   // Google's own grouping of what reviewers mention, counted across every review it holds.
