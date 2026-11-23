@@ -5,7 +5,7 @@
 // Needs ANTHROPIC_API_KEY. The model can be changed with THEMES_MODEL.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { z } from 'zod';
+import { z } from 'zod/v4'; // the SDK's helper reads zod's v4 schema shape
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
 export const hasThemesKey = () => !!process.env.ANTHROPIC_API_KEY;
@@ -69,7 +69,7 @@ export async function reviewThemes(reviews, { timeout = 20000 } = {}) {
       : e instanceof Anthropic.RateLimitError ? 'rate-limited'
       : e instanceof Anthropic.APIConnectionTimeoutError ? 'timeout'
       : e instanceof Anthropic.APIError ? `api-${e.status ?? 'error'}`
-      : 'failed';
+      : `failed: ${String(e?.message ?? e).slice(0, 80)}`;
     return { ok: false, error, fetchedAt };
   }
 }
