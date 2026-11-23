@@ -11,6 +11,7 @@
 import { scanPrices } from '../../scanner/prices.mjs';
 import { brandSearch } from '../../scanner/search.mjs';
 import { aiAnswer } from '../../scanner/ai.mjs';
+import { marketQueries, marketSearch } from '../../scanner/market.mjs';
 import { hasKey, searchesLeft } from '../../scanner/serpapi.mjs';
 import { websiteOf } from '../../shared/assess.mjs';
 import { fetchAudit } from './report.mjs';
@@ -19,8 +20,10 @@ import { crawlFor } from './site.mjs';
 const DAY = 24 * 60 * 60 * 1000;
 // Searches kept back each month so a busy day can't empty the plan.
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
-// The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question.
-const PER_SCAN = 6;
+// The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question,
+// and up to three searches for its town (shared by every hotel there, so usually already paid for).
+const PER_SCAN = 9;
+const WEEK = 7 * DAY;
 // New hotels scanned per day before we stop spending and lean on the grading API alone.
 const DAILY_CAP = Number(process.env.SCAN_DAILY_CAP || 20);
 
@@ -33,14 +36,14 @@ async function store(name) {
 
 const slug = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const stampOf = (x) => x?.fetchedAt ?? x?.checkedAt;
-const freshEnough = (x) => !!stampOf(x) && Date.now() - Date.parse(stampOf(x)) < DAY;
+const freshEnough = (x, ttl = DAY) => !!stampOf(x) && Date.now() - Date.parse(stampOf(x)) < ttl;
 
 /** One cached reading. `read` runs only when the cache is stale and spending is allowed. */
-async function cached(storeName, key, { fresh, allowed, complete = () => true }, read) {
+async function cached(storeName, key, { fresh, allowed, complete = () => true, ttl = DAY }, read) {
   const s = await store(storeName);
   let hit = null;
   try { hit = s ? await s.get(key, { type: 'json' }) : null; } catch { /* cache miss */ }
-  const usable = freshEnough(hit) && hit.ok ? hit : null;
+  const usable = freshEnough(hit, ttl) && hit.ok ? hit : null;
   if (usable && complete(usable)) return usable;
   if (!fresh || !(await allowed())) return usable;
   const got = await read();
@@ -63,12 +66,12 @@ const within = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => 
 
 /**
  * Everything our own collectors know about one hotel.
- * Returns { base, crawl, live: { prices, search, ai }, pending, limited }.
+ * Returns { base, crawl, live: { prices, search, ai, market }, pending, limited }.
  * `base` is an empty scan in the grading API's shape, so the assessment can run on our evidence alone.
  */
 export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const target = { hotel: String(hotel ?? '').trim(), city: String(city ?? '').trim(), state: String(state ?? '').trim() };
-  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null }, pending: false, limited: '' };
+  const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null }, pending: false, limited: '' };
   if (!target.hotel) return empty;
   const key = [slug(target.hotel), slug(target.city), slug(target.state)].join('_');
   const started = Date.now();
@@ -104,17 +107,22 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   const slow = Date.now() - started > 3500;
   const go = fresh && !slow;
   const known = !!prices?.ok;
-  const [crawl, search, ai] = await Promise.all([
+  // The searches for the hotel's town. Cached by town for a week, so the second hotel in a town costs nothing here.
+  const town = [slug(target.city), slug(target.state)].join('_');
+  const asks = known && target.city ? marketQueries({ city: target.city, hotelClass: prices.hotel?.hotelClass ?? null }) : [];
+  const [crawl, search, ai, ...market] = await Promise.all([
     site ? crawlFor(site, { fresh: go }).catch(() => null) : null,
     known ? cached('brand-searches-v2', key, { fresh: go, allowed: haveBudget }, () => brandSearch({ ...target, site })).catch(() => null) : null,
     known ? cached('ai-answers-v3', key, { fresh: go, allowed: haveBudget }, () => aiAnswer({ ...target, hotelClass: prices.hotel?.hotelClass ?? null })).catch(() => null) : null,
+    ...asks.map((query) => cached('market-searches-v1', `${town}_${slug(query)}`, { fresh: go, allowed: haveBudget, ttl: WEEK }, () => marketSearch({ ...target, query })).catch(() => null)),
   ]);
-  const missing = (site && !crawl) || (known && hasKey() && (!search || !ai));
+  const read = market.filter((m) => m?.ok);
+  const missing = (site && !crawl) || (known && hasKey() && (!search || !ai || read.length < asks.length));
   const pending = fresh && (prices?.done === false || (slow && missing));
 
   const base = prices?.ok || crawl?.ok ? {
     hotelName: target.hotel, city: target.city, state: target.state, categories: {},
     _meta: { ownScan: true, generatedAt: prices?.fetchedAt ?? crawl?.fetchedAt ?? new Date().toISOString() },
   } : null;
-  return { base, crawl, live: { prices, search, ai }, pending, limited };
+  return { base, crawl, live: { prices, search, ai, market: read.length ? { asked: asks, readings: read } : null }, pending, limited };
 }

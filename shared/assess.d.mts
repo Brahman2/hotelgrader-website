@@ -103,6 +103,20 @@ export interface Assessment {
     total: number;
     low: number | null;
   } | null;
+  /** Where the hotel shows for the searches travellers type. Shown, not scored. */
+  visibility: {
+    rows: {
+      query: string; kind: 'brand' | 'market'; when: string;
+      /** Place in the regular results, or null when not in the first ten. */
+      organic: number | null; organicKnown: boolean;
+      /** Place in Google's own hotel box, or null. */
+      box: number | null; boxSize: number; boxShown: boolean; boxTop: string[];
+      /** Brand search only: whether Google showed the hotel's own panel. */
+      panel: boolean | null;
+      holders: { who: string; count: number }[]; otas: number; results: number;
+    }[];
+    town: string; boxSearches: number; boxHits: number; organicHits: number; searches: number;
+  } | null;
   prices: { night: string | null; direct: Rate | null; lowest: Rate | null; gap: number | null; cheaper: number; others: number; rows: Rate[]; ours: boolean; nights: NightPrices[]; rooms: { name: string; rate: number }[] } | null;
   headline: string;
   ai: { samples: { surface: string; query: string; mentioned: boolean | null; valid: boolean; when?: string; why: string; named: string[]; sources: string[] }[]; queries: string[] };

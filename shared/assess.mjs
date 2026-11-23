@@ -850,6 +850,46 @@ export function assess(audit, crawl = null, live = null) {
     low: starTotal ? gStars.filter((r) => r.stars <= 2).reduce((t, r) => t + r.count, 0) / starTotal : null,
   } : null;
 
+  // Where the hotel shows for the searches travellers type. Shown, not scored: the brand-name checks above carry the points.
+  const mk = (live?.market?.readings ?? []).filter((m) => m?.ok);
+  const rootOf = (h) => { const p = String(h ?? '').toLowerCase().replace(/^www\./, '').split('.'); return p.length <= 2 ? p.join('.') : p.slice(/^(co|com|org|net)$/.test(p[p.length - 2]) ? -3 : -2).join('.'); };
+  const myRoot = rootOf(hostOf(site));
+  const isMe = (name) => sameName(name, audit.hotelName) || likeName(name, audit.hotelName) || (lh?.name ? sameName(name, lh.name) || likeName(name, lh.name) : false);
+  const label = { you: 'your site', ota: 'booking sites', review: 'review sites', social: 'social', reference: 'reference', other: 'others' };
+  const visRows = [
+    ...(bs ? [{
+      query: bs.query, kind: 'brand', when: bs.checkedAt,
+      organic: bs.brandRank ?? null, organicKnown: bs.found != null,
+      box: null, boxSize: 0, boxShown: false, boxTop: [],
+      panel: !!bs.hasKnowledgePanel,
+      holders: [], otas: bs.results.filter((r) => r.owner === 'ota').length, results: bs.results.length,
+    }] : []),
+    ...mk.map((m) => {
+      const mine = myRoot ? m.results.find((r) => r.domain && rootOf(r.domain) === myRoot) : null;
+      const inBox = (m.box ?? []).find((b) => isMe(b.name));
+      const tally = {};
+      for (const r of m.results) if (r.domain) { const k = myRoot && rootOf(r.domain) === myRoot ? 'you' : r.owner; tally[k] = (tally[k] ?? 0) + 1; }
+      return {
+        query: m.query, kind: 'market', when: m.checkedAt,
+        organic: mine?.position ?? null, organicKnown: !!m.readable && !!myRoot,
+        box: inBox?.position ?? null, boxSize: (m.box ?? []).length, boxShown: (m.box ?? []).length > 0,
+        boxTop: (m.box ?? []).slice(0, 3).map((b) => b.name),
+        panel: null,
+        holders: Object.entries(tally).sort((x, y) => y[1] - x[1]).map(([k, n]) => ({ who: label[k] ?? k, count: n })),
+        otas: tally.ota ?? 0, results: m.results.filter((r) => r.domain).length,
+      };
+    }),
+  ];
+  const mkRows = visRows.filter((r) => r.kind === 'market');
+  const visibility = mkRows.length ? {
+    rows: visRows,
+    town: audit.city ?? '',
+    boxSearches: mkRows.filter((r) => r.boxShown).length,
+    boxHits: mkRows.filter((r) => r.box != null).length,
+    organicHits: mkRows.filter((r) => r.organic != null).length,
+    searches: mkRows.length,
+  } : null;
+
   const prices = rates.length >= 3 ? {
     night, direct, lowest, gap,
     cheaper: direct ? others.filter((r) => r.rate < direct.rate).length : 0,
@@ -883,7 +923,7 @@ export function assess(audit, crawl = null, live = null) {
     letter: graded ? letterFor(score) : '-',
     graded,
     coverage,
-    functions, priorities, strengths, identity, choice, example, ads, themes, voice, prices, headline,
+    functions, priorities, strengths, identity, choice, example, ads, themes, voice, visibility, prices, headline,
     ai: { samples, queries },
     counts: {
       checks: functions.reduce((n, f) => n + f.checks.filter((c) => c.status !== 'na').length, 0),

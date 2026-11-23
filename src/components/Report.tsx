@@ -346,6 +346,71 @@ function Voice({ a }: { a: Assessment }) {
   );
 }
 
+function Visibility({ a }: { a: Assessment }) {
+  const v = a.visibility;
+  if (!v) return null;
+  const town = v.town || 'your town';
+  const Place = ({ n, of }: { n: number; of?: number }) => (
+    <span className={`num text-[15px] ${n <= 3 ? 'grade--a' : 'grade--c'}`}>{ordinal(n)}{of ? <span className="text-ink-40 text-[12px]"> of {of}</span> : null}</span>
+  );
+  const Absent = ({ children }: { children: ReactNode }) => <span className="grade--f text-[13px]">{children}</span>;
+  const Unseen = ({ children }: { children: ReactNode }) => <span className="text-ink-40 text-[13px]">{children}</span>;
+  return (
+    <Section id="searches" title="Where you appear when travellers search"
+      kicker={`Google searches run from ${town}. The first is your own name. The rest are what someone types before they have picked a hotel. Not scored: it shows who holds the page.`}>
+      <p className="headline text-[19px] sm:text-[22px] max-w-[60ch] mb-6">
+        {v.boxSearches > 0
+          ? v.boxHits > 0
+            ? <>Google lists you among its own hotel picks for <span className={v.boxHits === v.boxSearches ? 'grade--a' : 'grade--c'}>{v.boxHits} of {v.boxSearches}</span> open searches for a hotel in {town}.</>
+            : <>Google lists hotels of its own choosing on {v.boxSearches} of these searches, and <span className="grade--f">you aren’t one of them</span>.</>
+          : v.organicHits > 0
+            ? <>Your own site reaches the first page for {v.organicHits} of {v.searches} open searches for a hotel in {town}.</>
+            : <>Your own site isn’t on the first page for any open search for a hotel in {town}.</>}
+      </p>
+      <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+        <table className="w-full min-w-[560px] text-[13.5px] border-collapse">
+          <thead>
+            <tr className="meta text-left">
+              <th className="font-normal pb-2 pr-4">Search</th>
+              <th className="font-normal pb-2 pr-4 w-[150px]">Google’s hotel picks</th>
+              <th className="font-normal pb-2 pr-4 w-[130px]">Regular results</th>
+              <th className="font-normal pb-2">Who holds the first page</th>
+            </tr>
+          </thead>
+          <tbody>
+            {v.rows.map((r) => (
+              <tr key={r.query} className="border-t border-edge align-top">
+                <td className="py-3 pr-4">
+                  <span className="text-ink">{r.query}</span>
+                  {r.kind === 'brand' && <span className="meta block">your name</span>}
+                </td>
+                <td className="py-3 pr-4">
+                  {r.kind === 'brand'
+                    ? (r.panel ? <span className="grade--a text-[13px]">your panel shows</span> : <Absent>no panel shown</Absent>)
+                    : !r.boxShown ? <Unseen>none on this page</Unseen>
+                      : r.box != null ? <Place n={r.box} of={r.boxSize} /> : <Absent>not listed</Absent>}
+                </td>
+                <td className="py-3 pr-4">
+                  {r.organic != null ? <Place n={r.organic} /> : r.organicKnown ? <Absent>not in top 10</Absent> : <Unseen>couldn’t tell</Unseen>}
+                </td>
+                <td className="py-3 text-ink-60 text-[13px]">
+                  {r.kind === 'brand'
+                    ? (r.otas > 0 ? `${r.otas} of ${r.results} results are booking sites` : 'no booking sites on the page')
+                    : <>
+                        {r.holders.slice(0, 3).map((h) => `${h.count} ${h.who}`).join(' · ') || 'couldn’t read'}
+                        {r.boxTop.length > 0 && r.box == null && <span className="block text-ink-40 truncate max-w-[34ch]">picked: {r.boxTop.join(', ')}</span>}
+                      </>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="meta mt-5">Open searches are mostly held by booking and review sites, for every hotel. The place a hotel can win is Google’s own list, which is built from hotel listings, so the listing’s rating, reviews, photos and details are what you can work on.</p>
+    </Section>
+  );
+}
+
 function Ads({ a }: { a: Assessment }) {
   const ads = a.ads;
   if (!ads || (ads.rivals.length < 2 && !ads.brand)) return null;
@@ -616,6 +681,7 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
   const extras: Record<string, ReactNode> = {
     rates: <Prices a={a} />,
     reputation: <><Choice a={a} audit={audit} market={market} /><Themes a={a} /><Voice a={a} /></>,
+    discovery: <Visibility a={a} />,
     ai: <AiSample a={a} />,
   };
 
