@@ -26,14 +26,16 @@ export default async (req) => {
   if (!matches(clean(body.proof), sign(secret, 'verified', email))) return json(401, { error: 'Verify your email first.' });
 
   // Cached readings only: the email never spends a search of its own. It scores the same evidence the page did.
-  const [old, scan] = await Promise.all([
-    fetchAudit(hotel, city, state).catch(() => null),
-    scanFor({ hotel, city, state }, { fresh: false }).catch(() => null),
-  ]);
-  // The grading API's scan when it finished; otherwise our own scan alone.
-  const audit = old ?? scan?.base ?? null;
-  if (!audit) return json(409, { error: 'That report isn’t ready yet.' });
-  const summary = summarize(audit, scan?.crawl ?? null, scan?.live ?? null);
+  const scan = await scanFor({ hotel, city, state }, { fresh: false }).catch(() => null);
+  // The grade comes from our own scan when it found the hotel's listing and saw enough to grade, as on the page.
+  let audit = scan?.base && scan.live?.prices?.ok ? scan.base : null;
+  let summary = audit ? summarize(audit, scan.crawl ?? null, scan.live ?? null) : null;
+  if (!summary?.graded) {
+    // Otherwise the older grading API carried it.
+    audit = (await fetchAudit(hotel, city, state).catch(() => null)) ?? audit;
+    if (!audit) return json(409, { error: 'That report isn’t ready yet.' });
+    summary = summarize(audit, scan?.crawl ?? null, scan?.live ?? null);
+  }
   const link = reportLink(secret, hotel, city, state);
   const name = clean(body.name).slice(0, 60);
   const mail = reportEmail({ theme: clean(body.theme), name: name || 'there', summary, link });

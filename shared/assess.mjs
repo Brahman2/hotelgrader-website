@@ -19,7 +19,7 @@
 // Plain JavaScript so the page (Vite) and the email function (Netlify) run the
 // same code. Types are in assess.d.mts.
 
-export const METHOD_VERSION = '2.1';
+export const METHOD_VERSION = '2.2';
 
 /** Importance of each function, in points out of 100. */
 export const FUNCTIONS = [
@@ -183,7 +183,7 @@ export function assess(audit, crawl = null, live = null) {
   // The Google profile as the grading API read it, or the basics from our own listing read when it didn't.
   const lh = px?.hotel ?? null;
   const gbp = evidence(audit, /^google business profile/i)
-    ?? (lh ? { ours: true, has_phone: !!lh.phone, has_website: !!lh.link, website_url: lh.link, rating: lh.rating, review_count: lh.reviews, business_status: null, photo_count: null, google_maps_url: '' } : null);
+    ?? (lh ? { ours: true, has_phone: !!lh.phone, has_website: !!lh.link, website_url: lh.link, rating: lh.rating, review_count: lh.reviews, business_status: null, photo_count: lh.photos ?? null, photosFromListing: true, google_maps_url: '' } : null);
   const bp = meta.booking_pricing ?? evidence(audit, /rate parity/i);
   const links = meta.booking_links ?? null;
   const comp = compSet(audit, live) ?? meta.competitors ?? null;
@@ -457,9 +457,14 @@ export function assess(audit, crawl = null, live = null) {
   // --- Photos and media (8) ---
   const photos = gbp?.photo_count ?? null;
   check('media', 'gbp-photos', 'Photos on your Google profile', 20,
-    photos != null ? scale(photos, [[0, 0], [5, 0.5], [10, 1]]) : null,
-    photos != null ? (photos >= 10 ? 'Ten or more photos. Our source stops counting at ten, so the real number may be far higher.' : `${photos} photos found.`) : 'Profile not read this scan.',
-    'Google Business Profile');
+    // Our own read of the listing returns only its first few photos, so six or more is as far as it can tell.
+    photos != null ? (gbp.photosFromListing ? (photos >= 6 ? 1 : scale(photos, [[0, 0], [5, 0.8]])) : scale(photos, [[0, 0], [5, 0.5], [10, 1]])) : null,
+    photos != null
+      ? (gbp.photosFromListing
+        ? (photos >= 6 ? `Your Google hotel listing carries photos. We read the first ${photos}, so the real number is likely far higher.` : `${photos} ${photos === 1 ? 'photo' : 'photos'} found on your Google hotel listing.`)
+        : photos >= 10 ? 'Ten or more photos. Our source stops counting at ten, so the real number may be far higher.' : `${photos} photos found.`)
+      : 'Profile not read this scan.',
+    gbp?.photosFromListing ? 'Google hotel listing' : 'Google Business Profile');
   check('media', 'coverage', 'Photos explain every room type, the bathrooms, the setting and the view', 80, null,
     'Not observed. We don’t look at the photos themselves yet.', '');
 
@@ -493,9 +498,11 @@ export function assess(audit, crawl = null, live = null) {
     titleHasName == null ? 'Your page title wasn’t read this scan.'
       : pageTitle ? `Your title reads “${pageTitle}”.` : 'The hotel’s name is in the page title.',
     web ? 'Our crawl of your home page' : 'Google search result for your site', { when: web ? web.fetchedAt : serp?.checked_at });
+  // The description on the Google hotel listing: the grading API's count, or the text we read ourselves.
+  const descLen = offer && offer.description_length != null ? offer.description_length : lh ? String(lh.description ?? '').trim().length : null;
   check('brand', 'listing-desc', 'Your Google hotel listing has a description', 20,
-    offer && offer.description_length != null ? (offer.description_length >= 150 ? 1 : offer.description_length > 0 ? 0.5 : 0) : null,
-    offer && offer.description_length != null ? (offer.description_length > 0 ? `A ${offer.description_length}-character description is shown.` : 'No description is shown.') : 'Not read this scan.',
+    descLen != null ? (descLen >= 150 ? 1 : descLen > 0 ? 0.5 : 0) : null,
+    descLen != null ? (descLen > 0 ? `A ${descLen}-character description is shown.` : 'No description is shown.') : 'Not read this scan.',
     'Google hotel search');
   check('brand', 'positioning', 'A guest can tell who the hotel suits and why to choose it', 50, null,
     'Not observed. This needs a read of your site’s content, which the scan doesn’t do yet.', '');

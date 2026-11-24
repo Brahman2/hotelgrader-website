@@ -14,23 +14,49 @@ async function store() {
   } catch { return null; }
 }
 
-/** From cache when fresh; run now only when `fresh` is set and a key exists. Null when there's nothing. */
-export async function speedFor(rawUrl, { fresh = false, why = null } = {}) {
+const keyOf = (url) => url.hostname.replace(/^www\./, '') + (url.pathname.length > 1 ? url.pathname.replace(/[^a-z0-9]+/gi, '_') : '');
+const freshHit = (hit) => (hit?.ok && hit.fetchedAt && Date.now() - Date.parse(hit.fetchedAt) < DAY ? hit : null);
+
+/** What the cache holds for a site, and whether a background run was started in the last two minutes. */
+export async function speedState(rawUrl) {
   const url = publicUrl(rawUrl);
-  if (!url) { if (why) why.reason = 'no-site'; return null; }
-  const key = url.hostname.replace(/^www\./, '') + (url.pathname.length > 1 ? url.pathname.replace(/[^a-z0-9]+/gi, '_') : '');
+  if (!url) return { url: null, hit: null, running: false, failed: false };
   const s = await store();
   let hit = null;
+  let running = false;
+  let failed = false;
+  try { hit = freshHit(s ? await s.get(keyOf(url), { type: 'json' }) : null); } catch { hit = null; }
   try {
-    hit = s ? await s.get(key, { type: 'json' }) : null;
-    if (!(hit?.ok && hit.fetchedAt && Date.now() - Date.parse(hit.fetchedAt) < DAY)) hit = null;
-  } catch { hit = null; }
+    const r = s ? await s.get(`${keyOf(url)}:running`, { type: 'json' }) : null;
+    const age = r?.at ? Date.now() - Date.parse(r.at) : Infinity;
+    // A run that failed isn't tried again for ten minutes, so a site Google can't test doesn't keep the page waiting.
+    failed = !!r?.failed && age < 600000;
+    running = !r?.failed && age < 120000;
+  } catch { running = false; }
+  return { url, hit, running, failed };
+}
+
+/** Note that a background run has started (so a second visitor doesn't start another), or that it failed. */
+export async function markRunning(rawUrl, { failed = false } = {}) {
+  const url = publicUrl(rawUrl);
+  const s = await store();
+  try { if (url && s) await s.setJSON(`${keyOf(url)}:running`, { at: new Date().toISOString(), failed }); } catch { /* best effort */ }
+}
+
+/**
+ * From cache when fresh; run now only when `fresh` is set and a key exists. Null when there's nothing.
+ * `background` is for the background function, which has minutes to spend: both runs at once, long timeouts.
+ */
+export async function speedFor(rawUrl, { fresh = false, why = null, background = false } = {}) {
+  const { url, hit } = await speedState(rawUrl);
+  if (!url) { if (why) why.reason = 'no-site'; return null; }
   const whole = hit && hit.mobile && hit.desktop;
   // A cached reading with one run missing is still served; a fresh call fills in the other run.
   if (whole || (hit && !fresh)) return hit;
   if (!fresh || !hasSpeedKey()) { if (why) why.reason = fresh ? 'no-key' : 'not-cached'; return hit; }
-  const got = await scanSpeed(url.toString(), { have: hit });
-  try { if (s && got.ok) await s.setJSON(key, got); } catch { /* the reading still stands */ }
+  const got = await scanSpeed(url.toString(), background ? { have: hit, both: true, timeout: 100000 } : { have: hit });
+  const s = await store();
+  try { if (s && got.ok) await s.setJSON(keyOf(url), got); } catch { /* the reading still stands */ }
   if (!got.ok && why) why.reason = got.error || 'failed';
   return got.ok ? got : hit;
 }

@@ -104,14 +104,16 @@ type Market = ReturnType<typeof useMarket>;
 // first fifteen seconds; the slower review, ad and speed checks follow.
 const STAGES: [number, string][] = [
   [0, 'Finding the hotel on Google'],
-  [5, 'Reading prices on two nights'],
-  [10, 'Opening the website and booking path'],
-  [16, 'Searching your name and asking AI'],
-  [30, 'Reading review text and replies'],
-  [60, 'Checking the ad libraries and social'],
-  [95, 'Testing page speed'],
-  [115, 'Weighing the evidence'],
+  [4, 'Reading prices on two nights'],
+  [8, 'Opening the website and booking path'],
+  [11, 'Searching your name and your town'],
+  [14, 'Reading the newest reviews and replies'],
+  [18, 'Testing page speed on a phone'],
+  [26, 'Grouping what guests keep saying'],
+  [38, 'Weighing the evidence'],
 ];
+// When our own scan can't carry the grade, the older grading API does, and it takes about two minutes.
+const SLOW_STAGES: [number, string][] = STAGES.map(([t, text], i) => [i < 4 ? t : Math.round(t * 3.2), text]);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** What our own scan has found so far, shown as it lands so the wait isn't a blank screen. */
@@ -243,12 +245,15 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Shown while the scan runs, and after it if the email isn't verified yet. */
-function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, shot, onUnlock }: {
+function ScanScreen({ target, elapsed, ready, settled, slow, locked, market, peek, shot, onUnlock }: {
   shot?: string;
+  /** True when the older, slower grading API is carrying this scan. */
+  slow?: boolean;
   target: Target; elapsed: number; ready: boolean; settled: boolean; locked: boolean; market: Market; peek: OwnScan | null; onUnlock: (user: User) => void;
 }) {
   // The steps keep moving until the whole scan has settled, even once the first reading can be shown.
-  const current = settled ? STAGES.length : STAGES.filter(([t]) => elapsed >= t).length - 1;
+  const stages = slow ? SLOW_STAGES : STAGES;
+  const current = settled ? stages.length : stages.filter(([t]) => elapsed >= t).length - 1;
   return (
     <div className="max-w-[1120px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-8 items-start">
       <div className="panel p-6 sm:p-7 md:sticky md:top-20">
@@ -257,7 +262,7 @@ function ScanScreen({ target, elapsed, ready, settled, locked, market, peek, sho
         </p>
         <h1 className="headline text-[22px] sm:text-[26px] mt-2">{target.hotel}</h1>
         <ol className="steps list-none m-0 p-0 mt-6">
-          {STAGES.map(([t, text], i) => (
+          {stages.map(([t, text], i) => (
             <li key={t} className={i < current ? 'is-done' : i === current ? 'is-now' : ''}>
               <span className="steps-dot" aria-hidden="true" />
               {text}
@@ -284,8 +289,11 @@ export default function ReportCard() {
   const [live, setLive] = useState<unknown | null>(null);
   // True while the report on screen rests on our own scan and the grading API is still working.
   const [prelim, setPrelim] = useState(false);
-  // True when the grading API never finished and the report rests on our own scan alone.
-  const [ownOnly, setOwnOnly] = useState(false);
+  // True when our own scan couldn't carry the grade and the older grading API is doing it.
+  const [fallback, setFallback] = useState(false);
+  // Whether the page speed run and the review themes have answered (or had nothing to read).
+  const [speedDone, setSpeedDone] = useState(false);
+  const [themesDone, setThemesDone] = useState(false);
   // The latest stage of our own scan, for the scan screen.
   const [peek, setPeek] = useState<OwnScan | null>(null);
   // Our page speed run, which arrives on its own after the scan has found the website.
@@ -313,30 +321,33 @@ export default function ReportCard() {
   // Ask for the page speed run once the scan knows the website, unless the scan already carried one.
   const siteKnown = !!((peek?.crawl as any)?.ok || (peek?.live as any)?.prices?.hotel?.link);
   const speedCached = (peek?.live as any)?.speed ?? null;
+  // The scan has returned its last stage. If it never found a website or reviews, there is nothing to wait for on the side.
+  const scanDone = !!peek && !peek.pending;
   useEffect(() => {
-    if (!target || !siteKnown) return;
-    if (speedCached?.mobile && speedCached?.desktop) { setSpeed(speedCached); return; }
+    if (!target) return;
+    if (!siteKnown) { if (scanDone) setSpeedDone(true); return; }
+    if (speedCached?.mobile && speedCached?.desktop) { setSpeed(speedCached); setSpeedDone(true); return; }
     if (speedCached) setSpeed(speedCached);
     const ctrl = new AbortController();
-    const ask = () => fetchSpeed(target.hotel, target.city, target.state, ctrl.signal);
-    // One of the two runs sometimes times out. Show what came back, then ask once more for the other.
-    ask().then(async (sp: any) => {
-      if (ctrl.signal.aborted || !sp) return;
-      setSpeed(sp);
-      if (!sp.mobile || !sp.desktop) { const again = await ask(); if (!ctrl.signal.aborted && again) setSpeed(again); }
+    // The test runs in the background on the server; this keeps asking until it is in or has clearly failed.
+    fetchSpeed(target.hotel, target.city, target.state, ctrl.signal).then((sp) => {
+      if (ctrl.signal.aborted) return;
+      if (sp) setSpeed(sp);
+      setSpeedDone(true);
     });
     return () => ctrl.abort();
-  }, [target, siteKnown, speedCached]);
+  }, [target, siteKnown, speedCached, scanDone]);
   // The same for review themes: asked for once the scan has read the reviews.
   const reviewsRead = !!(peek?.live as any)?.reviews?.ok;
   const themesCached = (peek?.live as any)?.themes ?? null;
   useEffect(() => {
-    if (!target || !reviewsRead) return;
-    if (themesCached) { setThemes(themesCached); return; }
+    if (!target) return;
+    if (!reviewsRead) { if (scanDone) setThemesDone(true); return; }
+    if (themesCached) { setThemes(themesCached); setThemesDone(true); return; }
     const ctrl = new AbortController();
-    fetchThemes(target.hotel, target.city, target.state, ctrl.signal).then((t) => { if (!ctrl.signal.aborted && t) setThemes(t); });
+    fetchThemes(target.hotel, target.city, target.state, ctrl.signal).then((t) => { if (ctrl.signal.aborted) return; if (t) setThemes(t); setThemesDone(true); });
     return () => ctrl.abort();
-  }, [target, reviewsRead, themesCached]);
+  }, [target, reviewsRead, themesCached, scanDone]);
   const liveAll = useMemo(() => (live && (speed || themes) ? { ...(live as object), ...(speed ? { speed } : {}), ...(themes ? { themes } : {}) } : live), [live, speed, themes]);
 
   useEffect(() => {
@@ -349,58 +360,65 @@ export default function ReportCard() {
     setCrawl(undefined);
     setLive(null);
     setPrelim(false);
-    setOwnOnly(false);
+    setFallback(false);
+    setSpeedDone(false);
+    setThemesDone(false);
     setPeek(null);
     setElapsed(0);
     const started = Date.now();
-    const tick = window.setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
+    // The clock runs while readings are still arriving, and stops itself after five minutes.
+    const tick = window.setInterval(() => { setElapsed(Math.round((Date.now() - started) / 1000)); if (Date.now() - started > 300000) window.clearInterval(tick); }, 1000);
     document.title = `${target.hotel} · report card · hotelgrader`;
     track('grade_start', hotelParams(target));
     const where = [target.hotel, target.city, target.state] as const;
-    const graded = (s: OwnScan | null) => !!s?.base && assess(s.base, s.crawl, s.live).graded;
-    let final = false;
-    const finish = (a: Audit, s: OwnScan | null, ownOnly: boolean) => {
-      final = true;
+    // Our scan can carry the grade when it found the hotel's listing and saw enough to grade.
+    const carries = (s: OwnScan | null) => !!s?.base && !!(s.live as any)?.prices?.ok && assess(s.base, s.crawl, s.live).graded;
+    let shown = false;
+    const finish = (a: Audit, s: OwnScan | null, source: 'own' | 'fallback') => {
       setCrawl(s?.crawl ?? null);
       setLive(s?.live ?? null);
       setAudit(a);
       setPrelim(false);
-      setOwnOnly(ownOnly);
       const done = assess(a, s?.crawl ?? null, s?.live ?? null);
-      track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, own_only: ownOnly, seconds: Math.round((Date.now() - started) / 1000) });
+      track('grade_complete', { ...hotelParams(target), score: done.rawScore ?? undefined, coverage: Math.round(done.coverage * 100), site_read: done.siteRead, own_only: source === 'own', seconds: Math.round((Date.now() - started) / 1000) });
     };
 
-    // Our own scan takes seconds; the grading API takes about two minutes. Show ours as soon as it can
-    // carry a grade, marked as still filling in, then settle when the rest arrives.
-    const own = fetchScan(...where, ctrl.signal, (s) => { if (!ctrl.signal.aborted) setPeek(s); });
-    own.then((s) => {
-      if (ctrl.signal.aborted || final || !s?.base || !graded(s)) return;
-      setCrawl(s.crawl);
-      setLive(s.live);
-      setAudit(s.base);
-      setPrelim(true);
-      track('grade_preview', { ...hotelParams(target), seconds: Math.round((Date.now() - started) / 1000) });
-    });
-    runAudit(...where, ctrl.signal)
-      .then(async (a) => {
-        let s = await own;
-        // Without a search budget our scan needs the grading API's scan to learn the hotel's website. Ask once more now that it exists.
-        if (!s?.crawl || !s?.live?.prices) s = (await fetchScan(...where, ctrl.signal)) ?? s;
-        if (ctrl.signal.aborted) return;
-        finish(a, s, false);
-      })
-      .catch(async (e) => {
-        if (e?.name === 'AbortError') return;
-        // The grading API failed or timed out. Our own scan still stands if it can carry a grade.
-        const s = await own;
-        if (ctrl.signal.aborted) return;
-        if (s?.base && graded(s)) { finish(s.base, s, true); return; }
+    // The grade comes from our own scan, which returns in stages over about fifteen seconds. Show the first
+    // stage that can carry a grade, marked as still filling in, and settle when the last stage lands.
+    fetchScan(...where, ctrl.signal, (s) => {
+      if (ctrl.signal.aborted) return;
+      setPeek(s);
+      if (s.pending && !shown && carries(s)) {
+        shown = true;
+        setCrawl(s.crawl);
+        setLive(s.live);
+        setAudit(s.base);
+        setPrelim(true);
+        track('grade_preview', { ...hotelParams(target), seconds: Math.round((Date.now() - started) / 1000) });
+      }
+    }).then(async (s) => {
+      if (ctrl.signal.aborted) return;
+      if (carries(s)) { finish(s!.base!, s, 'own'); return; }
+      // Our scan couldn't carry a grade (the search budget is spent, or the hotel wasn't matched on Google).
+      // Fall back to the older grading API, which takes about two minutes.
+      setFallback(true);
+      try {
+        const a = await runAudit(...where, ctrl.signal);
+        // That scan knows the hotel's website, so ours can now read it. Ask once more.
+        const again = (await fetchScan(...where, ctrl.signal, (x) => { if (!ctrl.signal.aborted) setPeek(x); })) ?? s;
+        if (!ctrl.signal.aborted) finish(a, again, 'fallback');
+      } catch (e: any) {
+        if (e?.name === 'AbortError' || ctrl.signal.aborted) return;
+        window.clearInterval(tick);
         setError(e?.message || 'The scan failed.');
         track('grade_error', hotelParams(target));
-      })
-      .finally(() => window.clearInterval(tick));
+      }
+    });
     return () => { ctrl.abort(); window.clearInterval(tick); };
   }, [target, attempt]);
+
+  // The grade is settled once the scan's last stage is in and the two slower readings have answered.
+  const settling = !!audit && (prelim || !speedDone || !themesDone);
 
   // Log the lead for every hotel an unlocked visitor grades.
   useEffect(() => {
@@ -411,19 +429,19 @@ export default function ReportCard() {
   // Email the report card once per hotel to visitors who verified their address.
   useEffect(() => {
     // Wait for the settled report, so the emailed grade matches the page.
-    if (!target || !audit || prelim || !user || ['tester', 'unverified'].includes(user.proof)) return;
+    if (!target || !audit || settling || !user || ['tester', 'unverified'].includes(user.proof)) return;
     const id = [target.hotel, target.city, target.state].join('|').toLowerCase();
     const mailed = readStore(MAILED_KEY).split('\n').filter(Boolean);
     if (mailed.includes(id)) return;
     writeStore(MAILED_KEY, [...mailed, id].slice(-50).join('\n'));
     void sendReport(user, target);
-  }, [target, audit, prelim, user]);
+  }, [target, audit, settling, user]);
 
   // Fetched ahead of the click, so copying stays a single tap.
   useEffect(() => {
-    if (!target || !audit || prelim || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
+    if (!target || !audit || settling || !user || viaLink || ['tester', 'unverified'].includes(user.proof)) return;
     void shareLink(user, target).then(setShare);
-  }, [target, audit, prelim, user, viaLink]);
+  }, [target, audit, settling, user, viaLink]);
 
   if (target === undefined) return <div className="min-h-[420px]" />;
 
@@ -457,7 +475,8 @@ export default function ReportCard() {
         target={target}
         elapsed={elapsed}
         ready={!!audit}
-        settled={!!audit && !prelim}
+        settled={!!audit && !settling}
+        slow={fallback}
         locked={!user && !viaLink}
         market={market}
         peek={peek}
@@ -492,25 +511,16 @@ export default function ReportCard() {
           <a href="/" className="btn btn--primary">grade your hotel</a>
         </div>
       )}
-      {prelim && (
+      {settling && (
         <div className="panel px-5 sm:px-8 py-4 mb-6 no-print" role="status">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="scan-dot" aria-hidden="true" />
             <p className="flex-1 min-w-[240px] text-[14px]">
               <span className="font-semibold">First reading. The grade can still move.</span>{' '}
-              <span className="text-ink-60">Prices, search, your website and the hotels around you are in. Review text and replies, the ad libraries, social and page speed are still being read, usually within two minutes.</span>
+              <span className="text-ink-60">{prelim ? 'Prices, your website and the hotels around you are in. Search, reviews and ads are still being read.' : 'Page speed and review themes are still being read.'} Usually under a minute.</span>
             </p>
             <span className="meta tabular">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
           </div>
-        </div>
-      )}
-      {ownOnly && (
-        <div className="panel px-5 sm:px-8 py-4 mb-6 no-print">
-          <p className="text-[14px]">
-            <span className="font-semibold">Part of the scan didn’t finish.</span>{' '}
-            <span className="text-ink-60">Review text and replies, the ad libraries, social and page speed couldn’t be read this time. They’re left out of the grade, not counted against it.</span>{' '}
-            <button type="button" className="link" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
-          </p>
         </div>
       )}
       <Report audit={audit} crawl={crawl ?? null} live={liveAll} market={market} />
