@@ -108,7 +108,7 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   };
 
   // Round one: find the hotel and read its prices.
-  const prices = await cached('price-scans-v8', key, { fresh, allowed: mayStart, complete: (p) => p.done !== false }, () => scanPrices({ ...target, token })).catch(() => null);
+  const prices = await cached('price-scans-v9', key, { fresh, allowed: mayStart, complete: (p) => p.done !== false }, () => scanPrices({ ...target, token })).catch(() => null);
   const site = websiteOf(old ?? {}) || prices?.hotel?.link || '';
 
   // Round two needs the website and star class from round one. If round one just spent real time,

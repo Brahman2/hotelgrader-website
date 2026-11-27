@@ -17,7 +17,15 @@ export function sameHotel(found, asked) {
   const f = words(found), a = words(asked);
   if (!f.length || !a.length) return norm(found) === norm(asked);
   const shared = a.filter((w) => f.includes(w)).length;
-  return shared >= Math.ceil(Math.min(a.length, f.length) / 2) && shared >= 1;
+  if (!(shared >= Math.ceil(Math.min(a.length, f.length) / 2) && shared >= 1)) return false;
+  // "Halepuna Waikiki by Halekulani" is a different hotel from "Halekulani": in "X by Brand",
+  // a match on the brand alone doesn't count. At least one asked word must be in the part before "by".
+  const parts = norm(found).split(/\s+by\s+/);
+  if (parts.length > 1) {
+    const core = words(parts[0]);
+    if (core.length && !a.some((w) => core.includes(w))) return false;
+  }
+  return true;
 }
 
 /** Rough US holiday periods, by month and day, when rates aren't typical. */
