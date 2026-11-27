@@ -49,8 +49,12 @@ function button(t, href, label) {
   return `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${t.btnBg};border-radius:${t.radius}px;"><a href="${e(href)}" style="display:inline-block;padding:13px 22px;font-family:${t.font};font-size:15px;font-weight:600;color:${t.btnFg};text-decoration:none;">${e(label)}</a></td></tr></table>`;
 }
 
+/** Greet by the first word of the name people give ("Patrick Ahler" -> "Patrick"). */
+const firstWord = (name) => String(name || '').trim().split(/\s+/)[0] || 'there';
+
 /** The 6-digit code email. */
-export function codeEmail({ theme, name, code, hotel }) {
+export function codeEmail({ theme, name: fullName, code, hotel }) {
+  const name = firstWord(fullName);
   const t = themeOf(theme);
   const about = hotel ? `the report card for ${hotel}` : 'your report card';
   const html = shell(t, `${code} is your hotelgrader code`, `
@@ -74,7 +78,8 @@ const usd = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 const num = (n) => (n == null ? '-' : Number(n).toLocaleString('en-US'));
 
 /** The report card email: the grade, then the same substance as the page. */
-export function reportEmail({ theme, name, summary: s, link }) {
+export function reportEmail({ theme, name: fullName, summary: s, link }) {
+  const name = firstWord(fullName);
   const t = themeOf(theme);
   const lead = tone(t, s.letter);
   const label = (txt) => `<p style="margin:26px 0 12px;padding-top:20px;border-top:1px solid ${t.edge};font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:${t.muted};">${e(txt)}</p>`;
