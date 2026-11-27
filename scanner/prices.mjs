@@ -159,6 +159,13 @@ export async function scanPrices(target, { today = new Date() } = {}) {
   let a, b, area;
   if (target.token) {
     [a, b, area] = await Promise.all([nightQuote(target, n1), nightQuote(target, n2), areaQuotes(target, n1)]);
+    // A stored listing id can point at the wrong hotel (a sister property, say). If Google's name for it
+    // isn't the hotel asked for, drop the id and find the hotel by name instead.
+    const got = [a, b].find((n) => n.ok)?.hotel?.name;
+    if (got && !sameHotel(got, target.hotel)) {
+      const retry = await scanPrices({ ...target, token: '' }, { today });
+      return { ...retry, searches: retry.searches + a.searches + b.searches + area.searches, ignoredToken: got };
+    }
   } else {
     // No listing id yet: find the hotel by name first, and spend nothing more unless Google's match is this hotel.
     a = await nightQuote(target, n1);
