@@ -102,6 +102,7 @@ const listRow = (p) => ({
   rate: money(p.rate_per_night), rating: p.overall_rating ?? null, reviews: p.reviews ?? null,
   hotelClass: p.extracted_hotel_class ?? null,
   lat: p.gps_coordinates?.latitude ?? null, lng: p.gps_coordinates?.longitude ?? null,
+  amenities: Array.isArray(p.amenities) ? p.amenities.slice(0, 40) : [],
 });
 
 const common = { engine: 'google_hotels', adults: '2', currency: 'USD', gl: 'us', hl: 'en' };

@@ -193,9 +193,9 @@ function Choice({ a, audit, market }: { a: Assessment; audit: Audit; market: Mar
         <div>
           <div className="meta mb-1.5">Why these hotels</div>
           <p className="text-ink-60">
-            {c.basis === 'same-class' ? `These are the ${c.peers} closest hotels Google lists near you in the same star class. Ranks are among all ${c.setSize} in that class. `
+            {c.basis === 'same-class' ? `These are the ${c.peers} hotels near you that Google lists in your star class, give or take half a star, and priced close to you for the same night. The closest on price, distance and amenities come first. `
               : c.basis === 'near-class' ? `These are the ${c.peers} closest hotels Google lists near you within one star of your class. `
-                : c.basis === 'nearby' ? `These are the ${c.peers} closest hotels Google lists near you. Too few shared your star class to match on it. `
+                : c.basis === 'nearby' ? `Google doesn’t list a star class for your hotel, so these are the ${c.peers} hotels nearest to you on price and distance. `
                   : c.setSize ? `Our model picked these ${c.peers} from ${c.setSize} hotels near you that it placed in a similar class. ` : 'Our model picked these from hotels near you. '}
             Nearby isn’t the same as comparable. If these aren’t the hotels you lose bookings to, <a href="#correct">tell us</a>.
           </p>
