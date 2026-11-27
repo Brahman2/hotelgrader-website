@@ -17,7 +17,15 @@ export function sameHotel(found, asked) {
   const f = words(found), a = words(asked);
   if (!f.length || !a.length) return norm(found) === norm(asked);
   const shared = a.filter((w) => f.includes(w)).length;
-  return shared >= Math.ceil(Math.min(a.length, f.length) / 2) && shared >= 1;
+  if (!(shared >= Math.ceil(Math.min(a.length, f.length) / 2) && shared >= 1)) return false;
+  // "Halepuna Waikiki by Halekulani" is a different hotel from "Halekulani": in "X by Brand",
+  // a match on the brand alone doesn't count. At least one asked word must be in the part before "by".
+  const parts = norm(found).split(/\s+by\s+/);
+  if (parts.length > 1) {
+    const core = words(parts[0]);
+    if (core.length && !a.some((w) => core.includes(w))) return false;
+  }
+  return true;
 }
 
 /** Rough US holiday periods, by month and day, when rates aren't typical. */
@@ -102,6 +110,7 @@ const listRow = (p) => ({
   rate: money(p.rate_per_night), rating: p.overall_rating ?? null, reviews: p.reviews ?? null,
   hotelClass: p.extracted_hotel_class ?? null,
   lat: p.gps_coordinates?.latitude ?? null, lng: p.gps_coordinates?.longitude ?? null,
+  amenities: Array.isArray(p.amenities) ? p.amenities.slice(0, 40) : [],
 });
 
 const common = { engine: 'google_hotels', adults: '2', currency: 'USD', gl: 'us', hl: 'en' };
@@ -124,9 +133,11 @@ export async function nightQuote({ token, hotel, city, state }, night) {
   return { ...night, ok: true, error: '', hotel: details(d), rates: rateRows(d), rooms: rooms(d), searches };
 }
 
-/** Lowest rate shown for hotels around this one on one night. One search. */
-export async function areaQuotes({ hotel, city, state }, night) {
-  const r = await search({ ...common, check_in_date: night.checkIn, check_out_date: night.checkOut, q: `hotels near ${[hotel, city, state].filter(Boolean).join(', ')}` });
+/** Lowest rate shown for hotels around this one on one night. One search. Pass a star class to list only that class. */
+export async function areaQuotes({ hotel, city, state }, night, hotelClass = null) {
+  const q = `hotels near ${[hotel, city, state].filter(Boolean).join(', ')}`;
+  const cls = hotelClass != null ? Math.round(hotelClass) : null;
+  const r = await search({ ...common, check_in_date: night.checkIn, check_out_date: night.checkOut, q, ...(cls >= 2 && cls <= 5 ? { hotel_class: String(cls) } : {}) });
   if (!r.ok) return { ...night, ok: false, error: r.error, hotels: [], searches: 0 };
   const hotels = (r.data.properties ?? []).map(listRow).filter((h) => h.name && h.type !== 'vacation rental');
   return { ...night, ok: true, error: '', hotels, searches: 1 };
@@ -142,12 +153,19 @@ export async function townRanking({ city, state }, night) {
   return { ok: list.length >= 5, error: list.length >= 5 ? '' : 'thin', searches: 1, kind: 'hotels', query, checkedAt: new Date().toISOString(), night: night.checkIn, list };
 }
 
-/** The full price reading for one hotel. Up to three searches when the token is known. */
+/** The full price reading for one hotel. Up to four searches when the token is known (the fourth finds same-class hotels nearby). */
 export async function scanPrices(target, { today = new Date() } = {}) {
   const [n1, n2] = sampleNights(today);
   let a, b, area;
   if (target.token) {
     [a, b, area] = await Promise.all([nightQuote(target, n1), nightQuote(target, n2), areaQuotes(target, n1)]);
+    // A stored listing id can point at the wrong hotel (a sister property, say). If Google's name for it
+    // isn't the hotel asked for, drop the id and find the hotel by name instead.
+    const got = [a, b].find((n) => n.ok)?.hotel?.name;
+    if (got && !sameHotel(got, target.hotel)) {
+      const retry = await scanPrices({ ...target, token: '' }, { today });
+      return { ...retry, searches: retry.searches + a.searches + b.searches + area.searches, ignoredToken: got };
+    }
   } else {
     // No listing id yet: find the hotel by name first, and spend nothing more unless Google's match is this hotel.
     a = await nightQuote(target, n1);
@@ -157,6 +175,21 @@ export async function scanPrices(target, { today = new Date() } = {}) {
     [b, area] = await Promise.all([nightQuote({ ...target, token: a.hotel.token }, n2), areaQuotes(target, n1)]);
   }
   const first = [a, b].find((n) => n.ok);
+  // A comp set compares like with like, so it needs hotels in this hotel's star class. The plain
+  // "hotels near" search mixes classes; when it returns fewer than four in this class, ask Google
+  // for this class only (one more search) and add those hotels to the list.
+  const cls = first?.hotel?.hotelClass ?? null;
+  if (cls != null && area.ok) {
+    const inClass = area.hotels.filter((h) => h.hotelClass != null && Math.abs(h.hotelClass - cls) <= 0.5).length;
+    if (inClass < 4) {
+      const more = await areaQuotes(target, n1, cls);
+      area.searches += more.searches;
+      if (more.ok) {
+        const have = new Set(area.hotels.map((h) => h.name.toLowerCase()));
+        area.hotels = [...area.hotels, ...more.hotels.filter((h) => !have.has(h.name.toLowerCase()))];
+      }
+    }
+  }
   const timedOut = [a, b, area].some((x) => !x.ok && x.error === 'timeout');
   return {
     ok: !!first,

@@ -134,33 +134,71 @@ const km = (a, b) => {
 };
 
 /**
- * Our own comparison set, built from Google's hotel listings around the hotel:
- * the same star class first, then the closest. Returns the same shape the
- * grading API used, or null when there is too little to build one (the API's
- * set is used then).
+ * Our own comparison set, built from Google's hotel listings around the hotel.
+ *
+ * Like for like, the way a revenue manager builds one:
+ *  - Star class is a hard rule: only hotels within half a star of this one. We never pad
+ *    the set with other classes; with fewer than two matches we return null.
+ *  - Price (ADR) next: when both rates for the same night are known, only hotels within
+ *    35% of this hotel's lowest rate, unless that leaves fewer than two.
+ *  - Then the closest competitors first: nearest rate, then distance, then shared amenities.
+ * When Google lists no star class for this hotel, the set falls back to the nearest hotels
+ * and says so ('nearby').
  */
+const CLASS_BAND = 0.5;
+const ADR_BAND = 0.35;
+const SET_MAX = 8;
+
 export function compSet(audit, live = null) {
   const px = live?.prices?.ok ? live.prices : null;
   const own = px?.hotel;
   const listed = (px?.area?.hotels ?? []).filter((h) => h.name && h.rating != null && h.reviews > 0
     && !sameName(h.name, own?.name) && !sameName(h.name, audit.hotelName) && !likeName(h.name, audit.hotelName));
-  if (!own || own.rating == null || listed.length < 4) return null;
-  const cls = own.hotelClass;
-  const same = cls != null ? listed.filter((h) => h.hotelClass === cls) : [];
-  const near = cls != null ? listed.filter((h) => h.hotelClass != null && Math.abs(h.hotelClass - cls) <= 1) : [];
-  const pool = same.length >= 4 ? same : near.length >= 4 ? near : listed;
-  const basis = same.length >= 4 ? 'same-class' : near.length >= 4 ? 'near-class' : 'nearby';
-  const ranked = pool.map((h, i) => ({ ...h, km: km(own, h), i })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9) || a.i - b.i);
+  if (!own || own.rating == null) return null;
+  const cls = own.hotelClass ?? null;
+
+  let pool = cls != null ? listed.filter((h) => h.hotelClass != null && Math.abs(h.hotelClass - cls) <= CLASS_BAND) : listed;
+  if (pool.length < 2) return null;
+
+  // This hotel's lowest rate on the night the area was priced.
+  const areaNight = (px.nights ?? []).find((n) => n.checkIn === px.area?.checkIn) ?? (px.nights ?? [])[0];
+  const ownRates = (areaNight?.rates ?? []).map((r) => r.rate).filter((r) => r > 0);
+  const ownRate = ownRates.length ? Math.min(...ownRates) : null;
+  const gap = (h) => (ownRate && h.rate > 0 ? Math.abs(h.rate - ownRate) / ownRate : null);
+  if (ownRate) {
+    const inBand = pool.filter((h) => gap(h) != null && gap(h) <= ADR_BAND);
+    if (inBand.length >= 2) pool = inBand;
+  }
+
+  const mine = new Set((own.amenities ?? []).map((a) => String(a).toLowerCase()));
+  const shared = (h) => {
+    const theirs = new Set((h.amenities ?? []).map((a) => String(a).toLowerCase()));
+    if (!mine.size || !theirs.size) return null;
+    let both = 0; theirs.forEach((a) => { if (mine.has(a)) both += 1; });
+    return both / (mine.size + theirs.size - both);
+  };
+  const closeness = (h) => {
+    const d = km(own, h);
+    const price = gap(h) != null ? 1 - Math.min(1, gap(h) / ADR_BAND) : 0.3;
+    const near = d != null ? 1 / (1 + d) : 0.3;
+    const amen = shared(h) ?? 0.4;
+    return 0.4 * price + 0.35 * near + 0.25 * amen;
+  };
+  const ranked = pool.map((h, i) => ({ ...h, km: km(own, h), score: closeness(h), i }))
+    .sort((a, b) => b.score - a.score || (a.km ?? 1e9) - (b.km ?? 1e9) || a.i - b.i)
+    .slice(0, SET_MAX);
+
   const avg = (xs) => xs.reduce((t, x) => t + x, 0) / xs.length;
   return {
-    basis, ours: true, hotel_class: cls ?? null,
+    basis: cls != null ? 'same-class' : 'nearby', ours: true, hotel_class: cls,
     tier_label: cls != null ? `${cls}-star` : '',
-    own_rating: own.rating, own_reviews: own.reviews ?? null,
-    compset_avg_rating: Math.round(avg(pool.map((h) => h.rating)) * 10) / 10,
-    compset_avg_reviews: Math.round(avg(pool.map((h) => h.reviews))),
-    rating_rank: 1 + pool.filter((h) => h.rating > own.rating).length,
-    review_rank: own.reviews != null ? 1 + pool.filter((h) => h.reviews > own.reviews).length : null,
-    total_in_set: pool.length + 1,
+    own_rating: own.rating, own_reviews: own.reviews ?? null, own_rate: ownRate,
+    adr_band: ownRate ? ADR_BAND : null,
+    compset_avg_rating: Math.round(avg(ranked.map((h) => h.rating)) * 10) / 10,
+    compset_avg_reviews: Math.round(avg(ranked.map((h) => h.reviews))),
+    rating_rank: 1 + ranked.filter((h) => h.rating > own.rating).length,
+    review_rank: own.reviews != null ? 1 + ranked.filter((h) => h.reviews > own.reviews).length : null,
+    total_in_set: ranked.length + 1,
     total_nearby: listed.length,
     top_competitors: ranked.slice(0, 5).map((h) => ({ name: h.name, rating: h.rating, reviews: h.reviews, rate: h.rate ?? null, lat: h.lat, lng: h.lng, km: h.km, hotel_class: h.hotelClass })),
   };
