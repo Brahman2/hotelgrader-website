@@ -24,12 +24,12 @@ import { themesFor } from './themes.mjs';
 const DAY = 24 * 60 * 60 * 1000;
 // Searches kept back each month so a busy day can't empty the plan.
 const RESERVE = Number(process.env.SERPAPI_RESERVE || 10);
-// The most one new hotel can spend: finding it, two nights, the hotels nearby, the brand search, one AI question, the newest reviews,
+// The most one new hotel can spend: finding it, two nights, the hotels nearby (plus one search for its star class), the brand search, one AI question, the newest reviews,
 // and up to four searches for its town (shared by every hotel there, so usually already paid for).
 // The ad libraries are read for the hotel itself only, never its competitors: two searches a hotel, cached a week.
 // They aren't graded, so SCAN_ADS=off switches them off to save searches.
 const ADS_ON = process.env.SCAN_ADS !== 'off';
-const PER_SCAN = ADS_ON ? 14 : 12;
+const PER_SCAN = ADS_ON ? 15 : 13;
 const WEEK = 7 * DAY;
 // New hotels scanned per day before we stop spending and lean on the grading API alone.
 const DAILY_CAP = Number(process.env.SCAN_DAILY_CAP || 20);
@@ -108,7 +108,7 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   };
 
   // Round one: find the hotel and read its prices.
-  const prices = await cached('price-scans-v7', key, { fresh, allowed: mayStart, complete: (p) => p.done !== false }, () => scanPrices({ ...target, token })).catch(() => null);
+  const prices = await cached('price-scans-v8', key, { fresh, allowed: mayStart, complete: (p) => p.done !== false }, () => scanPrices({ ...target, token })).catch(() => null);
   const site = websiteOf(old ?? {}) || prices?.hotel?.link || '';
 
   // Round two needs the website and star class from round one. If round one just spent real time,
