@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { UNCONFIGURED, checkCode, sendCode, type User } from '../lib/verify';
 import { track } from '../lib/track';
 
-// The gate in front of the grade: first name and email, then a 6-digit code
+// The gate in front of the grade: name and email, then a 6-digit code
 // we email to that address. It sits beside the live scan, so the visitor can
 // verify while the scan runs.
 
@@ -28,7 +28,7 @@ export default function Gate({ target, ready, onUnlock }: {
   const request = async () => {
     const n = name.trim();
     const e = email.trim().toLowerCase();
-    if (!n) return setError('Enter your first name.');
+    if (!n) return setError('Enter your name.');
     if (!EMAIL_RE.test(e)) return setError('That doesn’t look like an email address.');
     setBusy(true); setError('');
     try {
@@ -68,10 +68,10 @@ export default function Gate({ target, ready, onUnlock }: {
           <h2 className="headline text-[18px]">{ready ? 'Your grade is ready.' : 'Where should we send your code?'}</h2>
           <p className="text-ink-60 text-[13px] mt-1">We’ll email a 6-digit code to confirm it’s you, then show the grade and send you a copy.</p>
           <div className="flex flex-col gap-2 mt-4">
-            <label htmlFor="gate-name" className="text-[13px] font-medium">First name</label>
-            <input id="gate-name" name="given-name" type="text" autoComplete="given-name" autoFocus
+            <label htmlFor="gate-name" className="text-[13px] font-medium">Name</label>
+            <input id="gate-name" name="name" type="text" autoComplete="name" autoFocus
               value={name} onChange={(e) => { setName(e.target.value); setError(''); }} className="input w-full" />
-            <label htmlFor="gate-email" className="text-[13px] font-medium mt-2">Work email</label>
+            <label htmlFor="gate-email" className="text-[13px] font-medium mt-2">Email</label>
             <input id="gate-email" name="email" type="email" inputMode="email" autoComplete="email"
               value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} className="input w-full" />
             {error && <p className="text-attention text-[13px]" role="alert">{error}</p>}

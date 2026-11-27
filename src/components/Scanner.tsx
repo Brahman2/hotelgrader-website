@@ -76,8 +76,8 @@ export default function Scanner({ center, blips, scanning, hotel, approximate }:
         {!center && <div className="map-empty meta">{scanning ? 'locating the hotel' : 'couldn’t place this hotel on the map'}</div>}
       </div>
       {center && (
-        <figcaption className="meta num mt-3">
-          {approximate ? 'Showing the city. We couldn’t pin the exact address.' : `${fmt(center.lat, 'N', 'S')}  ${fmt(center.lon, 'E', 'W')}`}
+        <figcaption className={`meta mt-3${approximate ? '' : ' num'}`}>
+          {approximate ? 'Showing the town. We couldn’t place the hotel on the map.' : `${fmt(center.lat, 'N', 'S')}  ${fmt(center.lon, 'E', 'W')}`}
         </figcaption>
       )}
     </figure>

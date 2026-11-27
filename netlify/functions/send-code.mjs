@@ -18,7 +18,7 @@ export default async (req) => {
   const name = clean(body.name).slice(0, 60);
   const email = clean(body.email).toLowerCase().slice(0, 200);
   const hotel = clean(body.hotel).slice(0, 120);
-  if (!name) return json(400, { error: 'Enter your first name.' });
+  if (!name) return json(400, { error: 'Enter your name.' });
   if (!EMAIL_RE.test(email)) return json(400, { error: 'That doesn’t look like an email address.' });
 
   if (!process.env.RESEND_API_KEY || !process.env.VERIFY_SECRET) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchScan, fetchSpeed, fetchThemes, runAudit, type Audit, type OwnScan } from '../lib/hg';
+import { HG_API, fetchScan, fetchSpeed, fetchThemes, runAudit, type Audit, type OwnScan } from '../lib/hg';
 import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -14,7 +14,7 @@ import Scanner, { type Blip } from './Scanner';
 // grade and what it rests on, what to do first, and the evidence.
 //
 // The card is gated: the scan starts right away, but the grade only shows once
-// the visitor gives a first name and email and confirms a code we send there.
+// the visitor gives a name and email and confirms a code we send there.
 // One verified email unlocks every card in that browser, including the full
 // report. Sharing on LinkedIn is optional, one button, and never states the grade.
 
@@ -103,30 +103,49 @@ type Market = ReturnType<typeof useMarket>;
 // What the scan is doing, by seconds elapsed. Our own readings land in the
 // first fifteen seconds; the slower review, ad and speed checks follow.
 const STAGES: [number, string][] = [
-  [0, 'Finding the hotel on Google'],
+  [0, 'Finding your hotel on Google'],
   [4, 'Checking rates'],
-  [8, 'Opening the website and booking path'],
-  [11, 'Searching your name and your town'],
-  [14, 'Reading the newest reviews and replies'],
-  [18, 'Testing page speed on a phone'],
+  [8, 'Reading your website and booking engine'],
+  [11, 'Searching Google for your hotel name'],
+  [14, 'Reading your newest Google reviews'],
+  [18, 'Testing your site speed on a phone'],
   [26, 'Grouping what guests keep saying'],
-  [38, 'Weighing the evidence'],
+  [38, 'Working out your grade'],
 ];
 // When our own scan can't carry the grade, the older grading API does, and it takes about two minutes.
 const SLOW_STAGES: [number, string][] = STAGES.map(([t, text], i) => [i < 4 ? t : Math.round(t * 3.2), text]);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** What our own scan has found so far, shown as it lands so the wait isn't a blank screen. */
+/** The Google Places listing for a hotel: a fallback for the first panel when our own price search can't find it. */
+function usePlacesListing(target: Target) {
+  const [listing, setListing] = useState<any>(undefined);
+  useEffect(() => {
+    let off = false;
+    const q = new URLSearchParams({ hotel_name: target.hotel, city: target.city, state: target.state, max_photos: '6' });
+    fetch(`${HG_API}/api/hotel-photos?${q}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!off) setListing(d?.success && d.hotel ? { ...d.hotel, images: (d.photos ?? []).map((p: any) => p.url).filter(Boolean) } : null); })
+      .catch(() => { if (!off) setListing(null); });
+    return () => { off = true; };
+  }, [target.hotel, target.city, target.state]);
+  return listing; // undefined while loading, null when not found
+}
+
 function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null; market: Market; target: Target; ready: boolean; shot?: string }) {
   const live = (peek?.live ?? {}) as any;
-  const h = live.prices?.ok ? live.prices.hotel : null;
+  const places = usePlacesListing(target);
+  const own = live.prices?.ok ? live.prices.hotel : null;
+  // Our own reading wins; the Places listing fills the panel when the price search can't find the hotel.
+  const h = own ?? (places ? { name: places.name, address: places.address, rating: places.rating, reviews: places.reviews_count, images: places.images, link: places.website } : null);
+  const lost = !h && places === null && !!peek && !peek.pending;
   const night = live.prices?.ok ? (live.prices.nights ?? []).find((n: any) => n.ok && n.rates?.length) : null;
   const site = (peek?.crawl as any)?.ok ? (peek!.crawl as any) : null;
-  const topics: any[] = (h?.topics ?? []).filter((t: any) => t.mentions >= 10);
+  const topics: any[] = (own?.topics ?? []).filter((t: any) => t.mentions >= 10);
   const share = (t: any) => t.positive / Math.max(1, t.positive + t.negative);
   const praised = [...topics].sort((x, y) => share(y) - share(x)).slice(0, 3);
   const griped = [...topics].filter((t) => share(t) < 0.6).sort((x, y) => share(x) - share(y)).slice(0, 3);
-  const stars: any[] = h?.stars ?? [];
+  const stars: any[] = own?.stars ?? [];
   const starTotal = stars.reduce((t, r) => t + r.count, 0);
   const newest: any[] = (live.reviews?.reviews ?? []).filter((x: any) => x.text && x.rating != null);
   const card = 'panel p-5 reveal';
@@ -134,7 +153,7 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
       {/* The listing: photos, address, rating */}
       <div className={`${card} sm:col-span-2`}>
-        <div className="meta mb-3">{h ? 'found on Google' : 'finding the hotel on Google'}</div>
+        <div className="meta mb-3">{h ? 'found on Google' : lost ? 'not found on Google' : 'finding the hotel on Google'}</div>
         {h ? (
           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-center">
             {h.images?.length > 0 && (
@@ -154,13 +173,15 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
               {h.hotelClass != null && <div className="meta mt-2">Google lists it as a {h.hotelClass}-star hotel</div>}
             </div>
           </div>
-        ) : <div className="skeleton h-[92px]" />}
+        ) : lost
+          ? <p className="text-ink-60 text-[13.5px] m-0">We couldn’t find {target.hotel} on Google. Check the spelling, or pick the hotel from the list as you type.</p>
+          : <div className="skeleton h-[92px]" />}
       </div>
 
       {/* What guests say */}
       {h && (starTotal >= 20 || topics.length >= 3) && (
         <div className={card}>
-          <div className="meta mb-3">reading {starTotal ? starTotal.toLocaleString('en-US') : 'the'} guest reviews</div>
+          <div className="meta mb-3">{starTotal ? starTotal.toLocaleString('en-US') : 'your'} Google reviews by star rating</div>
           {starTotal >= 20 && (
             <ul className="list-none m-0 p-0 space-y-1 mb-4">
               {[5, 4, 3, 2, 1].map((n) => {
@@ -182,7 +203,7 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
       {/* The hotel's own site, as a phone sees it */}
       {(site || h?.link) && (
         <div className={card}>
-          <div className="meta mb-3">{site ? 'your website on a phone' : 'opening your website'}</div>
+          <div className="meta mb-3">{site ? 'your website' : 'opening your website'}</div>
           <div className="flex gap-4 items-start">
             <div className="phone" aria-hidden="true">
               {/* The page speed test's own picture of the page when we have it: it always renders, a framed site sometimes doesn't. */}
@@ -197,8 +218,8 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
             {site && (
               <ul className="list-none m-0 p-0 text-[13px] space-y-2 min-w-0">
                 <li className="truncate font-medium">{site.host}</li>
-                <li className="text-ink-60">loaded in {(site.ms / 1000).toFixed(1)}s</li>
-                {site.booking?.engine && <li className="text-ink-60">books through {site.booking.engine}</li>}
+                <li className="text-ink-60">server answered in {(site.ms / 1000).toFixed(1)}s</li>
+                {site.booking?.engine && <li className="text-ink-60">booking engine: {site.booking.engine}</li>}
                 {site.booking?.buttons > 0 && <li className="text-ink-60">{site.booking.buttons} booking {site.booking.buttons === 1 ? 'link' : 'links'} found</li>}
                 {site.schema?.lodging && <li className="text-ink-60">hotel data for search engines found</li>}
               </ul>
@@ -210,7 +231,7 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
       {/* The newest reviews themselves */}
       {newest.length >= 2 && (
         <div className={`${card} sm:col-span-2`}>
-          <div className="meta mb-3">reading your newest Google reviews and checking for replies</div>
+          <div className="meta mb-3">your newest Google reviews, and whether you replied</div>
           <ul className="list-none m-0 p-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
             {newest.slice(0, 3).map((x: any, i: number) => (
               <li key={i} className="border border-edge p-3 text-[12.5px] leading-snug min-w-0">
@@ -228,9 +249,9 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
       {/* Prices, as a count only: the detail is in the report */}
       {night && (
         <div className={card}>
-          <div className="meta mb-2">comparing prices</div>
+          <div className="meta mb-2">rates shown on Google</div>
           <div className="num text-[30px] leading-none">{night.rates.length}</div>
-          <p className="text-ink-60 text-[13.5px] mt-1.5">booking sites show a rate for {new Date(`${night.checkIn}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}. Your own site is {night.rates.some((r: any) => r.official) ? 'one of them' : 'not among them'}.</p>
+          <p className="text-ink-60 text-[13.5px] mt-1.5">sites show a rate for {new Date(`${night.checkIn}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} on Google. Your own website {night.rates.some((r: any) => r.official) ? 'is one of them' : 'is not one of them'}.</p>
         </div>
       )}
 
@@ -258,7 +279,7 @@ function ScanScreen({ target, elapsed, ready, settled, slow, locked, market, pee
     <div className="max-w-[1120px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,340px)_1fr] gap-6 md:gap-8 items-start">
       <div className="panel p-6 sm:p-7 md:sticky md:top-20">
         <p className="label label--accent" role="status" aria-live="polite">
-          <span className="dark-only">$ </span>{settled ? 'scan complete' : ready ? `first reading ready · still scanning · ${elapsed}s` : `scanning · ${elapsed}s`}
+          <span className="dark-only">$ </span>{settled ? 'scan complete' : ready ? `first reading ready, still scanning (${elapsed}s)` : `scanning (${elapsed}s)`}
         </p>
         <h1 className="headline text-[22px] sm:text-[26px] mt-2">{target.hotel}</h1>
         <ol className="steps list-none m-0 p-0 mt-6">
@@ -271,7 +292,7 @@ function ScanScreen({ target, elapsed, ready, settled, slow, locked, market, pee
         </ol>
         {locked
           ? <Gate target={target} ready={ready} onUnlock={onUnlock} />
-          : <p className="meta mt-6">The first reading takes about fifteen seconds. Keep this tab open.</p>}
+          : <p className="meta mt-6">{slow ? 'This scan takes about two minutes. Keep this tab open.' : 'The first reading takes about fifteen seconds. Keep this tab open.'}</p>}
       </div>
       <Findings peek={peek} market={market} target={target} ready={ready} shot={shot} />
     </div>
