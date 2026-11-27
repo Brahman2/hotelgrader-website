@@ -104,7 +104,7 @@ type Market = ReturnType<typeof useMarket>;
 // first fifteen seconds; the slower review, ad and speed checks follow.
 const STAGES: [number, string][] = [
   [0, 'Finding the hotel on Google'],
-  [4, 'Reading prices on two nights'],
+  [4, 'Checking rates'],
   [8, 'Opening the website and booking path'],
   [11, 'Searching your name and your town'],
   [14, 'Reading the newest reviews and replies'],

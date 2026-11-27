@@ -28,7 +28,7 @@ const GA_ID = import.meta.env.PROD ? 'G-3G3TFQZW00' : '';
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,10 +38,10 @@ const GA_ID = import.meta.env.PROD ? 'G-3G3TFQZW00' : '';
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex" />}
-    <meta name="theme-color" content="#0B0D0C" />
+    <meta name="theme-color" content="#F5F5F7" />
     <script is:inline>
-      // Dark is the default (set on <html>). Apply a saved light choice before first paint.
-      try { if (localStorage.getItem('hg-theme') === 'light') delete document.documentElement.dataset.theme; } catch (e) {}
+      // Light is the default. Apply a saved dark choice before first paint.
+      try { if (localStorage.getItem('hg-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
     </script>
     {GA_ID && (
       <script is:inline define:vars={{ GA_ID }}>
