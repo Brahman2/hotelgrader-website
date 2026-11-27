@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchScan, fetchSpeed, fetchThemes, runAudit, type Audit, type OwnScan } from '../lib/hg';
+import { HG_API, fetchScan, fetchSpeed, fetchThemes, runAudit, type Audit, type OwnScan } from '../lib/hg';
 import { assess, compSet } from '../../shared/assess.mjs';
 import { checkLink, loadUser, saveUser, sendReport, shareLink, type User } from '../lib/verify';
 import { hotelParams, track } from '../lib/track';
@@ -117,16 +117,35 @@ const SLOW_STAGES: [number, string][] = STAGES.map(([t, text], i) => [i < 4 ? t 
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** What our own scan has found so far, shown as it lands so the wait isn't a blank screen. */
+/** The Google Places listing for a hotel: a fallback for the first panel when our own price search can't find it. */
+function usePlacesListing(target: Target) {
+  const [listing, setListing] = useState<any>(undefined);
+  useEffect(() => {
+    let off = false;
+    const q = new URLSearchParams({ hotel_name: target.hotel, city: target.city, state: target.state, max_photos: '6' });
+    fetch(`${HG_API}/api/hotel-photos?${q}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!off) setListing(d?.success && d.hotel ? { ...d.hotel, images: (d.photos ?? []).map((p: any) => p.url).filter(Boolean) } : null); })
+      .catch(() => { if (!off) setListing(null); });
+    return () => { off = true; };
+  }, [target.hotel, target.city, target.state]);
+  return listing; // undefined while loading, null when not found
+}
+
 function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null; market: Market; target: Target; ready: boolean; shot?: string }) {
   const live = (peek?.live ?? {}) as any;
-  const h = live.prices?.ok ? live.prices.hotel : null;
+  const places = usePlacesListing(target);
+  const own = live.prices?.ok ? live.prices.hotel : null;
+  // Our own reading wins; the Places listing fills the panel when the price search can't find the hotel.
+  const h = own ?? (places ? { name: places.name, address: places.address, rating: places.rating, reviews: places.reviews_count, images: places.images, link: places.website } : null);
+  const lost = !h && places === null && !!peek && !peek.pending;
   const night = live.prices?.ok ? (live.prices.nights ?? []).find((n: any) => n.ok && n.rates?.length) : null;
   const site = (peek?.crawl as any)?.ok ? (peek!.crawl as any) : null;
-  const topics: any[] = (h?.topics ?? []).filter((t: any) => t.mentions >= 10);
+  const topics: any[] = (own?.topics ?? []).filter((t: any) => t.mentions >= 10);
   const share = (t: any) => t.positive / Math.max(1, t.positive + t.negative);
   const praised = [...topics].sort((x, y) => share(y) - share(x)).slice(0, 3);
   const griped = [...topics].filter((t) => share(t) < 0.6).sort((x, y) => share(x) - share(y)).slice(0, 3);
-  const stars: any[] = h?.stars ?? [];
+  const stars: any[] = own?.stars ?? [];
   const starTotal = stars.reduce((t, r) => t + r.count, 0);
   const newest: any[] = (live.reviews?.reviews ?? []).filter((x: any) => x.text && x.rating != null);
   const card = 'panel p-5 reveal';
@@ -134,7 +153,7 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
       {/* The listing: photos, address, rating */}
       <div className={`${card} sm:col-span-2`}>
-        <div className="meta mb-3">{h ? 'found on Google' : 'finding the hotel on Google'}</div>
+        <div className="meta mb-3">{h ? 'found on Google' : lost ? 'not found on Google' : 'finding the hotel on Google'}</div>
         {h ? (
           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-center">
             {h.images?.length > 0 && (
@@ -154,7 +173,9 @@ function Findings({ peek, market, target, ready, shot }: { peek: OwnScan | null;
               {h.hotelClass != null && <div className="meta mt-2">Google lists it as a {h.hotelClass}-star hotel</div>}
             </div>
           </div>
-        ) : <div className="skeleton h-[92px]" />}
+        ) : lost
+          ? <p className="text-ink-60 text-[13.5px] m-0">We couldn’t find {target.hotel} on Google. Check the spelling, or pick the hotel from the list as you type.</p>
+          : <div className="skeleton h-[92px]" />}
       </div>
 
       {/* What guests say */}
