@@ -79,7 +79,7 @@ const within = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => 
  * Returns { base, crawl, live: { prices, search, ai, market }, pending, limited }.
  * `base` is an empty scan in the grading API's shape, so the assessment can run on our evidence alone.
  */
-export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
+export async function scanFor({ hotel, city, state }, { fresh = true, monthly = false } = {}) {
   const target = { hotel: String(hotel ?? '').trim(), city: String(city ?? '').trim(), state: String(state ?? '').trim() };
   const empty = { base: null, crawl: null, live: { prices: null, search: null, ai: null, market: null, speed: null, reviews: null, themes: null, ads: null, gbp: null }, pending: false, limited: '' };
   if (!target.hotel) return empty;
@@ -102,6 +102,8 @@ export async function scanFor({ hotel, city, state }, { fresh = true } = {}) {
   // Starting a new hotel also has to fit under today's cap.
   const mayStart = async () => {
     if (!(await haveBudget())) return false;
+    // The monthly re-scan has its own dollar cap (see netlify/lib/monthly.mjs), so the daily new-hotel cap doesn't apply.
+    if (monthly) return true;
     const day = await dailyCount();
     if (day.n >= DAILY_CAP) { limited = 'daily'; return false; }
     await day.bump();

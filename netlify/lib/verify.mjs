@@ -33,7 +33,7 @@ export const escapeHtml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** Send one email through Resend. Returns true when Resend accepted it. */
-export async function sendMail({ to, subject, text, html }) {
+export async function sendMail({ to, subject, text, html, headers }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -45,6 +45,7 @@ export async function sendMail({ to, subject, text, html }) {
       subject,
       text,
       html,
+      ...(headers ? { headers } : {}),
     }),
   });
   return res.ok;

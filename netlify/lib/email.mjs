@@ -33,7 +33,7 @@ function brand(t) {
   return `<span style="display:inline-block;width:26px;height:26px;line-height:26px;border-radius:6px;background:${t.accent};color:#FFFFFF;font-family:${t.font};font-size:13px;font-weight:600;text-align:center;vertical-align:middle">hg</span><span style="font-family:${t.font};font-size:18px;font-weight:650;color:${t.ink};letter-spacing:-0.4px;vertical-align:middle;margin-left:8px">hotelgrader</span>`;
 }
 
-function shell(t, preheader, inner) {
+function shell(t, preheader, inner, footer = "You're getting this because this address was entered on hotelgrader.com. Graded from public data only.") {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="${t.scheme}"><meta name="supported-color-schemes" content="${t.scheme}"></head>
 <body style="margin:0;padding:0;background:${t.bg};">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${t.bg}">${e(preheader)}</div>
@@ -41,7 +41,7 @@ function shell(t, preheader, inner) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
 <tr><td style="padding:0 4px 18px;">${brand(t)}</td></tr>
 <tr><td style="background:${t.panel};border:1px solid ${t.edge};border-radius:${t.radius}px;padding:28px;font-family:${t.font};color:${t.ink};font-size:15px;line-height:1.55;">${inner}</td></tr>
-<tr><td style="padding:16px 4px 0;font-family:${t.font};font-size:12px;line-height:1.5;color:${t.faint};">You're getting this because this address was entered on hotelgrader.com. Graded from public data only.</td></tr>
+<tr><td style="padding:16px 4px 0;font-family:${t.font};font-size:12px;line-height:1.5;color:${t.faint};">${footer}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -172,4 +172,81 @@ ${searches}
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
 
   return { subject: s.graded ? `${s.hotel}: ${s.letter} (${s.score}/100) on hotelgrader` : `${s.hotel}: your hotelgrader report`, html, text };
+}
+
+// ---------- the monthly report card ----------
+
+/**
+ * Bump this whenever the monthly template or the tips change. It voids the template and sample
+ * approvals in /admin and drops the program back to test mode, so Patrick re-approves what goes out.
+ */
+export const TEMPLATE_VERSION = 'monthly-1';
+
+const monthName = (d) => d.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+
+/** The monthly report card. Light theme only. See docs/monthly-report-card.md. */
+export function monthlyEmail({ name: fullName, snap: s, prev, changes, tip, others = [], link, unsubscribe, postal, month = new Date(), test = false, wouldGoTo = '' }) {
+  const t = themeOf('light');
+  const name = firstWord(fullName);
+  const mon = monthName(month);
+  const delta = prev && prev.version === s.version ? s.score - prev.score : null;
+  const dTxt = delta == null ? '' : delta === 0 ? 'no change' : `${delta > 0 ? '+' : ''}${delta} since ${changes.since === 'last month' ? 'last month' : 'you first looked'}`;
+  const rankMove = prev?.rank && s.rank && prev.rank.place !== s.rank.place ? prev.rank.place - s.rank.place : 0;
+  const fix = s.fixes[0] ?? null;
+  const unanswered = s.recent?.lowUnanswered ?? null;
+  const toneOf = (x) => (x === 'good' ? t.grade.A : x === 'bad' ? t.grade.F : t.muted);
+  const h = (label) => `<p style="margin:26px 0 8px;padding-top:20px;border-top:1px solid ${t.edge};font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:${t.muted};">${e(label)}</p>`;
+
+  const changed = changes.first
+    ? `<p style="margin:0;color:${t.muted};">This is your first monthly report card. From next month, this section recaps what moved since this scan.</p>`
+    : changes.items.length
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${changes.items.map((x) => `<tr><td width="14" valign="top" style="padding:5px 8px 5px 0;color:${toneOf(x.tone)};font-size:14px;">●</td><td style="padding:5px 0;font-size:14.5px;">${e(x.text)}</td></tr>`).join('')}</table>`
+      : `<p style="margin:0;color:${t.muted};">Nothing moved since ${e(changes.since)}. Your competitors may not be standing still, so the fix below is still worth doing.</p>`;
+
+  const testBanner = test ? `<p style="margin:0 0 18px;padding:10px 12px;background:#FFF6DB;border:1px solid #F2C14E;border-radius:8px;font-size:13px;color:#5C4500;">TEST SEND. Only you received this${wouldGoTo ? `. In live mode it would go to ${e(wouldGoTo)}` : ''}.</p>` : '';
+
+  const inner = `${testBanner}
+<p style="margin:0 0 4px;color:${t.accent};font-size:13px;">${e(mon)} report card</p>
+<h1 style="margin:0;font-family:${t.font};font-size:24px;line-height:1.2;font-weight:600;color:${t.ink};">${e(s.hotel)}</h1>
+<p style="margin:2px 0 0;color:${t.muted};">${e([s.city, s.state].filter(Boolean).join(', '))}</p>
+<p style="margin:18px 0 0;">Hi ${e(name)}, here's what changed at ${e(s.hotel)} this month, and the one thing worth doing next.</p>
+${h('What’s changed')}${changed}
+${h('Your grade')}
+<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td valign="bottom" style="font-family:${t.num};font-size:64px;line-height:0.9;font-weight:700;color:${tone(t, s.letter)};">${e(s.letter)}</td>
+<td valign="bottom" style="padding:0 0 6px 14px;font-family:${t.num};font-size:17px;color:${t.muted};">${s.score} / 100${dTxt ? `<br><span style="font-size:13px;color:${delta > 0 ? t.grade.A : delta < 0 ? t.grade.F : t.muted};">${e(dTxt)}</span>` : ''}</td></tr></table>
+${s.rank ? `${h('Your comp set')}<p style="margin:0;"><span style="font-family:${t.num};font-size:22px;font-weight:600;">#${s.rank.place}</span> <span style="color:${t.muted};">of ${s.rank.total} on Google rating${s.hotelClass ? ` among ${s.hotelClass}-star hotels near you priced like you` : ' among the hotels near you'}${rankMove ? `. <span style="color:${rankMove > 0 ? t.grade.A : t.grade.F};">${rankMove > 0 ? `Up ${rankMove}` : `Down ${-rankMove}`} since ${changes.since === 'last month' ? 'last month' : 'you first looked'}.</span>` : '.'}</span></p>` : ''}
+${unanswered != null ? `${h('Reviews waiting on you')}<p style="margin:0;">${unanswered === 0 ? `Every low-star review in your newest ${s.recent.total} has a reply. Keep it up.` : `<span style="font-family:${t.num};font-size:22px;font-weight:600;color:${t.grade.F};">${unanswered}</span> <span style="color:${t.muted};">low-star ${unanswered === 1 ? 'review has' : 'reviews have'} no reply among your newest ${s.recent.total} on Google. Future guests read these first.</span>`}</p>` : ''}
+${fix ? `${h('One fix for this month')}<p style="margin:0;font-weight:600;">${e(fix.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(fix.evidence)}</p>${fix.owner ? `<p style="margin:6px 0 0;font-size:13px;color:${t.faint};">Usually done by: ${e(fix.owner)}</p>` : ''}` : ''}
+${tip ? `${h('Marketing tip of the month')}<p style="margin:0;font-weight:600;">${e(tip.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(tip.body)}</p>` : ''}
+<div style="margin-top:26px;">${button(t, link, 'Open your full report')}</div>
+${others.length ? `<p style="margin:14px 0 0;font-size:13px;color:${t.faint};">You also follow ${e(others.join(', '))}. Open each from your report.</p>` : ''}`;
+
+  const footer = `You're getting this monthly report card because you unlocked a hotelgrader report for ${e(s.hotel)}. Graded from public data only.<br><a href="${e(unsubscribe)}" style="color:${t.faint};">Unsubscribe in one click</a>${postal ? `<br>${e(postal)}` : ''}`;
+  const html = shell(t, `${s.hotel}: ${s.letter}${dTxt ? ` (${dTxt})` : ''}. What changed in ${mon}.`, inner, footer);
+
+  const text = [
+    test ? `TEST SEND. Only you received this${wouldGoTo ? `. In live mode it would go to ${wouldGoTo}` : ''}.\n` : '',
+    `${mon} report card: ${s.hotel}${s.city ? `, ${s.city}` : ''}`,
+    '',
+    `Hi ${name}, here's what changed at ${s.hotel} this month, and the one thing worth doing next.`,
+    '',
+    "WHAT'S CHANGED",
+    ...(changes.first ? ['This is your first monthly report card. From next month, this section recaps what moved since this scan.']
+      : changes.items.length ? changes.items.map((x) => `- ${x.text}`) : [`Nothing moved since ${changes.since}.`]),
+    '',
+    `YOUR GRADE: ${s.letter} (${s.score}/100)${dTxt ? `, ${dTxt}` : ''}`,
+    s.rank ? `YOUR COMP SET: #${s.rank.place} of ${s.rank.total} on Google rating` : '',
+    unanswered != null ? `REVIEWS WAITING ON YOU: ${unanswered} low-star ${unanswered === 1 ? 'review' : 'reviews'} without a reply among your newest ${s.recent.total}` : '',
+    fix ? `\nONE FIX FOR THIS MONTH: ${fix.title}\n${fix.evidence}` : '',
+    tip ? `\nMARKETING TIP OF THE MONTH: ${tip.title}\n${tip.body}` : '',
+    '',
+    `Open your full report: ${link}`,
+    '',
+    `Unsubscribe in one click: ${unsubscribe}`,
+    postal || '',
+  ].filter((l) => l !== '').join('\n');
+
+  const subject = `${test ? '[TEST] ' : ''}${s.hotel}: ${s.letter} in ${mon}${delta ? ` (${delta > 0 ? '+' : ''}${delta})` : ''}`;
+  return { subject, html, text };
 }

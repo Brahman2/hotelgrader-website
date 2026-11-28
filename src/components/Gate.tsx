@@ -20,6 +20,11 @@ export default function Gate({ target, ready, onUnlock }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [resent, setResent] = useState(false);
+  // The monthly report card box. Ticked by default, except where the law asks for an explicit opt-in.
+  const [monthly, setMonthly] = useState(true);
+  useEffect(() => {
+    fetch('/api/geo').then((r) => (r.ok ? r.json() : null)).then((g) => { if (g?.optInRequired) setMonthly(false); }).catch(() => { /* keep the default */ });
+  }, []);
   const codeRef = useRef<HTMLInputElement>(null);
 
   // Put the cursor in the code box as soon as it appears.
@@ -53,7 +58,7 @@ export default function Gate({ target, ready, onUnlock }: {
     const e = email.trim().toLowerCase();
     setBusy(true); setError('');
     try {
-      const proof = await checkCode({ name: n, email: e, code, token, ...target });
+      const proof = await checkCode({ name: n, email: e, code, token, monthly, ...target });
       onUnlock({ name: n, email: e, proof });
     } catch (err) {
       setError((err as Error).message);
@@ -74,6 +79,10 @@ export default function Gate({ target, ready, onUnlock }: {
             <label htmlFor="gate-email" className="text-[13px] font-medium mt-2">Email</label>
             <input id="gate-email" name="email" type="email" inputMode="email" autoComplete="email"
               value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} className="input w-full" />
+            <label className="flex items-start gap-2 mt-2 text-[13px] text-ink-60 cursor-pointer">
+              <input type="checkbox" checked={monthly} onChange={(e) => setMonthly(e.target.checked)} className="mt-[3px]" />
+              <span>Email me an updated report card each month. Unsubscribe anytime.</span>
+            </label>
             {error && <p className="text-attention text-[13px]" role="alert">{error}</p>}
             <button type="submit" disabled={busy} className="btn btn--primary justify-center mt-2">
               {busy ? 'sending' : 'email me a code'}

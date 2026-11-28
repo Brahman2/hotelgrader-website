@@ -6,6 +6,8 @@
 import { EMAIL_RE, clean, escapeHtml, json, matches, sendMail, sign } from '../lib/verify.mjs';
 import { reportLink } from '../lib/report.mjs';
 import { logToSheet } from '../lib/sheet.mjs';
+import { recordContact } from '../lib/contacts.mjs';
+import { baselineAtUnlock } from '../lib/monthly.mjs';
 
 async function recordLead(lead) {
   const link = lead.hotel && process.env.VERIFY_SECRET ? reportLink(process.env.VERIFY_SECRET, lead.hotel, lead.city, lead.state) : '';
@@ -37,7 +39,7 @@ async function recordLead(lead) {
   await Promise.allSettled(jobs); // a failed notification never blocks the visitor
 }
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method !== 'POST') return json(405, { error: 'Use POST.' });
   let body;
   try { body = await req.json(); } catch { return json(400, { error: 'Bad request.' }); }
@@ -53,13 +55,20 @@ export default async (req) => {
   if (Date.now() > exp) return json(410, { error: 'That code has expired. Send a new one.' });
   if (!matches(sig, sign(secret, email, code, exp))) return json(401, { error: 'That code isn’t right. Check the email and try again.' });
 
-  await recordLead({
+  const lead = {
     name: clean(body.name).slice(0, 60),
     email,
     hotel: clean(body.hotel).slice(0, 120),
     city: clean(body.city).slice(0, 80),
     state: clean(body.state).slice(0, 80),
-  });
+  };
+  await Promise.allSettled([
+    recordLead(lead),
+    // The contact list for the monthly report card: their country (for consent rules) and the monthly box.
+    recordContact({ ...lead, country: context?.geo?.country?.code ?? '', optIn: typeof body.monthly === 'boolean' ? body.monthly : undefined }),
+    // What they saw today, so next month's email can say what changed since. Cached readings only.
+    lead.hotel ? baselineAtUnlock({ hotel: lead.hotel, city: lead.city, state: lead.state }) : null,
+  ]);
   return json(200, { ok: true, proof: sign(secret, 'verified', email) });
 };
 
