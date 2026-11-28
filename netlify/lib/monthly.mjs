@@ -92,7 +92,7 @@ export function snapshotOf(target, scan) {
     rating: c?.own_rating ?? scan.live?.prices?.hotel?.rating ?? null,
     reviews: c?.own_reviews ?? scan.live?.prices?.hotel?.reviews ?? null,
     recent: a.recent ? { total: a.recent.total, replied: a.recent.replied, low: a.recent.low, lowUnanswered: a.recent.lowUnanswered } : null,
-    fixes: a.priorities.map((p) => ({ title: p.title, evidence: p.evidence, owner: p.owner, type: p.type })),
+    fixes: a.priorities.map((p) => ({ title: p.title, evidence: p.evidence, owner: p.owner, type: p.type, fn: p.fn ?? '' })),
     profile: prof?.ok ? { found: !!prof.found, unclaimed: prof.unclaimed } : null,
   };
 }

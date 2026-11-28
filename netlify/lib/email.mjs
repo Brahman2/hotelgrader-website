@@ -192,7 +192,10 @@ export function monthlyEmail({ name: fullName, snap: s, prev, changes, tip, othe
   const delta = prev && prev.version === s.version ? s.score - prev.score : null;
   const dTxt = delta == null ? '' : delta === 0 ? 'no change' : `${delta > 0 ? '+' : ''}${delta} since ${changes.since === 'last month' ? 'last month' : 'you first looked'}`;
   const rankMove = prev?.rank && s.rank && prev.rank.place !== s.rank.place ? prev.rank.place - s.rank.place : 0;
-  const fix = s.fixes[0] ?? null;
+  // Rate fixes are left out for now: the report's rate check still compares against every site on Google,
+  // resellers included, which is rate leakage, not parity. Use them again once that check follows the parity
+  // rule (same room type and rate plan against Booking.com, Expedia and Priceline).
+  const fix = s.fixes.find((f) => f.fn !== 'rates') ?? null;
   const unanswered = s.recent?.lowUnanswered ?? null;
   const toneOf = (x) => (x === 'good' ? t.grade.A : x === 'bad' ? t.grade.F : t.muted);
   const h = (label) => `<p style="margin:26px 0 8px;padding-top:20px;border-top:1px solid ${t.edge};font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:${t.muted};">${e(label)}</p>`;

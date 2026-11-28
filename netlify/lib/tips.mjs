@@ -30,9 +30,9 @@ export const TIPS = [
   },
 ];
 
-/** The tip for a given month (0-based count of months since January 2027 picks the order). */
+/** The tip for a given month. The first send (December 2026) gets the first tip, then one a month in order. */
 export function tipFor(date = new Date(), { city = '', hotelClass = null } = {}) {
-  const n = (date.getUTCFullYear() - 2027) * 12 + date.getUTCMonth();
+  const n = (date.getUTCFullYear() - 2026) * 12 + date.getUTCMonth() - 11;
   const tip = TIPS[((n % TIPS.length) + TIPS.length) % TIPS.length];
   const cls = hotelClass ? `${hotelClass}-star ` : '';
   return { ...tip, body: tip.body.replace('{class}', cls).replace('{city}', city || 'your town') };
