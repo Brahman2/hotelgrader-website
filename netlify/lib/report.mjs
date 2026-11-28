@@ -64,6 +64,35 @@ export function summarize(audit, crawl = null, live = null) {
       web: r.organic != null ? nth(r.organic) : r.organicKnown ? 'not in top 10' : "couldn't tell",
       good: { hotel: r.kind === 'brand' ? !!r.panel : r.boxShown ? r.box != null : null, web: r.organic != null ? true : r.organicKnown ? false : null },
     })) : null,
+    // The newest Google reviews and whether each got a reply.
+    reviews: a.recent ? {
+      total: a.recent.total, replied: a.recent.replied, low: a.recent.low, lowUnanswered: a.recent.lowUnanswered,
+      rows: a.recent.rows.slice(0, 3).map((r) => ({ rating: r.rating, when: r.when, replied: r.replied, text: r.text.length > 170 ? `${r.text.slice(0, 170).replace(/\s+\S*$/, '')}…` : r.text })),
+    } : null,
+    // What guests keep saying, grouped from those reviews.
+    themes: a.themes && (a.themes.positive.length || a.themes.negative.length) ? {
+      reviews: a.themes.reviews,
+      positive: a.themes.positive.slice(0, 4).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.quote || '' })),
+      negative: a.themes.negative.slice(0, 4).map((t) => ({ theme: t.theme, mentions: t.mentions, quote: t.quote || '', serious: t.severity === 'serious' })),
+      max: Math.max(1, ...a.themes.positive.map((t) => t.mentions), ...a.themes.negative.map((t) => t.mentions)),
+    } : null,
+    // Where the hotel is listed: the booking sites that showed a rate, and the ratings on its Google listing.
+    listings: a.listings && a.listings.total > 0 ? {
+      total: a.listings.total, own: a.listings.own, nights: a.listings.nights,
+      majors: a.listings.majors.map((m) => ({ name: m.name, listed: m.listed, low: m.low })),
+      resellers: a.listings.others.length,
+      ratings: [
+        ...(a.listings.google ? [{ source: 'Google', rating: a.listings.google.rating, max: 5, reviews: a.listings.google.reviews }] : []),
+        ...a.listings.reviewSites.slice(0, 3),
+      ],
+    } : null,
+    // The page speed test on a phone, and what real visitors measured.
+    speed: a.speed && (a.speed.mobile || a.speed.desktop) ? {
+      mobile: a.speed.mobile?.score ?? null, desktop: a.speed.desktop?.score ?? null,
+      lcp: (a.speed.mobile ?? a.speed.desktop).lcp, tbt: (a.speed.mobile ?? a.speed.desktop).tbt,
+      bytes: (a.speed.mobile ?? a.speed.desktop).bytes,
+      field: a.speed.field ? { overall: a.speed.field.overall, origin: a.speed.field.origin, lcp: a.speed.field.lcp?.value ?? null } : null,
+    } : null,
     flags: a.identity.flags,
   };
 }

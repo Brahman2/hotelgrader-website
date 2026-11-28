@@ -134,6 +134,80 @@ ${[{ ...s.market.own, you: true }, ...s.market.rivals].map((r) => `<tr><td style
 ${s.searches.map((r) => `<tr><td style="${td}padding-right:10px;">${e(r.query)}</td><td style="${td}${seen(r.good.hotel)}">${e(r.hotel)}</td><td style="${td}${seen(r.good.web)}">${e(r.web)}</td></tr>`).join('')}
 </table>` : '';
 
+  // --- the newest reviews, and whether each was answered ---
+  const starTone = (n) => (n == null ? t.faint : n >= 4 ? t.grade.A : n > 3 ? t.grade.C : t.grade.F);
+  let reviews = '';
+  if (s.reviews) {
+    const r = s.reviews;
+    const rate = Math.round((r.replied / r.total) * 100);
+    const head = r.replied === 0
+      ? `<span style="font-weight:600;"><span style="color:${t.grade.F};">None</span> of your ${r.total} newest Google reviews has a reply.</span>`
+      : `<span style="font-weight:600;"><span style="color:${rate >= 80 ? t.grade.A : rate >= 50 ? t.grade.C : t.grade.F};">${r.replied} of ${r.total}</span> newest Google reviews have a reply.</span>`;
+    const low = r.low > 0
+      ? (r.lowUnanswered > 0
+        ? ` <span style="color:${t.muted};">${r.lowUnanswered} of the ${r.low} at three stars or below ${r.lowUnanswered === 1 ? 'sits' : 'sit'} unanswered.</span>`
+        : ` <span style="color:${t.muted};">Every one at three stars or below was answered.</span>`)
+      : '';
+    const cards = r.rows.map((x) => `<tr><td style="padding:0 0 8px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${t.edge};border-radius:${t.radius}px;"><tr><td style="padding:11px 13px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td style="font-family:${t.num};font-size:14px;font-weight:600;color:${starTone(x.rating)};">${x.rating != null ? `${x.rating}/5` : ''}</td>
+<td align="right" style="font-size:12px;color:${x.replied ? t.grade.A : t.faint};">${x.replied ? 'you replied' : 'no reply'}${x.when ? ` <span style="color:${t.faint};">· ${e(x.when)}</span>` : ''}</td></tr></table>
+<div style="margin-top:6px;font-size:13.5px;line-height:1.45;color:${t.muted};">“${e(x.text)}”</div></td></tr></table></td></tr>`).join('');
+    reviews = label('Your newest reviews, and whether you answered') + `<p style="margin:0 0 12px;">${head}${low}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards}</table>`;
+  }
+
+  // --- what guests keep saying ---
+  let themes = '';
+  if (s.themes) {
+    const m = s.themes;
+    const col = (title, rows, color) => `<p style="margin:0 0 6px;font-size:12px;color:${t.muted};">${title}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.map((x) => `<tr>
+<td style="padding:5px 10px 5px 0;font-size:13.5px;">${e(x.theme)}${x.quote ? `<div style="font-size:12.5px;line-height:1.4;color:${t.faint};">“${e(x.quote)}”</div>` : ''}</td>
+<td width="34%" valign="top" style="padding:9px 0 5px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="${Math.max(6, Math.round((x.mentions / m.max) * 100))}%" style="background:${color};height:8px;font-size:0;line-height:0;">&nbsp;</td><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table></td>
+<td width="26" align="right" valign="top" style="padding:5px 0 5px 8px;font-family:${t.num};font-size:13px;color:${t.muted};">${x.mentions}</td></tr>`).join('')}</table>`;
+    themes = label('What guests keep saying')
+      + (m.positive.length ? col('They value', m.positive, t.grade.A) : '')
+      + (m.negative.length ? `<div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>${col('They complain about', m.negative, t.grade.F)}` : '')
+      + `<p style="margin:10px 0 0;font-size:12px;color:${t.faint};">Grouped by AI from ${m.reviews ?? 'your'} of your newest Google reviews. The number is how many reviews raised each one.</p>`;
+  }
+
+  // --- page speed on a phone ---
+  let speed = '';
+  if (s.speed) {
+    const v = s.speed;
+    const labTone = (n) => (n == null ? t.faint : n >= 90 ? t.grade.A : n >= 50 ? t.grade.C : t.grade.F);
+    const limit = (n, good, poor) => (n == null ? t.faint : n <= good ? t.grade.A : n <= poor ? t.grade.C : t.grade.F);
+    const tile = (name, value, color, note) => `<td width="25%" valign="top" style="padding:0 8px 0 0;"><div style="font-size:11.5px;color:${t.muted};">${name}</div><div style="font-family:${t.num};font-size:24px;line-height:1.25;font-weight:600;color:${color};">${value}</div><div style="font-size:11.5px;color:${t.faint};">${note}</div></td>`;
+    const word = { FAST: ['fast', t.grade.A], AVERAGE: ['middling', t.grade.C], SLOW: ['slow', t.grade.F] }[v.field?.overall];
+    speed = label('How your home page loads on a phone') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+${tile('Phone score', v.mobile ?? '-', labTone(v.mobile), 'out of 100')}
+${tile('Desktop score', v.desktop ?? '-', labTone(v.desktop), 'out of 100')}
+${tile('Main content', v.lcp != null ? `${(v.lcp / 1000).toFixed(1)}s` : '-', limit(v.lcp, 2500, 4000), 'to appear')}
+${tile('Page weight', v.bytes ? `${(v.bytes / 1048576).toFixed(1)}MB` : '-', t.ink, 'to download')}
+</tr></table>
+<p style="margin:12px 0 0;font-size:13.5px;">${word
+    ? `Real visitors: Chrome rates ${v.field.origin ? 'your site as a whole' : 'this page'} as <span style="font-weight:600;color:${word[1]};">${word[0]}</span> over the last 28 days${v.field.lcp != null ? `, with the main content in ${(v.field.lcp / 1000).toFixed(1)}s for three visitors in four` : ''}.`
+    : `<span style="color:${t.muted};">Google has too few real visits on record for this site to say how guests experience it.</span>`}</p>
+<p style="margin:8px 0 0;font-size:12px;color:${t.faint};">Google's PageSpeed test: one lab visit on a mid-range phone with a slowed connection, so it reads slower than most guests' phones.</p>`;
+  }
+
+  // --- where the hotel is listed ---
+  let listings = '';
+  if (s.listings) {
+    const l = s.listings;
+    const missing = l.majors.filter((x) => !x.listed);
+    const cell = (x) => `<td width="50%" style="padding:0 6px 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${t.edge};border-radius:${t.radius}px;"><tr>
+<td style="padding:8px 10px;font-size:13px;${x.listed ? '' : `color:${t.muted};`}"><span style="color:${x.listed ? t.grade.A : t.grade.F};">&#9679;</span> ${e(x.name)}</td>
+<td align="right" style="padding:8px 10px;font-family:${t.num};font-size:12.5px;color:${t.muted};white-space:nowrap;">${x.listed ? (x.low != null ? `from ${usd(x.low)}` : 'rate shown') : 'no rate shown'}</td></tr></table></td>`;
+    const rows = [];
+    for (let i = 0; i < l.majors.length; i += 2) rows.push(`<tr>${cell(l.majors[i])}${l.majors[i + 1] ? cell(l.majors[i + 1]) : '<td width="50%"></td>'}</tr>`);
+    listings = label('Where guests can find and book you')
+      + `<p style="margin:0 0 12px;"><span style="font-weight:600;">${l.total} booking sites showed a rate for you${l.own ? ', alongside your own site.' : `, and <span style="color:${t.grade.F};">your own site wasn't among them</span>.`}</span> <span style="color:${t.muted};">${missing.length ? `No rate showed on ${e(missing.map((x) => x.name).join(', '))}.` : 'Every major one is there.'}${l.resellers ? ` ${l.resellers === 1 ? '1 of them is a smaller reseller' : `${l.resellers} of them are smaller resellers`}.` : ''}</span></p>`
+      + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join('')}</table>`
+      + (l.ratings.length ? `<p style="margin:8px 0 0;font-size:13px;color:${t.muted};">Ratings on your Google listing: ${l.ratings.map((x) => `${e(x.source)} <span style="font-family:${t.num};color:${t.ink};">${Number(x.rating).toFixed(1)}</span>/${x.max}${x.reviews != null ? ` (${num(x.reviews)})` : ''}`).join(' · ')}</p>` : '')
+      + `<p style="margin:8px 0 0;font-size:12px;color:${t.faint};">Sites that showed a rate on Google's hotel search across the ${l.nights === 1 ? 'night' : `${l.nights} nights`} we sampled. A site with no rate shown may list you and be sold out or closed for those dates.</p>`;
+  }
+
   const html = shell(t, s.graded ? `${s.hotel}: ${s.letter}, ${s.score} out of 100` : `${s.hotel}: your hotelgrader report`, `
 <p style="margin:0 0 4px;color:${t.accent};font-size:13px;">report card</p>
 <h1 style="margin:0;font-family:${t.font};font-size:24px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:${t.ink};">${e(s.hotel)}</h1>
@@ -148,10 +222,14 @@ ${s.rank ? `<p style="margin:10px 0 0;color:${t.muted};"><span style="color:${t.
 ${s.fixes.length ? label('What to do first') + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fixes}</table>` : ''}
 ${label('What the grade is made of')}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sections}</table>
+${reviews}
+${themes}
+${speed}
 ${prices}
+${listings}
+${searches}
 ${ads}
 ${market}
-${searches}
 <div style="margin-top:28px;padding-top:22px;border-top:1px solid ${t.edge};">${button(t, link, 'Open the full report')}</div>
 <p style="margin:14px 0 0;color:${t.faint};font-size:13px;">Hi ${e(name)}, the full report has the evidence behind every check, and a form to correct anything we got wrong. This link opens it without asking for a code again. Questions? Just reply to this email.</p>`);
 
@@ -168,6 +246,10 @@ ${searches}
     ...s.sections.map((x) => `  ${x.name} (${x.weight} pts): ${x.score}`),
     '',
     ...(s.prices && s.prices.direct != null ? [`One night on your site: ${usd(s.prices.direct)}. ${s.prices.cheaper} of ${s.prices.total} other sites showed a lower rate${s.prices.cheaper && s.prices.lowest ? `, from ${usd(s.prices.lowest.rate)} on ${s.prices.lowest.source}` : ''}. Rooms and fees aren't matched.`, ''] : []),
+    ...(s.reviews ? [`Your newest Google reviews: ${s.reviews.replied} of ${s.reviews.total} have a reply.${s.reviews.low ? ` ${s.reviews.lowUnanswered} of the ${s.reviews.low} at three stars or below ${s.reviews.lowUnanswered === 1 ? 'is' : 'are'} unanswered.` : ''}`, ''] : []),
+    ...(s.themes ? ['What guests keep saying:', ...(s.themes.positive.length ? [`  They value: ${s.themes.positive.map((x) => `${x.theme} (${x.mentions})`).join(', ')}`] : []), ...(s.themes.negative.length ? [`  They complain about: ${s.themes.negative.map((x) => `${x.theme} (${x.mentions})`).join(', ')}`] : []), ''] : []),
+    ...(s.speed ? [`Page speed: ${s.speed.mobile ?? '-'} out of 100 on a phone, ${s.speed.desktop ?? '-'} on a desktop.${s.speed.field ? ` Real visitors: rated ${{ FAST: 'fast', AVERAGE: 'middling', SLOW: 'slow' }[s.speed.field.overall] ?? 'unknown'}.` : ''}`, ''] : []),
+    ...(s.listings ? [`Where you're listed: ${s.listings.total} booking sites showed a rate${s.listings.majors.some((x) => !x.listed) ? `. No rate showed on ${s.listings.majors.filter((x) => !x.listed).map((x) => x.name).join(', ')}` : ', every major one among them'}.`, ''] : []),
     ...(s.ads ? ['Advertising we could see (not graded):', ...s.ads.map((r) => `  ${r.name}: Google ${r.google == null ? "couldn't tell" : r.google ? 'seen' : 'none found'}, Meta ${r.meta == null ? "couldn't tell" : r.meta ? 'seen' : 'none found'}`), ''] : []),
     ...(s.searches ? ['Where you appear when travellers search (not graded):', ...s.searches.map((r) => `  ${r.query}: Google hotel search ${r.hotel}, regular results ${r.web}`), ''] : []),
     `Open the full report: ${link}`,
