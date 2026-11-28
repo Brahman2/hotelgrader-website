@@ -1,35 +1,47 @@
 // POST /api/admin  { action, ... }
 // The monthly report card admin (see docs/monthly-report-card.md). Sign-in is an emailed 6-digit code,
-// only for addresses in ADMIN_EMAILS. Every other action needs the session that sign-in returns.
+// only for addresses in ADMIN_EMAILS: five tries per code, each code works once. Every other action needs
+// the session that sign-in returns.
 
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { CODE_TTL_MS, EMAIL_RE, clean, json, matches, sendMail, sign } from '../lib/verify.mjs';
 import { codeEmail, TEMPLATE_VERSION } from '../lib/email.mjs';
+import { TIPS } from '../lib/tips.mjs';
 import { eligibilityReason, eligible, listContacts } from '../lib/contacts.mjs';
 import { scanFor, scanKey } from '../lib/scan.mjs';
 import {
-  buildEmail, getSettings, monthOf, previousSnapshot, readiness, runRecord, saveSettings, sendMonthlyMail, snapshotOf, trigger,
+  buildEmail, getSettings, issueDate, issueMonth, MAX_SEARCHES_PER_HOTEL, previousFor, readiness, runRecord, saveSettings,
+  sendMonthlyMail, snapshotOf, trigger,
 } from '../lib/monthly.mjs';
 
 const SESSION_MS = 12 * 60 * 60 * 1000;
+const MAX_TRIES = 5;
 const admins = () => String(process.env.ADMIN_EMAILS || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
-const sessionFor = (secret, email, exp) => `${exp}.${Buffer.from(email).toString('base64url')}.${sign(secret, 'admin', email, exp)}`;
+const sessionFor = (secret, email, exp) => `${exp}.${Buffer.from(email).toString('base64url')}.${sign(secret, 'admin-session', email, exp)}`;
 function readSession(secret, s) {
   const [exp, who, sig] = String(s || '').split('.');
   const email = who ? Buffer.from(who, 'base64url').toString() : '';
   if (!exp || !email || Date.now() > Number(exp) || !admins().includes(email)) return null;
-  return matches(sig, sign(secret, 'admin', email, Number(exp))) ? email : null;
+  return matches(sig ?? '', sign(secret, 'admin-session', email, Number(exp))) ? email : null;
+}
+
+async function attempts() {
+  const { getStore } = await import('@netlify/blobs');
+  return getStore({ name: 'admin-attempts', consistency: 'strong' });
 }
 
 /** The sample: a real hotel's current, cached scan in the monthly template. Never spends a search. */
-async function sample(target, settings) {
+async function sample(target) {
   const scan = await scanFor(target, { fresh: false }).catch(() => null);
   const snap = snapshotOf(target, scan);
   if (!snap) return { error: 'No graded scan cached for that hotel. Open its report on the site first, then try again.' };
-  const prev = await previousSnapshot(scanKey(target), new Date(Date.parse(snap.at) - 1).toISOString());
-  const first = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1)); // the next send date
-  const contact = { email: process.env.MONTHLY_TEST_TO || 'test@example.com', name: target.name || 'there', hotels: [{ ...target, key: scanKey(target) }] };
-  return { snap, prev, mail: buildEmail({ contact, snap, prev, sendDate: first, test: true, wouldGoTo: 'a contact who unlocked this hotel' }) };
+  const label = issueMonth();
+  const key = scanKey(target);
+  const { snap: prev, since } = await previousFor({ key, addedAt: null }, label);
+  const testTo = process.env.MONTHLY_TEST_TO || '';
+  const contact = { email: 'a contact who unlocked this hotel', name: target.name || 'there', hotels: [{ ...target, key }] };
+  const { mail, unsubscribe } = buildEmail({ contact, snap, prev, since, sendDate: issueDate(label), test: true, testTo });
+  return { snap, prev, mail, unsubscribe };
 }
 
 export default async (req) => {
@@ -43,10 +55,10 @@ export default async (req) => {
   // ----- sign-in -----
   if (action === 'send-code') {
     const email = clean(body.email).toLowerCase();
-    // Same answer either way, so the page doesn't reveal who is an admin.
-    if (!EMAIL_RE.test(email) || !admins().includes(email)) return json(200, { token: '' });
-    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const exp = Date.now() + CODE_TTL_MS;
+    // Same shape of answer either way, so the page doesn't reveal who is an admin.
+    if (!EMAIL_RE.test(email) || !admins().includes(email)) return json(200, { token: `${exp}.${randomBytes(32).toString('hex')}` });
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     await sendMail({ to: email, ...codeEmail({ theme: 'light', name: 'admin', code, hotel: '' }) }).catch(() => false);
     return json(200, { token: `${exp}.${sign(secret, 'admin-code', email, code, exp)}` });
   }
@@ -54,30 +66,40 @@ export default async (req) => {
     const email = clean(body.email).toLowerCase();
     const [exp, sig] = clean(body.token).split('.');
     const code = clean(body.code).replace(/\D/g, '');
-    if (!admins().includes(email) || !exp || Date.now() > Number(exp) || !matches(sig ?? '', sign(secret, 'admin-code', email, code, Number(exp)))) {
-      return json(401, { error: 'That code isn’t right.' });
+    if (!admins().includes(email) || !exp || !sig || Date.now() > Number(exp)) return json(401, { error: 'That code isn’t right, or it expired.' });
+    const s = await attempts();
+    const key = sig.slice(0, 40);
+    const used = (await s.get(key, { type: 'json' })) ?? { tries: 0, done: false };
+    if (used.done || used.tries >= MAX_TRIES) return json(401, { error: 'That code can’t be used again. Request a new one.' });
+    if (!matches(sig, sign(secret, 'admin-code', email, code, Number(exp)))) {
+      await s.setJSON(key, { ...used, tries: used.tries + 1 });
+      return json(401, { error: `That code isn’t right. ${MAX_TRIES - used.tries - 1} tries left.` });
     }
+    await s.setJSON(key, { ...used, done: true });
     return json(200, { session: sessionFor(secret, email, Date.now() + SESSION_MS) });
   }
 
   const who = readSession(secret, req.headers.get('x-admin-session'));
   if (!who) return json(401, { error: 'Sign in again.' });
   const settings = await getSettings();
-  const month = monthOf();
+  const label = issueMonth();
 
   if (action === 'status') {
-    const contacts = await listContacts();
+    let contacts = [];
+    let contactsError = '';
+    try { contacts = await listContacts(); } catch (err) { contactsError = String(err?.message || err).slice(0, 120); }
     const byReason = {};
     for (const c of contacts) { const r = eligibilityReason(c); byReason[r] = (byReason[r] ?? 0) + 1; }
     const hotels = new Set(contacts.flatMap((c) => (c.hotels ?? []).map((h) => h.key)));
-    const prevMonth = monthOf(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 15)));
-    const [rescan, rescanPrev, send, sendTest] = await Promise.all([runRecord(`rescan-${month}`), runRecord(`rescan-${prevMonth}`), runRecord(`send-${month}`), runRecord(`send-${month}-test`)]);
+    const [y, m] = label.split('-').map(Number);
+    const lastLabel = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+    const [rescan, rescanPrev, send, sendTest] = await Promise.all([runRecord(`rescan-${label}`), runRecord(`rescan-${lastLabel}`), runRecord(`send-${label}`), runRecord(`send-${label}-test`)]);
     const summarizeRun = (r) => r && { month: r.month, startedAt: r.startedAt, finishedAt: r.finishedAt, total: r.total ?? null, done: Object.values(r.hotels ?? {}).filter((h) => h.status === 'done').length, skippedForCap: Object.values(r.hotels ?? {}).filter((h) => h.status === 'skipped-cap').length, searches: r.searches, usd: r.usd, stoppedForCap: r.stoppedForCap, paused: !!r.paused };
     return json(200, {
-      you: who, templateVersion: TEMPLATE_VERSION, settings, readiness: readiness(settings),
+      you: who, templateVersion: TEMPLATE_VERSION, issue: label, settings, readiness: readiness(settings),
       env: { testTo: !!process.env.MONTHLY_TEST_TO, postal: !!process.env.MAIL_POSTAL_ADDRESS, admins: admins().length },
-      contacts: { total: contacts.length, eligible: contacts.filter(eligible).length, byReason, hotels: hotels.size },
-      estimate: { hotels: hotels.size, maxSearches: hotels.size * 16, maxUsd: Math.round(hotels.size * 16 * settings.costPerSearch * 100) / 100 },
+      contacts: { total: contacts.length, eligible: contacts.filter(eligible).length, byReason, hotels: hotels.size, error: contactsError },
+      estimate: { hotels: hotels.size, maxSearches: hotels.size * MAX_SEARCHES_PER_HOTEL, maxUsd: Math.round(hotels.size * MAX_SEARCHES_PER_HOTEL * settings.costPerSearch * 100) / 100 },
       runs: { rescan: summarizeRun(rescan), rescanLastMonth: summarizeRun(rescanPrev), send: send && { count: send.count, finishedAt: send.finishedAt }, sendTest: sendTest && { count: sendTest.count, finishedAt: sendTest.finishedAt, skipped: sendTest.skipped } },
     });
   }
@@ -94,13 +116,14 @@ export default async (req) => {
   if (action === 'preview' || action === 'sample') {
     const target = { hotel: clean(body.hotel).slice(0, 120), city: clean(body.city).slice(0, 80), state: clean(body.state).slice(0, 80), name: clean(body.name).slice(0, 60) };
     if (!target.hotel) return json(400, { error: 'Pick a hotel.' });
-    const got = await sample(target, settings);
+    const got = await sample(target);
     if (got.error) return json(409, { error: got.error });
-    if (action === 'preview') return json(200, { subject: got.mail.subject, html: got.mail.html, firstReport: !got.prev });
+    // Approving the template approves every tip in the rotation too, so the preview lists them all.
+    if (action === 'preview') return json(200, { subject: got.mail.subject, html: got.mail.html, firstReport: !got.prev, tips: TIPS });
     // The sample goes to MONTHLY_TEST_TO and nowhere else.
     const to = process.env.MONTHLY_TEST_TO;
     if (!to) return json(409, { error: 'Set MONTHLY_TEST_TO in Netlify first.' });
-    const ok = await sendMonthlyMail({ to, mail: got.mail, unsubscribe: 'https://hotelgrader.com/api/unsubscribe' });
+    const ok = await sendMonthlyMail({ to, mail: got.mail, unsubscribe: got.unsubscribe });
     if (!ok) return json(502, { error: 'Resend didn’t accept the sample.' });
     await saveSettings({ sampleSentAt: new Date().toISOString(), sampleSentVersion: TEMPLATE_VERSION, sampleApprovedAt: null, sampleHotel: target.hotel });
     return json(200, { ok: true, to, subject: got.mail.subject });

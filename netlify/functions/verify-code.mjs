@@ -53,7 +53,7 @@ export default async (req, context) => {
   const exp = Number(expRaw);
   if (!EMAIL_RE.test(email) || code.length !== 6 || !exp || !sig) return json(400, { error: 'Enter the 6-digit code from the email.' });
   if (Date.now() > exp) return json(410, { error: 'That code has expired. Send a new one.' });
-  if (!matches(sig, sign(secret, email, code, exp))) return json(401, { error: 'That code isn’t right. Check the email and try again.' });
+  if (!matches(sig, sign(secret, 'code', email, code, exp))) return json(401, { error: 'That code isn’t right. Check the email and try again.' });
 
   const lead = {
     name: clean(body.name).slice(0, 60),
@@ -65,7 +65,7 @@ export default async (req, context) => {
   await Promise.allSettled([
     recordLead(lead),
     // The contact list for the monthly report card: their country (for consent rules) and the monthly box.
-    recordContact({ ...lead, country: context?.geo?.country?.code ?? '', optIn: typeof body.monthly === 'boolean' ? body.monthly : undefined }),
+    recordContact({ ...lead, country: context?.geo?.country?.code ?? '', optIn: typeof body.monthly === 'boolean' ? body.monthly : undefined, explicit: body.monthlyTouched === true }),
     // What they saw today, so next month's email can say what changed since. Cached readings only.
     lead.hotel ? baselineAtUnlock({ hotel: lead.hotel, city: lead.city, state: lead.state }) : null,
   ]);

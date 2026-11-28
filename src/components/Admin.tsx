@@ -69,6 +69,7 @@ export default function Admin() {
   const [cps, setCps] = useState('');
   const [hotel, setHotel] = useState({ hotel: '', city: '', state: '', name: '' });
   const [preview, setPreview] = useState('');
+  const [tips, setTips] = useState<{ title: string; body: string }[]>([]);
 
   const load = async () => {
     try { const r = await call('status'); setS(r); setCap(String(r.settings.capUsd)); setCps(String(r.settings.costPerSearch)); setSignedIn(true); }
@@ -78,7 +79,7 @@ export default function Admin() {
 
   const act = async (action: string, body: Record<string, unknown> = {}, done = '') => {
     setBusy(action); setMsg('');
-    try { const r = await call(action, body); if (action === 'preview') setPreview(r.html); setMsg(done || (r.subject ? `Done: ${r.subject}` : 'Done.')); await load(); }
+    try { const r = await call(action, body); if (action === 'preview') { setPreview(r.html); setTips(r.tips ?? []); } setMsg(done || (r.subject ? `Done: ${r.subject}` : 'Done.')); await load(); }
     catch (err) { setMsg((err as Error).message); }
     finally { setBusy(''); }
   };
@@ -155,6 +156,15 @@ export default function Admin() {
           <button className="btn" disabled={!!busy || !st.enabled} title={st.enabled ? '' : 'Turn the program on first'} onClick={() => act('send-test-now', {}, 'Test send started: up to 3 emails, all to the test address.')}>test send to me</button>
         </div>
         {preview && <iframe title="Email preview" srcDoc={preview} className="w-full mt-4 border border-edge rounded" style={{ height: 1100, background: '#F5F5F7' }} />}
+        {tips.length > 0 && (
+          <div className="mt-4">
+            <h3 className="headline text-[15px]">Every tip in the rotation (one a month, in this order)</h3>
+            <p className="text-[13px] text-ink-60 mt-1">Approving the template approves these too. Editing any of them voids the approval.</p>
+            <ol className="mt-2 grid gap-3 text-[14px] list-decimal pl-5">
+              {tips.map((t) => <li key={t.title}><strong>{t.title}.</strong> <span className="text-ink-60">{t.body}</span></li>)}
+            </ol>
+          </div>
+        )}
       </section>
     </div>
   );

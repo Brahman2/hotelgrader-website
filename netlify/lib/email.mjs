@@ -3,7 +3,9 @@
 // visitor is in, and the email follows it. Table-based markup with inline
 // styles, because that is what email clients render reliably.
 
+import { createHash } from 'node:crypto';
 import { escapeHtml as e } from './verify.mjs';
+import { TIPS, tipFor } from './tips.mjs';
 
 const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
@@ -176,11 +178,6 @@ ${searches}
 
 // ---------- the monthly report card ----------
 
-/**
- * Bump this whenever the monthly template or the tips change. It voids the template and sample
- * approvals in /admin and drops the program back to test mode, so Patrick re-approves what goes out.
- */
-export const TEMPLATE_VERSION = 'monthly-1';
 
 const monthName = (d) => d.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
 
@@ -198,16 +195,18 @@ export function monthlyEmail({ name: fullName, snap: s, prev, changes, tip, othe
   const t = themeOf('light');
   const name = firstWord(fullName);
   const mon = monthName(month);
-  const delta = prev && prev.version === s.version ? s.score - prev.score : null;
-  const dTxt = delta == null ? '' : delta === 0 ? 'no change' : `${delta > 0 ? '+' : ''}${delta} since ${changes.since === 'last month' ? 'last month' : 'you first looked'}`;
-  const rankMove = prev?.rank && s.rank && prev.rank.place !== s.rank.place ? prev.rank.place - s.rank.place : 0;
+  const sameReach = prev && prev.coverage != null && s.coverage != null && Math.abs(prev.coverage - s.coverage) <= 3;
+  const delta = prev && prev.version === s.version && sameReach ? s.score - prev.score : null;
+  const sinceTxt = changes.since === 'last month' ? 'last month' : 'you first looked';
+  const dTxt = delta == null ? '' : delta === 0 ? 'no change' : `${delta > 0 ? '+' : ''}${delta} since ${sinceTxt}`;
+  const rankMove = prev?.rank && s.rank && prev.rank.basis === s.rank.basis && prev.rank.total === s.rank.total && prev.rank.place !== s.rank.place ? prev.rank.place - s.rank.place : 0;
   // Rate fixes are left out for now: the report's rate check still compares against every site on Google,
   // resellers included, which is rate leakage, not parity. Use them again once that check follows the parity
   // rule (same room type and rate plan against Booking.com, Expedia and Priceline).
   const fix = s.fixes.find((f) => f.fn !== 'rates') ?? null;
   const unanswered = s.recent?.lowUnanswered ?? null;
   const toneOf = (x) => (x === 'good' ? t.grade.A : x === 'bad' ? t.grade.F : t.muted);
-  const h = (label) => `<p style="margin:26px 0 8px;padding-top:20px;border-top:1px solid ${t.edge};font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:${t.muted};">${e(label)}</p>`;
+  const h = (label) => `<p style="margin:26px 0 8px;padding-top:20px;border-top:1px solid ${t.edge};font-size:13px;font-weight:600;color:${t.muted};">${e(label)}</p>`;
 
   const changed = changes.first
     ? `<p style="margin:0;color:${t.muted};">This is your first monthly report card. From next month, this section recaps what moved since this scan.</p>`
@@ -227,9 +226,9 @@ ${h('Your grade')}
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
 <td valign="bottom" style="font-family:${t.num};font-size:64px;line-height:0.9;font-weight:700;color:${tone(t, s.letter)};">${e(s.letter)}</td>
 <td valign="bottom" style="padding:0 0 6px 14px;font-family:${t.num};font-size:17px;color:${t.muted};">${s.score} / 100${dTxt ? `<br><span style="font-size:13px;color:${delta > 0 ? t.grade.A : delta < 0 ? t.grade.F : t.muted};">${e(dTxt)}</span>` : ''}</td></tr></table>
-${s.rank ? `${h('Your comp set')}<p style="margin:0;"><span style="font-family:${t.num};font-size:22px;font-weight:600;">#${s.rank.place}</span> <span style="color:${t.muted};">of ${s.rank.total} on Google rating${s.hotelClass ? ` among ${s.hotelClass}-star hotels near you priced like you` : ' among the hotels near you'}${rankMove ? `. <span style="color:${rankMove > 0 ? t.grade.A : t.grade.F};">${rankMove > 0 ? `Up ${rankMove}` : `Down ${-rankMove}`} since ${changes.since === 'last month' ? 'last month' : 'you first looked'}.</span>` : '.'}</span></p>` : ''}
+${s.rank ? `${h('Your comp set')}<p style="margin:0;"><span style="font-family:${t.num};font-size:22px;font-weight:600;">#${s.rank.place}</span> <span style="color:${t.muted};">of ${s.rank.total} on Google rating${s.hotelClass ? ` among ${s.hotelClass}-star hotels near you priced like you` : ' among the hotels near you'}${rankMove ? `. <span style="color:${rankMove > 0 ? t.grade.A : t.grade.F};">${rankMove > 0 ? `Up ${rankMove}` : `Down ${-rankMove}`} since ${sinceTxt}.</span>` : '.'}</span></p>` : ''}
 ${unanswered != null ? `${h('Reviews waiting on you')}<p style="margin:0;">${e(reviewLine(s.recent)).replace(/^(\d+)/, `<span style="font-family:${t.num};font-size:22px;font-weight:600;color:${unanswered ? t.grade.F : t.ink};">$1</span>`)}</p>` : ''}
-${fix ? `${h('One fix for this month')}<p style="margin:0;font-weight:600;">${e(fix.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(fix.evidence)}</p>${fix.owner ? `<p style="margin:6px 0 0;font-size:13px;color:${t.faint};">Usually done by: ${e(fix.owner)}</p>` : ''}` : ''}
+${fix ? `${h('One fix for this month')}<p style="margin:0;font-weight:600;">${e(fix.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(fix.evidence)}</p>${fix.outcome ? `<p style="margin:8px 0 0;"><span style="color:${t.muted};">Done looks like:</span> ${e(fix.outcome)}</p>` : ''}${fix.owner ? `<p style="margin:6px 0 0;font-size:13px;color:${t.faint};">Usually done by: ${e(fix.owner)}</p>` : ''}` : ''}
 ${tip ? `${h('Marketing tip of the month')}<p style="margin:0;font-weight:600;">${e(tip.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(tip.body)}</p>` : ''}
 <div style="margin-top:26px;">${button(t, link, 'Open your full report')}</div>
 ${others.length ? `<p style="margin:14px 0 0;font-size:13px;color:${t.faint};">You also follow ${e(others.join(', '))}. Open each from your report.</p>` : ''}`;
@@ -238,27 +237,36 @@ ${others.length ? `<p style="margin:14px 0 0;font-size:13px;color:${t.faint};">Y
   const html = shell(t, `${s.hotel}: ${s.letter}${dTxt ? ` (${dTxt})` : ''}. What changed in ${mon}.`, inner, footer);
 
   const text = [
-    test ? `TEST SEND. Only you received this${wouldGoTo ? `. In live mode it would go to ${wouldGoTo}` : ''}.\n` : '',
+    test ? `TEST SEND. Only you received this${wouldGoTo ? `. In live mode it would go to ${wouldGoTo}` : ''}.\n` : null,
     `${mon} report card: ${s.hotel}${s.city ? `, ${s.city}` : ''}`,
     '',
     `Hi ${name}, here's what changed at ${s.hotel} this month, and the one thing worth doing next.`,
     '',
-    "WHAT'S CHANGED",
+    'What’s changed:',
     ...(changes.first ? ['This is your first monthly report card. From next month, this section recaps what moved since this scan.']
       : changes.items.length ? changes.items.map((x) => `- ${x.text}`) : [`Nothing moved since ${changes.since}.`]),
     '',
-    `YOUR GRADE: ${s.letter} (${s.score}/100)${dTxt ? `, ${dTxt}` : ''}`,
-    s.rank ? `YOUR COMP SET: #${s.rank.place} of ${s.rank.total} on Google rating` : '',
-    unanswered != null ? `REVIEWS WAITING ON YOU: ${reviewLine(s.recent)}` : '',
-    fix ? `\nONE FIX FOR THIS MONTH: ${fix.title}\n${fix.evidence}` : '',
-    tip ? `\nMARKETING TIP OF THE MONTH: ${tip.title}\n${tip.body}` : '',
+    '',
+    `Your grade: ${s.letter} (${s.score}/100)${dTxt ? `, ${dTxt}` : ''}`,
+    s.rank ? `Your comp set: #${s.rank.place} of ${s.rank.total} on Google rating` : null,
+    unanswered != null ? `Reviews waiting on you: ${reviewLine(s.recent)}` : null,
+    fix ? `\nOne fix for this month: ${fix.title}\n${fix.evidence}${fix.outcome ? `\nDone looks like: ${fix.outcome}` : ''}` : null,
+    tip ? `\nMarketing tip of the month: ${tip.title}\n${tip.body}` : null,
     '',
     `Open your full report: ${link}`,
     '',
     `Unsubscribe in one click: ${unsubscribe}`,
-    postal || '',
-  ].filter((l) => l !== '').join('\n');
+    postal || null,
+  ].filter((l) => l != null).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 
   const subject = `${test ? '[TEST] ' : ''}${s.hotel}: ${s.letter} in ${mon}${delta ? ` (${delta > 0 ? '+' : ''}${delta})` : ''}`;
   return { subject, html, text };
 }
+
+/**
+ * The template version: a fingerprint of the monthly template code and every tip. Any change to either gives
+ * a new version, which voids the template and sample approvals in /admin and drops the program back to test.
+ */
+export const TEMPLATE_VERSION = `monthly-${createHash('sha256')
+  .update([monthlyEmail, reviewLine, shell, button, tipFor].map((f) => f.toString()).join('\n') + JSON.stringify(TIPS))
+  .digest('hex').slice(0, 10)}`;

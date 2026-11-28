@@ -1,6 +1,6 @@
 // POST /api/contact-hotel  { name, email, proof, hotel, city, state }
-// A visitor who already verified their email grades another hotel: add it to their contact record and keep
-// a baseline snapshot (cached readings only). The proof is the one verify-code handed back, so only a
+// A visitor who already verified their email grades another hotel: add it to their existing contact record
+// and keep a baseline snapshot (cached readings only). The proof is the one verify-code handed back, so only a
 // verified address can add hotels to itself.
 
 import { EMAIL_RE, clean, json, matches, sign } from '../lib/verify.mjs';
@@ -18,8 +18,10 @@ export default async (req, context) => {
   if (!EMAIL_RE.test(email) || !hotel) return json(400, { error: 'Bad request.' });
   if (!matches(clean(body.proof), sign(secret, 'verified', email))) return json(401, { error: 'Verify your email first.' });
   const target = { hotel, city: clean(body.city).slice(0, 80), state: clean(body.state).slice(0, 80) };
-  await recordContact({ email, name: clean(body.name).slice(0, 60), ...target, country: context?.geo?.country?.code ?? '', source: 'unlocked-browser' });
-  await baselineAtUnlock(target).catch(() => null);
+  // Adds the hotel to an existing contact only: someone who verified before the contact list existed never
+  // saw the monthly box, so they aren't created here. At most MAX_HOTELS hotels per contact.
+  const c = await recordContact({ email, name: clean(body.name).slice(0, 60), ...target, country: context?.geo?.country?.code ?? '', source: 'unlocked-browser', existingOnly: true });
+  if (c && c.hotels.some((h) => h.hotel === hotel)) await baselineAtUnlock(target).catch(() => null);
   return json(200, { ok: true });
 };
 
