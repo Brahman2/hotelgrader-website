@@ -184,6 +184,15 @@ export const TEMPLATE_VERSION = 'monthly-1';
 
 const monthName = (d) => d.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
 
+/** The reviews line, true to what was read: low-star reviews without a reply first, then replies overall. */
+function reviewLine(r) {
+  const replies = r.replied === 0 ? 'None of them has a reply yet, so guests don’t see you answering.'
+    : r.replied === r.total ? 'Every one has a reply.' : `${r.replied} of them ${r.replied === 1 ? 'has' : 'have'} a reply.`;
+  if (r.lowUnanswered > 0) return `${r.lowUnanswered} low-star ${r.lowUnanswered === 1 ? 'review has' : 'reviews have'} no reply among your newest ${r.total} on Google. Future guests read these first.`;
+  if (r.low === 0) return `${r.total} newest Google reviews read, none below four stars. ${replies}`;
+  return `Every low-star review among your newest ${r.total} on Google has a reply. ${replies}`;
+}
+
 /** The monthly report card. Light theme only. See docs/monthly-report-card.md. */
 export function monthlyEmail({ name: fullName, snap: s, prev, changes, tip, others = [], link, unsubscribe, postal, month = new Date(), test = false, wouldGoTo = '' }) {
   const t = themeOf('light');
@@ -219,7 +228,7 @@ ${h('Your grade')}
 <td valign="bottom" style="font-family:${t.num};font-size:64px;line-height:0.9;font-weight:700;color:${tone(t, s.letter)};">${e(s.letter)}</td>
 <td valign="bottom" style="padding:0 0 6px 14px;font-family:${t.num};font-size:17px;color:${t.muted};">${s.score} / 100${dTxt ? `<br><span style="font-size:13px;color:${delta > 0 ? t.grade.A : delta < 0 ? t.grade.F : t.muted};">${e(dTxt)}</span>` : ''}</td></tr></table>
 ${s.rank ? `${h('Your comp set')}<p style="margin:0;"><span style="font-family:${t.num};font-size:22px;font-weight:600;">#${s.rank.place}</span> <span style="color:${t.muted};">of ${s.rank.total} on Google rating${s.hotelClass ? ` among ${s.hotelClass}-star hotels near you priced like you` : ' among the hotels near you'}${rankMove ? `. <span style="color:${rankMove > 0 ? t.grade.A : t.grade.F};">${rankMove > 0 ? `Up ${rankMove}` : `Down ${-rankMove}`} since ${changes.since === 'last month' ? 'last month' : 'you first looked'}.</span>` : '.'}</span></p>` : ''}
-${unanswered != null ? `${h('Reviews waiting on you')}<p style="margin:0;">${unanswered === 0 ? `Every low-star review in your newest ${s.recent.total} has a reply. Keep it up.` : `<span style="font-family:${t.num};font-size:22px;font-weight:600;color:${t.grade.F};">${unanswered}</span> <span style="color:${t.muted};">low-star ${unanswered === 1 ? 'review has' : 'reviews have'} no reply among your newest ${s.recent.total} on Google. Future guests read these first.</span>`}</p>` : ''}
+${unanswered != null ? `${h('Reviews waiting on you')}<p style="margin:0;">${e(reviewLine(s.recent)).replace(/^(\d+)/, `<span style="font-family:${t.num};font-size:22px;font-weight:600;color:${unanswered ? t.grade.F : t.ink};">$1</span>`)}</p>` : ''}
 ${fix ? `${h('One fix for this month')}<p style="margin:0;font-weight:600;">${e(fix.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(fix.evidence)}</p>${fix.owner ? `<p style="margin:6px 0 0;font-size:13px;color:${t.faint};">Usually done by: ${e(fix.owner)}</p>` : ''}` : ''}
 ${tip ? `${h('Marketing tip of the month')}<p style="margin:0;font-weight:600;">${e(tip.title)}</p><p style="margin:4px 0 0;color:${t.muted};">${e(tip.body)}</p>` : ''}
 <div style="margin-top:26px;">${button(t, link, 'Open your full report')}</div>
@@ -240,7 +249,7 @@ ${others.length ? `<p style="margin:14px 0 0;font-size:13px;color:${t.faint};">Y
     '',
     `YOUR GRADE: ${s.letter} (${s.score}/100)${dTxt ? `, ${dTxt}` : ''}`,
     s.rank ? `YOUR COMP SET: #${s.rank.place} of ${s.rank.total} on Google rating` : '',
-    unanswered != null ? `REVIEWS WAITING ON YOU: ${unanswered} low-star ${unanswered === 1 ? 'review' : 'reviews'} without a reply among your newest ${s.recent.total}` : '',
+    unanswered != null ? `REVIEWS WAITING ON YOU: ${reviewLine(s.recent)}` : '',
     fix ? `\nONE FIX FOR THIS MONTH: ${fix.title}\n${fix.evidence}` : '',
     tip ? `\nMARKETING TIP OF THE MONTH: ${tip.title}\n${tip.body}` : '',
     '',
