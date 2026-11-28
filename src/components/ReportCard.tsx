@@ -45,6 +45,11 @@ function recordLead(user: User, t: Target) {
   fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
     .then((r) => { if (r.ok) writeStore(LEADS_KEY, [...sent, id].slice(-50).join('\n')); })
     .catch(() => { /* offline or not on Netlify */ });
+  // Adds this hotel to the visitor's contact record for the monthly report card (verified visitors only).
+  if (user.proof && !['tester', 'unverified', 'dev'].includes(user.proof)) {
+    fetch('/api/contact-hotel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: user.name, email: user.email, proof: user.proof, ...t }) })
+      .catch(() => { /* best effort */ });
+  }
 }
 
 /**

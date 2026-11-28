@@ -49,7 +49,7 @@ export async function sendCode(input: { name: string; email: string; hotel: stri
 
 /** Checks the code. Returns the proof to store with the user. */
 export async function checkCode(input: {
-  name: string; email: string; code: string; token: string; hotel: string; city: string; state: string;
+  name: string; email: string; code: string; token: string; hotel: string; city: string; state: string; monthly?: boolean; monthlyTouched?: boolean;
 }): Promise<string> {
   if (import.meta.env.DEV) {
     if (input.code !== '123456') throw new Error(WRONG);

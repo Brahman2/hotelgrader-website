@@ -32,7 +32,7 @@ export default async (req) => {
   const sent = await sendMail({ to: email, ...mail }).catch(() => false);
 
   if (!sent) return json(502, { error: 'We couldn’t send the code. Try again in a minute.' });
-  return json(200, { token: `${exp}.${sign(process.env.VERIFY_SECRET, email, code, exp)}` });
+  return json(200, { token: `${exp}.${sign(process.env.VERIFY_SECRET, 'code', email, code, exp)}` });
 };
 
 export const config = {
