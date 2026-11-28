@@ -458,6 +458,22 @@ export function assess(audit, crawl = null, live = null) {
   check('discovery', 'non-brand', 'Searches that don’t include your name', web ? 25 : 30, null, (live?.market?.readings ?? []).some((m) => m?.ok) ? 'Read this scan and shown in the table below. Not scored yet.' : 'Not observed. We only searched for the hotel by name.', '');
 
   // --- Profiles and listings (10) ---
+  // Whether Google has a profile for the hotel at all, and whether the hotel has claimed it.
+  const prof = live?.gbp?.ok ? live.gbp : null;
+  const profileFound = prof?.found || !!lh || !!(gbp && !gbp.ours) ? true : prof ? false : null;
+  check('profiles', 'gbp-exists', 'Has a Google Business Profile', 15,
+    profileFound == null ? null : profileFound ? 1 : 0,
+    profileFound == null ? 'Not read this scan.'
+      : profileFound ? `Google has a profile for ${prof?.name || lh?.name || audit.hotelName}.`
+        : `We searched Google Maps for “${prof.query}” and found no profile for this hotel. Guests searching on Google or Maps won’t see you.`,
+    prof ? 'Google Maps, read by our scanner' : 'Google Business Profile', { when: prof?.checkedAt ?? when });
+  check('profiles', 'gbp-claimed', 'Google profile is claimed by the hotel', 15,
+    prof?.found ? (prof.unclaimed ? 0 : 1) : null,
+    !prof ? 'Not read this scan.'
+      : !prof.found ? 'No profile found, so there is nothing to claim yet.'
+        : prof.unclaimed ? 'Google shows “Own this business?” on your profile, so no one has claimed it. Until you do, anyone can suggest edits to your hours, phone and website, and you can’t reply to reviews as the owner.'
+          : 'Claimed. Google doesn’t show “Own this business?” on your profile.',
+    'Google Maps, read by our scanner', { when: prof?.checkedAt ?? when });
   check('profiles', 'gbp-live', 'Google profile is live and marked open', 10,
     gbp && gbp.business_status != null ? (gbp.business_status === 'OPERATIONAL' ? 1 : 0) : null,
     !gbp || gbp.business_status == null ? 'Profile status not read this scan.' : (gbp.business_status === 'OPERATIONAL' ? 'Listed as open.' : `Listed as ${String(gbp.business_status || 'unknown').toLowerCase().replace(/_/g, ' ')}.`),
