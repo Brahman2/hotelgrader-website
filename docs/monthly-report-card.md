@@ -30,10 +30,10 @@ Goal: bring contacts back each month with an updated report card for their hotel
 | `mode` | admin | `test`: every email goes to `MONTHLY_TEST_TO` only, subject prefixed `[TEST]`, at most 3 per run |
 | Template approval | admin | none. `TEMPLATE_VERSION` is a fingerprint of the template code and every tip, so any edit gives a new version and voids the approval. The admin preview lists every tip, so approving the template approves them all |
 | Sample approval | admin | none. Needs a sample sent after the current template was approved |
-| Postal address | `MAIL_POSTAL_ADDRESS` env | Required (CAN-SPAM) before live can be switched on |
+| Postal address | `MAIL_POSTAL_ADDRESS` env | Optional while hotelgrader is free and the email sells nothing (a relationship message under CAN-SPAM). Required, and shown in the footer, once the email promotes anything paid. A PO Box or virtual mailbox keeps it anonymous |
 | Spend cap | admin, dollars a month | $25. The re-scan stops before it would pass the cap; skipped hotels get no email that month |
 
-Switching to `live` requires: template approved at the current version, a sample approved after that, a postal address set, and an admin signed in. Any template change drops the program back to `test`.
+Switching to `live` requires: template approved at the current version, a sample approved after that, `MONTHLY_TEST_TO` set, and an admin signed in. Any template change drops the program back to `test`.
 
 ## Cost
 

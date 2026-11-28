@@ -106,8 +106,9 @@ export default function Admin() {
           <Row label="Template">{st.templateApprovedVersion === s.templateVersion ? `approved ${day(st.templateApprovedAt)}` : `not approved (${s.templateVersion})`}</Row>
           <Row label="Sample">{st.sampleApprovedAt ? `approved ${day(st.sampleApprovedAt)}` : st.sampleSentAt ? `sent ${day(st.sampleSentAt)}, not approved` : 'not sent'}</Row>
           <Row label="Test address set">{s.env.testTo ? 'yes' : 'no: set MONTHLY_TEST_TO'}</Row>
-          <Row label="Postal address set">{s.env.postal ? 'yes' : 'no: set MAIL_POSTAL_ADDRESS'}</Row>
+          <Row label="Postal address set">{s.env.postal ? 'yes' : 'no (optional while the email sells nothing)'}</Row>
           {!s.readiness.ready && <p className="text-[13px] text-ink-60 mt-3">Before live: {s.readiness.missing.join('; ')}.</p>}
+          {(s.readiness.warnings ?? []).map((w: string) => <p key={w} className="text-[13px] text-ink-60 mt-2">Note: {w}</p>)}
           <div className="flex flex-wrap gap-2 mt-4">
             <button className="btn" disabled={!!busy} onClick={() => act('enable', { on: !st.enabled })}>{st.enabled ? 'turn program off' : 'turn program on'}</button>
             {live

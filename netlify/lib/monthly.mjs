@@ -50,14 +50,20 @@ export async function saveSettings(patch) {
   return getSettings();
 }
 
-/** Everything that must be true before live sending. */
+/**
+ * Everything that must be true before live sending, plus warnings that don't block it.
+ * The postal address is a warning, not a requirement: hotelgrader is free and the monthly email sells nothing,
+ * so it is a relationship message rather than commercial email under CAN-SPAM. Once the email promotes anything
+ * paid (pricing, upgrades, offers), set MAIL_POSTAL_ADDRESS: a PO Box or virtual mailbox is fine.
+ */
 export function readiness(s) {
   const missing = [];
+  const warnings = [];
   if (s.templateApprovedVersion !== TEMPLATE_VERSION) missing.push('template not approved at the current version');
   if (!s.sampleApprovedAt || !s.sampleSentAt || s.sampleSentVersion !== TEMPLATE_VERSION) missing.push('sample not approved');
-  if (!process.env.MAIL_POSTAL_ADDRESS) missing.push('MAIL_POSTAL_ADDRESS not set');
   if (!process.env.MONTHLY_TEST_TO) missing.push('MONTHLY_TEST_TO not set');
-  return { ready: missing.length === 0, missing };
+  if (!process.env.MAIL_POSTAL_ADDRESS) warnings.push('No postal address in the footer. Fine while the email sells nothing; add one (a PO Box works) before it promotes anything paid.');
+  return { ready: missing.length === 0, missing, warnings };
 }
 
 const ym = (d) => d.toISOString().slice(0, 7);
