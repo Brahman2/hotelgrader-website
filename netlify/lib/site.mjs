@@ -9,7 +9,7 @@ const DAY = 24 * 60 * 60 * 1000;
 async function store() {
   try {
     const { getStore } = await import('@netlify/blobs');
-    return getStore('site-scans-v3');
+    return getStore('site-scans-v4');
   } catch { return null; } // not on Netlify (local runs): no cache
 }
 

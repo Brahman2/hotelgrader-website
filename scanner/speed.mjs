@@ -14,6 +14,8 @@ const audit = (lh, id) => { const a = lh?.audits?.[id]; return a && typeof a.num
 /** One lab run. Returns { ok, error, data }. Never throws. */
 async function run(url, strategy, timeout) {
   const q = new URLSearchParams({ url, strategy, category: 'performance', key: process.env.PAGESPEED_KEY });
+  // The same visit can also run Google's automated accessibility checks. Once is enough, on the phone run.
+  if (strategy === 'mobile') q.append('category', 'accessibility');
   try {
     const res = await fetch(`${API}?${q}`, { signal: AbortSignal.timeout(timeout) });
     const data = await res.json().catch(() => null);
@@ -35,6 +37,28 @@ function lab(data) {
     tbt: audit(lh, 'total-blocking-time'), cls: audit(lh, 'cumulative-layout-shift'), si: audit(lh, 'speed-index'),
     bytes: audit(lh, 'total-byte-weight'),
   };
+}
+
+/**
+ * Google's automated accessibility checks from the same visit: a score out of 100 and each check that failed,
+ * with how many elements on the page it failed on. These catch only part of what a person would; a clean
+ * result is not proof a site is accessible.
+ */
+function accessibility(data) {
+  const lh = data.lighthouseResult;
+  const cat = lh.categories?.accessibility;
+  if (!cat || typeof cat.score !== 'number') return null;
+  const refs = cat.auditRefs ?? [];
+  const failed = [];
+  let ran = 0;
+  for (const ref of refs) {
+    const a = lh.audits?.[ref.id];
+    if (!a || ['notApplicable', 'manual', 'informative'].includes(a.scoreDisplayMode) || a.score == null) continue;
+    ran += 1;
+    if (a.score < 1) failed.push({ id: ref.id, title: String(a.title ?? ref.id).replace(/`/g, '').slice(0, 140), elements: Array.isArray(a.details?.items) ? a.details.items.length : null, weight: ref.weight ?? 0 });
+  }
+  failed.sort((x, y) => (y.weight - x.weight) || ((y.elements ?? 0) - (x.elements ?? 0)));
+  return { score: Math.round(cat.score * 100), ran, failed: failed.slice(0, 12), failedCount: failed.length };
 }
 
 /** What real visitors measured, when Google has enough of them. `origin` is true when it covers the whole site, not this page. */
@@ -91,6 +115,7 @@ export async function scanSpeed(rawUrl, { timeout = 24000, have = null, both = f
     fetchedAt: have?.fetchedAt ?? fetchedAt, url,
     mobile, desktop,
     field: have?.field ?? ((m.ok && field(m.data)) || (d.ok && field(d.data)) || null),
+    access: have?.access ?? (m.ok ? accessibility(m.data) : null),
     // The page as the test phone drew it. Kept only when it's a small image.
     screenshot: have?.screenshot || (typeof shot === 'string' && shot.startsWith('data:image/') && shot.length < 120000 ? shot : ''),
   };

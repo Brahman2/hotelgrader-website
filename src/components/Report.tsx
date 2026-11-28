@@ -500,6 +500,71 @@ function Recent({ a }: { a: Assessment }) {
   );
 }
 
+function Access({ a }: { a: Assessment }) {
+  const x = a.access;
+  if (!x || (!x.lab && !x.page)) return null;
+  const lab = x.lab;
+  const page = x.page;
+  const scoreTone = (n: number) => (n >= 90 ? 'grade--a' : n >= 70 ? 'grade--c' : 'grade--f');
+  return (
+    <Section id="accessibility" title="Accessibility issues we could detect"
+      kicker="Hotel websites are a common target of accessibility claims. This is what an automated scan can see on your home page. It is not a legal review, and a clean result here does not mean a site is accessible: automated checks catch only part of what a guest using a screen reader or keyboard would run into. Not scored.">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div>
+          <div className="meta mb-2">Google’s automated checks on your home page</div>
+          {lab ? (
+            <>
+              <p className="headline text-[19px] sm:text-[22px]">
+                {lab.failedCount > 0
+                  ? <><span className="grade--f">{lab.failedCount}</span> of {lab.ran} checks failed.</>
+                  : <>All {lab.ran} checks that could run <span className="grade--a">passed</span>.</>}
+              </p>
+              <p className="text-ink-60 text-[13.5px] mt-1">Accessibility score <span className={`num ${scoreTone(lab.score)}`}>{lab.score}</span> out of 100.</p>
+              {lab.failed.length > 0 && (
+                <ul className="list-none m-0 p-0 mt-4 space-y-2">
+                  {lab.failed.slice(0, 8).map((f) => (
+                    <li key={f.id} className="flex items-baseline justify-between gap-3 text-[13.5px] border-t border-edge pt-2">
+                      <span className="min-w-0"><span className="grade--f" aria-hidden="true">✕ </span>{f.what}</span>
+                      {f.elements != null && f.elements > 0 && <span className="num text-ink-60 whitespace-nowrap">{f.elements} {f.elements === 1 ? 'place' : 'places'}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {lab.failedCount > 8 && <p className="meta mt-2">and {lab.failedCount - 8} more.</p>}
+            </>
+          ) : <p className="text-ink-60 text-[13.5px]">The automated checks haven’t run for this scan yet. They arrive with the page speed test.</p>}
+        </div>
+        <div>
+          <div className="meta mb-2">What your site tells a guest who needs an accessible room</div>
+          {page ? (
+            <>
+              <p className="headline text-[19px] sm:text-[22px]">
+                {page.link
+                  ? page.pageRead
+                    ? page.named.length > 0
+                      ? <>Your accessibility page names <span className={page.missing.length <= 1 ? 'grade--a' : 'grade--c'}>{page.named.length}</span> features.</>
+                      : <>Your accessibility page names <span className="grade--f">no room features</span> we could find.</>
+                    : <>Your home page links to an accessibility page, which we couldn’t read.</>
+                  : <>Your home page <span className="grade--f">doesn’t link</span> to an accessibility page.</>}
+              </p>
+              {page.link && <p className="text-ink-60 text-[13.5px] mt-1 truncate">Read from <a className="link" href={page.link} target="_blank" rel="noopener noreferrer">{page.link.replace(/^https?:\/\/(www\.)?/, '')}</a></p>}
+              {(page.named.length > 0 || (page.link && page.pageRead)) && (
+                <ul className="list-none m-0 p-0 mt-4 space-y-2">
+                  {page.named.map((n) => <li key={n} className="text-[13.5px] border-t border-edge pt-2"><span className="grade--a" aria-hidden="true">✓ </span>{n}</li>)}
+                  {page.link && page.pageRead && page.missing.map((n) => <li key={n} className="text-[13.5px] border-t border-edge pt-2 text-ink-60"><span className="text-ink-40" aria-hidden="true">? </span>{n} <span className="text-ink-40">not mentioned</span></li>)}
+                </ul>
+              )}
+              {!page.link && <p className="text-ink-60 text-[13.5px] mt-3">We looked for a link named “Accessibility” or “ADA” on your home page. The details may sit on your room pages or in your booking engine, which this scan doesn’t open.</p>}
+              {page.widget && <p className="meta mt-3">An accessibility widget from {page.widget} is installed. A widget doesn’t change what the checks on the left find in the page itself.</p>}
+            </>
+          ) : <p className="text-ink-60 text-[13.5px]">We couldn’t read your home page well enough to look.</p>}
+        </div>
+      </div>
+      <p className="meta mt-5 max-w-[88ch]">US rules for hotel reservations ask that accessible rooms be described in enough detail for a guest to judge whether a room meets their needs (28 CFR 36.302(e)). We only read the home page and the accessibility page it links to. Ask your web provider for a manual audit against WCAG 2.1 AA, and your counsel about what applies to you.</p>
+    </Section>
+  );
+}
+
 type Listed = NonNullable<Assessment['listings']>['majors'][number];
 
 function ListedSite({ m }: { m: Listed }) {
@@ -838,6 +903,7 @@ export default function Report({ audit, crawl = null, live = null, market }: { a
   const place = ranked.findIndex((r) => r.you) + 1;
   // The charts that belong with a part sit inside that part.
   const extras: Record<string, ReactNode> = {
+    booking: <Access a={a} />,
     rates: <Prices a={a} />,
     reputation: <><Choice a={a} audit={audit} market={market} /><Recent a={a} /><Themes a={a} /><Voice a={a} /></>,
     discovery: <Visibility a={a} />,

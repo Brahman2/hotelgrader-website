@@ -239,6 +239,44 @@ export async function scanSite(rawUrl, { now = new Date() } = {}) {
   if (sitemap.found) sitemap.urls = (sitemap.body.match(/<loc>/gi) || []).length;
   delete sitemap.body;
 
+  // ---- accessibility: the page a guest with a disability would look for, and what it says about rooms ----
+  // The link is usually in the footer: "Accessibility", "Accessibility statement", "ADA".
+  const accessLink = anchors.find((a) => /accessib|\bada\b/i.test(a.text) && hostOf(a.href) === siteHost)
+    ?? anchors.find((a) => /\/(accessib|ada)[a-z-]*\/?($|[?#])/i.test(a.href) && hostOf(a.href) === siteHost) ?? null;
+  let accessText = '';
+  if (accessLink && publicUrl(accessLink.href) && accessLink.href.split('#')[0] !== base.split('#')[0]) {
+    const page = await get(accessLink.href, { timeout: 3500 });
+    if (page.ok && /html/i.test(page.type)) {
+      const doc = parse(page.body, { comment: false });
+      for (const n of doc.querySelectorAll('script, style, svg, nav, header, footer')) n.remove();
+      accessText = tidy((doc.querySelector('main') ?? doc.querySelector('body') ?? doc).text ?? '');
+    }
+  }
+  // Features a guest needs named before booking. Each is a plain phrase we can look for.
+  const ACCESS_TERMS = [
+    ['accessible rooms', /\b(accessible|ada)\s+(guest\s*)?(room|suite|king|queen|double)s?\b|\bmobility[- ]accessible\b/i],
+    ['roll-in shower', /\broll[- ]in shower/i],
+    ['grab bars', /\bgrab (bar|rail)s?\b/i],
+    ['accessible tub or shower seat', /\b(accessible|transfer) (tub|bath)|\bshower (seat|bench|chair)/i],
+    ['hearing or visual alarms', /\b(hearing[- ](accessible|impaired)|visual (alarm|alert|notification)|strobe|tty\b|tdd\b|closed caption)/i],
+    ['door or bed measurements', /\b(\d{2})\s?(["”]|in\b|inch(es)?)\s*(wide|clear|doorway|door)|\bdoor(way)? width|\bbed height/i],
+    ['wheelchair access', /\bwheelchair/i],
+    ['accessible parking', /\b(accessible|van[- ]accessible|handicap(ped)?) parking/i],
+    ['elevator', /\b(elevator|lift) /i],
+    ['service animals', /\bservice (animal|dog)s?\b/i],
+  ];
+  const accessSource = accessText || bodyText;
+  const WIDGETS = [['accessiBe', /acsbapp|accessibe/i], ['UserWay', /userway/i], ['AudioEye', /audioeye/i], ['EqualWeb', /equalweb/i], ['Level Access', /levelaccess|essentialaccessibility/i]];
+  const access = {
+    link: accessLink?.href ?? '', linkText: accessLink?.text.slice(0, 50) ?? '',
+    pageRead: accessText.length > 200, words: accessText ? accessText.split(' ').filter(Boolean).length : 0,
+    // What the accessibility page says (or the home page, when there's no such page).
+    terms: ACCESS_TERMS.filter(([, re]) => re.test(accessSource)).map(([name]) => name),
+    readFrom: accessText ? 'accessibility page' : 'home page',
+    // A third-party accessibility widget on the page. Named, never judged.
+    widget: WIDGETS.find(([, re]) => re.test(htmlLower))?.[0] ?? '',
+  };
+
   const images = root.querySelectorAll('img');
   return {
     ok: true,
@@ -257,7 +295,7 @@ export async function scanSite(rawUrl, { now = new Date() } = {}) {
     contact: { phones: tel.slice(0, 4), emails: mail.slice(0, 4), page: pages.contact, phoneInText: /\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/.test(bodyText) },
     signup: { found: !!(signupForm || signupLink || provider), form: !!signupForm, link: signupLink?.href || '', provider },
     chat: /intercom|drift\.com|tawk\.to|livechat|zendesk|hubspot.*conversations|asksuite|quicktext|whistle|myma\.ai/i.test(htmlLower),
-    pages, social, robots, sitemap,
+    pages, social, robots, sitemap, access,
     llms: { found: llmsRes.ok && !/<html/i.test(llmsRes.body) && llmsRes.body.trim().length > 20 },
     fetchedAt,
   };

@@ -137,6 +137,11 @@ export interface Assessment {
     reviewSites: { source: string; rating: number; max: number; reviews: number | null }[];
     ranking: { domain: string; position: number }[];
   } | null;
+  /** Accessibility issues a scan can detect, and what the site says about accessible rooms. Shown, not scored. Not a legal review. */
+  access: {
+    lab: { score: number; ran: number; failedCount: number; when: string; failed: { id: string; what: string; elements: number | null }[] } | null;
+    page: { link: string; linkText: string; pageRead: boolean; readFrom: string; named: string[]; missing: string[]; widget: string; when: string } | null;
+  } | null;
   /** Our own page speed run. Timings are milliseconds. Null when it hasn't run. */
   speed: {
     when: string;

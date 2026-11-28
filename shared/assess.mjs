@@ -1050,6 +1050,56 @@ export function assess(audit, crawl = null, live = null) {
     };
   })() : null;
 
+  // Accessibility, as far as a scan can see it. Shown, not scored, and never a statement about legal compliance:
+  // automated checks catch only part of what a person using a screen reader or keyboard would hit.
+  const PLAIN = {
+    'color-contrast': 'Text that is hard to read against its background',
+    'image-alt': 'Images with no description for screen readers',
+    'input-image-alt': 'Image buttons with no description',
+    'link-name': 'Links with no readable name',
+    'button-name': 'Buttons with no readable name',
+    'label': 'Form fields with no label',
+    'select-name': 'Drop-down menus with no label',
+    'html-has-lang': 'The page does not declare its language',
+    'html-lang-valid': 'The page declares a language that is not valid',
+    'document-title': 'The page has no title',
+    'heading-order': 'Headings that skip levels',
+    'meta-viewport': 'Zooming is blocked or limited',
+    'frame-title': 'Embedded frames with no title',
+    'target-size': 'Tap targets that are too small or too close together',
+    'landmark-one-main': 'The page does not mark its main content',
+    'list': 'Lists that are not marked up as lists',
+    'listitem': 'List items outside a list',
+    'tabindex': 'Keyboard order that has been overridden',
+    'bypass': 'No way to skip past the menu with a keyboard',
+    'link-in-text-block': 'Links told apart from text by colour alone',
+    'video-caption': 'Video with no captions',
+    'duplicate-id-aria': 'Screen-reader labels that point at duplicate elements',
+    'aria-hidden-focus': 'Hidden elements that can still take keyboard focus',
+    'aria-allowed-attr': 'Screen-reader attributes used where they are not allowed',
+    'aria-required-attr': 'Screen-reader roles missing a required attribute',
+    'aria-valid-attr-value': 'Screen-reader attributes with invalid values',
+    'aria-command-name': 'Controls with no readable name',
+    'aria-input-field-name': 'Input fields with no readable name',
+    'aria-toggle-field-name': 'Toggles with no readable name',
+    'aria-dialog-name': 'Pop-ups with no readable name',
+    'label-content-name-mismatch': 'Controls whose visible text differs from their readable name',
+  };
+  const labA = sp?.access ?? null;
+  const pageA = web?.access ?? null;
+  // What a guest needs named before booking an accessible room.
+  const NEEDED = ['accessible rooms', 'roll-in shower', 'grab bars', 'hearing or visual alarms', 'door or bed measurements'];
+  const access = labA || pageA ? {
+    lab: labA ? {
+      score: labA.score, ran: labA.ran, failedCount: labA.failedCount, when: sp.fetchedAt,
+      failed: labA.failed.map((f) => ({ id: f.id, what: PLAIN[f.id] ?? f.title.replace(/\.$/, ''), elements: f.elements })),
+    } : null,
+    page: pageA && webSolid ? {
+      link: pageA.link, linkText: pageA.linkText, pageRead: pageA.pageRead, readFrom: pageA.readFrom,
+      named: pageA.terms, missing: NEEDED.filter((n) => !pageA.terms.includes(n)), widget: pageA.widget, when: web.fetchedAt,
+    } : null,
+  } : null;
+
   // The page speed run in detail, for the report. Null when the old lab scores are all we have.
   const speedView = sp ? { when: sp.fetchedAt, mobile: sp.mobile ?? null, desktop: sp.desktop ?? null, field: sp.field ?? null, screenshot: sp.screenshot || '' } : null;
 
@@ -1086,7 +1136,7 @@ export function assess(audit, crawl = null, live = null) {
     letter: graded ? letterFor(score) : '-',
     graded,
     coverage,
-    functions, priorities, strengths, identity, choice, example, ads, themes, voice, recent, visibility, listings, speed: speedView, prices, headline,
+    functions, priorities, strengths, identity, choice, example, ads, themes, voice, recent, visibility, listings, access, speed: speedView, prices, headline,
     ai: { samples, queries },
     counts: {
       checks: functions.reduce((n, f) => n + f.checks.filter((c) => c.status !== 'na').length, 0),

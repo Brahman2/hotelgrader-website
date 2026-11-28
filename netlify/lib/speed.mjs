@@ -10,7 +10,7 @@ const DAY = 24 * 60 * 60 * 1000;
 async function store() {
   try {
     const { getStore } = await import('@netlify/blobs');
-    return getStore('speed-scans-v1');
+    return getStore('speed-scans-v2');
   } catch { return null; }
 }
 
